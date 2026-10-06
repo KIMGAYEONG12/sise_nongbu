@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "641118692037",
+    "project_id": "sise-nongbu",
+    "storage_bucket": "sise-nongbu.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:641118692037:android:602c5233baab1b2677c6ac",
+        "android_client_info": {
+          "package_name": "com.sise_nongbu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCJeWN8AKVQvF0POP5SfHhrVBdcpPnPpw8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
