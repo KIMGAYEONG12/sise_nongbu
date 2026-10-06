@@ -7,6 +7,7 @@ import '../models/models.dart';
 import '../repositories/farm_repository.dart';
 import '../repositories/market_repository.dart';
 import '../services/auction_api_service.dart';
+import '../services/sample_auction_source.dart';
 import '../services/firestore_game_service.dart';
 import '../services/notification_service.dart';
 
@@ -15,9 +16,9 @@ final gameServiceProvider = Provider<FirestoreGameService>((_) => throw Unimplem
 final notificationProvider = Provider<NotificationService>((_) => throw UnimplementedError());
 final prefsProvider = Provider<SharedPreferences>((_) => throw UnimplementedError());
 
-// 키가 없으면 Fake 시세로 동작 (개발·테스트용)
+// 키가 없으면 샘플 시세로 동작 (개발·테스트용): 배추는 실제 경매현황 JSON, 나머지 품목은 Fake
 final auctionSourceProvider = Provider<AuctionSource>(
-    (_) => auctionApiKey.isEmpty ? FakeAuctionSource() : AuctionApiService(http.Client()));
+    (_) => auctionApiKey.isEmpty ? SampleAuctionSource(FakeAuctionSource()) : AuctionApiService(http.Client()));
 final marketRepoProvider = Provider((ref) => MarketRepository(ref.watch(auctionSourceProvider), ref.watch(prefsProvider)));
 final farmRepoProvider = Provider((ref) => FarmRepository(ref.watch(gameServiceProvider), ref.watch(notificationProvider)));
 
