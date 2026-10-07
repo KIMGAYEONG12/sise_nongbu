@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../core/game_rules.dart';
 import '../core/progress_rules.dart';
+import '../core/korean.dart';
 import '../models/models.dart';
 
 Map<String, dynamic>? _asMap(Object? v) => v is Map ? Map<String, dynamic>.from(v) : null;
@@ -143,8 +144,47 @@ class FirestoreGameService {
           'bonus': 0,
           'watered': 0,
           'boosted': false,
+          'usedSeed': useSeed, // 다시 심기(뽑기) 때 무엇을 돌려줄지 판단
+          'paid': useSeed ? 0 : c.seedCost,
         });
       });
+
+  /// 잘못 심은 작물을 뽑아 밭을 비운다. 심은 지 [uprootRefundWindow] 안이면 파종비(또는 씨앗)를 돌려준다.
+  /// 돌려준 내용을 사용자에게 보여줄 문구로 돌려준다.
+  Future<String> uproot(int idx, {DateTime? now}) => db.runTransaction<String>((tx) async {
+        final t = now ?? DateTime.now();
+        final plotRef = _col('plots').doc('$idx');
+        final pm = (await tx.get(plotRef)).data() ?? {};
+        final code = pm['cropCode'];
+        if (code is! String) throw StateError('비어 있는 밭이에요');
+        final c = cropOf(code);
+        final ready = (pm['readyAt'] as Timestamp?)?.toDate();
+        if (ready != null && !t.isBefore(ready)) throw StateError('다 자란 작물은 뽑지 말고 수확해 주세요');
+        final u = (await tx.get(_user)).data()!;
+        final planted = (pm['plantedAt'] as Timestamp?)?.toDate();
+        final refund = planted != null && t.difference(planted) <= uprootRefundWindow;
+        final upd = <String, dynamic>{'updatedAt': FieldValue.serverTimestamp()};
+        var msg = '${withJosa(c.name, '을', '를')} 뽑았어요. 빈 밭에 다시 심어 주세요';
+        if (refund) {
+          // 파종으로 얻은 경험치는 되돌린다 (심었다 뽑기를 반복해 경험치를 얻지 못하게)
+          final exp = _int(u['exp']) - 5;
+          upd['exp'] = exp < 0 ? 0 : exp;
+          if (pm['usedSeed'] == true) {
+            upd['items.${seedKey(code)}'] = FieldValue.increment(1);
+            msg = '${withJosa(c.name, '을', '를')} 뽑고 씨앗 1개를 돌려받았어요';
+          } else {
+            final paid = pm['paid'] is num ? (pm['paid'] as num).toInt() : c.seedCost;
+            upd['money'] = _int(u['money']) + paid;
+            upd['totalProfit'] = _int(u['totalProfit']) + paid;
+            msg = '${withJosa(c.name, '을', '를')} 뽑고 파종비 ${_comma(paid)}원을 돌려받았어요';
+          }
+        }
+        tx.set(plotRef, _emptyPlot());
+        tx.update(_user, upd);
+        return msg;
+      });
+
+  static String _comma(int v) => v.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
 
   /// 수확해서 창고에 넣고, 수확량(kg)을 돌려준다. 영양제로 늘어난 수확량이 반영된다.
   Future<double> harvest(int idx, CropSpec c, {DateTime? now}) => db.runTransaction<double>((tx) async {

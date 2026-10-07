@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/progress_rules.dart';
-import '../models/models.dart';
 import '../services/weather_service.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
-import '../widgets/farm_scene.dart';
 import 'about_page.dart';
 import 'achievement_page.dart';
 import 'crop_growth_page.dart';
 import 'encyclopedia_page.dart';
-import 'farm_actions.dart';
 import 'fund_page.dart';
 import 'match_game_page.dart';
 import 'mission_page.dart';
@@ -24,20 +21,9 @@ class FarmPage extends ConsumerWidget {
 
   void _push(BuildContext context, Widget page) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
 
-  void _onPlot(BuildContext context, WidgetRef ref, Plot p, DateTime now) {
-    if (p.isEmpty) {
-      showPlantSheet(context, ref, p);
-    } else if (p.isReady(now)) {
-      harvestPlot(context, ref, p);
-    } else {
-      _push(context, CropGrowthPage(initialPlot: p.index));
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(userDataProvider);
-    final plots = ref.watch(plotsProvider);
     final now = ref.watch(tickProvider).valueOrNull ?? DateTime.now();
     final tag = dayTag(now);
     final dailyDone = dailyMissions.where((m) => periodCount(user.daily, tag, m.key) >= m.target).length;
@@ -57,8 +43,9 @@ class FarmPage extends ConsumerWidget {
     final topInset = MediaQuery.paddingOf(context).top;
 
     return LayoutBuilder(builder: (context, box) {
-      // 첫 화면 한 장(시안의 농장 화면)을 꽉 채우고, 그 아래로 작물 관리·바로가기가 이어진다.
-      final heroH = box.maxHeight.isFinite && box.maxHeight > 640 ? box.maxHeight : 640.0;
+      // 시안처럼 첫 화면에는 농장 화면(프로필·날씨 → 농장 그림)만 하단 탭 위까지 꽉 차게 보이고,
+      // 작물 관리·바로가기는 아래로 스크롤해야 나온다.
+      final heroH = box.maxHeight.isFinite && box.maxHeight > 560 ? box.maxHeight : 560.0;
       return ListView(padding: EdgeInsets.zero, children: [
         SizedBox(
           height: heroH,
@@ -73,9 +60,7 @@ class FarmPage extends ConsumerWidget {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(user.nickname, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20))),
                     const SizedBox(height: 3),
-                    Text('Lv.${lv.level}', style: const TextStyle(fontSize: 14, color: Color(0xFF2B3A30), fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 4),
-                    SizedBox(width: 84, child: ThinBar(value: lv.ratio, height: 5, track: Colors.white70)),
+                    Text('Lv. ${lv.level}', style: const TextStyle(fontSize: 14, color: Color(0xFF2B3A30), fontWeight: FontWeight.w700)),
                   ]),
                 ),
                 MoneyPill(money: user.money),
@@ -84,11 +69,8 @@ class FarmPage extends ConsumerWidget {
               const SizedBox(height: 10),
               _WeatherCard(weather: ref.watch(weatherProvider)),
             ]),
-            board: plots.when(
-              loading: () => const SizedBox(height: 120, child: Center(child: CircularProgressIndicator())),
-              error: (e, _) => SoftCard(child: Text('밭을 불러오지 못했어요\n${errMsg(e)}')),
-              data: (list) => SoilBoard(plots: list, now: now, maxTile: 64, grass: true, onTap: (p) => _onPlot(context, ref, p, now)),
-            ),
+            // 그림 속 밭을 누르면 작물 관리(심기·물주기·수확)로 간다
+            onField: () => _push(context, const CropGrowthPage()),
             decor: user.decor,
           ),
         ),
@@ -126,73 +108,90 @@ class FarmPage extends ConsumerWidget {
   }
 }
 
-/// 시안의 농장 화면 한 장: 하늘(프로필·날씨) → 집이 있는 농장 일러스트(가리지 않고 전부 보이게) → 아래 들판의 밭 판
+/// 시안의 농장 화면: 하늘 위 프로필·날씨 → 하단 탭 위까지 이어지는 농장 일러스트 전체(집·연못·밭).
+/// 그림은 시안처럼 아무것도 올리지 않고 그대로 보여 주고, 그림 속 밭을 누르면 작물 관리 화면으로 간다.
 class _FarmHero extends StatelessWidget {
-  const _FarmHero({required this.topInset, required this.header, required this.board, required this.decor});
+  const _FarmHero({required this.topInset, required this.header, required this.onField, required this.decor});
   final double topInset;
   final Widget header;
-  final Widget board;
+  final VoidCallback onField;
   final int decor;
 
-  static const _imgAspect = 936 / 714;
+  // 그림(farm_scene.jpg) 좌표 기준 크기 (실제 파일은 2배 고해상도 1872×1428)
+  static const _srcW = 936.0, _srcH = 714.0;
+
+  /// 그림 확대 한도. 원본이 작아서 이보다 키우면 깨져 보인다.
+  static const maxScale = 1.4;
+
+  /// 프로필·날씨 카드 아래 끝 (그림은 이보다 36px 위에서 시작해 하늘과 겹친다)
+  static double _headerBottom(double topInset) => topInset + 150;
+
+  /// 그림 속 밭(갈색 흙)이 그려진 자리 (원본 픽셀 좌표: 왼쪽, 위, 오른쪽, 아래)
+  static const _field = Rect.fromLTRB(280, 560, 680, 714);
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
-        final w = box.maxWidth;
-        final imgH = w / _imgAspect;
-        // 일러스트 위치: 날씨 카드 바로 아래쪽이 일러스트 윗부분과 살짝 겹치게 (시안과 같은 배치)
-        final imgTop = topInset + 150;
-        return Stack(children: [
-          // 하늘
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 0,
-            height: imgTop + 40,
-            child: const DecoratedBox(
+        final w = box.maxWidth, h = box.maxHeight;
+        // 화면 폭에 맞춘 뒤 조금만(최대 1.4배) 키운다. 넘치는 양옆은 똑같이 잘라 집과 연못이 다 보이게.
+        // 그림 아래 끝은 하단 탭 바로 위에 붙이고, 날씨 카드와 그림 사이는 하늘·구름으로 이어진다.
+        final baseH = w * _srcH / _srcW;
+        final headerBottom = _headerBottom(topInset);
+        final scale = ((h - headerBottom + 36) / baseH).clamp(1.0, maxScale).toDouble();
+        final imgW = w * scale, imgH = baseH * scale;
+        final imgTop = h - imgH; // 그림 아래 끝 = 하단 탭 바로 위
+        final imgLeft = -(imgW - w) / 2;
+        final k = imgW / _srcW; // 원본 1px → 화면 크기
+
+        final field = Rect.fromLTRB(imgLeft + _field.left * k, imgTop + _field.top * k, imgLeft + _field.right * k, imgTop + _field.bottom * k);
+
+        return Stack(clipBehavior: Clip.hardEdge, children: [
+          // 하늘 (그림 윗부분 색으로 이어진다)
+          const Positioned.fill(
+            child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF7CCDF4), Color(0xFFB4E6F7), Color(0xFFCDF0F6)]),
+                gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF79CBF3), Color(0xFFB1E5F6), Color(0xFFD3F0F4)], stops: [0, .45, 1]),
               ),
             ),
           ),
           Positioned(left: -20, top: topInset + 58, child: const _Cloud(width: 130)),
           Positioned(right: -10, top: topInset + 8, child: const _Cloud(width: 110)),
-          Positioned(right: 70, top: topInset + 120, child: const _Cloud(width: 80)),
-          // 들판 (일러스트 아래쪽 색을 이어 받는다)
+          Positioned(right: 60, top: topInset + 125, child: const _Cloud(width: 84)),
+          // 날씨 카드와 그림 사이 하늘이 넓을 때 채워 주는 구름
+          if (imgTop - (topInset + 150) > 70) ...[
+            Positioned(left: 24, top: topInset + 170, child: const _Cloud(width: 92)),
+            Positioned(right: 18, top: (topInset + 150 + imgTop) / 2 - 10, child: const _Cloud(width: 120)),
+          ],
+          // 농장 일러스트: 원본에 가까운 크기로 선명하게, 윗가장자리만 하늘에 녹아들게
           Positioned(
-            left: 0,
-            right: 0,
-            top: imgTop + imgH - 30,
-            bottom: 0,
-            child: const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF8DA94A), Color(0xFF8FC25A), Color(0xFFB5DC86)]),
-              ),
-            ),
-          ),
-          // 농장 일러스트 (위·아래 가장자리는 하늘·들판에 자연스럽게 녹아들게)
-          Positioned(
-            left: 0,
-            right: 0,
+            left: imgLeft,
             top: imgTop,
+            width: imgW,
             height: imgH,
             child: ShaderMask(
               blendMode: BlendMode.dstIn,
               shaderCallback: (r) => const LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Colors.white, Colors.white, Colors.transparent],
-                stops: [0, .07, .9, 1],
+                colors: [Colors.transparent, Colors.white],
+                stops: [0, .12],
               ).createShader(r),
-              child: Image.asset(AppImages.farmScene, fit: BoxFit.fill, filterQuality: FilterQuality.medium),
+              child: Image.asset(AppImages.farmScene, fit: BoxFit.fill, filterQuality: FilterQuality.high),
             ),
           ),
-          if (decor > 0)
-            Positioned(left: 14, top: imgTop + imgH - 44, child: Text('🌻' * decor, style: const TextStyle(fontSize: 22, height: 1))),
           // 프로필·날씨
           Positioned(left: 16, right: 6, top: topInset + 8, child: header),
-          // 밭 판: 일러스트 아래 들판에 놓는다. 화면이 짧으면 일러스트 맨 아래(그림 속 밭 자리)와만 겹친다.
-          Positioned(left: w * .1, right: w * .1, bottom: 16, child: board),
+          // 그림 속 밭: 눌러서 작물 관리로 (화면에는 아무것도 덧그리지 않는다)
+          Positioned.fromRect(
+            rect: field,
+            child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: onField),
+          ),
+          // 포인트 상점에서 산 농장 장식(해바라기)은 밭 왼쪽 위에 작게
+          if (decor > 0)
+            Positioned(
+              left: (field.left - 6).clamp(4.0, w).toDouble(),
+              top: field.top - 6,
+              child: IgnorePointer(child: Text('🌻' * decor, style: const TextStyle(fontSize: 16, height: 1))),
+            ),
         ]);
       });
 }
@@ -236,7 +235,7 @@ class _WeatherCard extends StatelessWidget {
   static String _tip(String label) {
     if (label.contains('비') || label.contains('소나기') || label.contains('이슬비') || label.contains('뇌우')) return '우산 챙기고\n농장 둘러봐요!';
     if (label.contains('눈')) return '따뜻하게 입고\n농장에 가요!';
-    if (label.contains('맑')) return '농장 나들이\n하기 좋은 날이에요!';
+    if (label.contains('맑')) return '작물 성장에\n좋은 날씨예요!';
     return '선선한 날,\n농장을 살펴봐요!';
   }
 

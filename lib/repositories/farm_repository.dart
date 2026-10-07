@@ -38,6 +38,15 @@ class FarmRepository {
     await _noti.scheduleHarvest(idx, c.name, readyAt);
   }
 
+  /// 잘못 심은 작물을 뽑는다. 수확 알림도 지운다. 사용자에게 보여줄 문구를 돌려준다.
+  Future<String> uproot(int idx) async {
+    final msg = await _db.uproot(idx);
+    try {
+      await _noti.cancel(idx);
+    } catch (_) {}
+    return msg;
+  }
+
   /// 수확하고 수확량(kg)을 돌려준다.
   Future<double> harvest(int idx, CropSpec c) async {
     final kg = await _db.harvest(idx, c);

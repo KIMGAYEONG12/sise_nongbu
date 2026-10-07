@@ -29,6 +29,9 @@ void main() {
   test('오래된 서버 시세는 fresh가 아니다 (앱이 직접 API를 부른다)', () {
     final s = ServerMarket.fromDoc(doc(updatedAt: DateTime.now().subtract(const Duration(hours: 3))))!;
     expect(s.fresh, isFalse);
+    // 앱에 키가 있으면 직접 조회, 키가 없으면 오래됐어도 실제 시세인 서버 값을 쓴다
+    expect(s.usable(appHasKey: true), isFalse);
+    expect(s.usable(appHasKey: false), isTrue);
   });
 
   test('최근 7일 그래프: 오래된 날 → 오늘, 없는 날은 null', () {

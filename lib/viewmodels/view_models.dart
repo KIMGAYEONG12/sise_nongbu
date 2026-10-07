@@ -33,6 +33,9 @@ final authStateProvider =
 /// 튜토리얼을 막 끝냈으면 true. 이때는 예전에 쓰던 게스트(익명) 세션이 남아 있어도 로그인·회원가입 화면을 먼저 보여준다.
 final loginAfterTutorialProvider = StateProvider<bool>((_) => false);
 
+/// 튜토리얼을 다 봤는지 저장하는 키 (shared_preferences). 로그아웃하면 지워서 다음 실행 때 다시 보여준다.
+const tutorialDoneKey = 'tutorialDone';
+
 /// 회원가입 직후 닉네임을 Firestore 문서에 넣기 위해 잠깐 들고 있는 값
 final pendingNicknameProvider = StateProvider<String?>((_) => null);
 
@@ -83,7 +86,7 @@ final weatherProvider =
 final priceHistoryProvider = FutureProvider.autoDispose
     .family<List<double?>, String>((ref, code) async {
   final server = ref.read(serverMarketProvider).valueOrNull;
-  if (server != null && server.fresh) {
+  if (server != null && server.usable(appHasKey: auctionApiKey.isNotEmpty)) {
     final h = server.history(code);
     if (h.any((v) => v != null)) return h;
   }
@@ -94,7 +97,7 @@ final priceVolumeProvider =
   final asOf = ref.read(marketViewModelProvider).valueOrNull?[code]?.asOf ??
       DateTime.now();
   final server = ref.read(serverMarketProvider).valueOrNull;
-  if (server != null && server.fresh) {
+  if (server != null && server.usable(appHasKey: auctionApiKey.isNotEmpty)) {
     final v = server.volumeKg(code, asOf);
     if (v != null) return v;
   }
@@ -120,14 +123,14 @@ class MarketViewModel extends AsyncNotifier<Map<String, AuctionPrice>> {
   bool _busy = false;
 
   /// 서버 시세가 최근 것이면 true. 이때는 앱이 API를 따로 부르지 않는다.
-  bool get _serverFresh => ref.read(serverMarketProvider).valueOrNull?.fresh ?? false;
+  bool get _serverFresh => ref.read(serverMarketProvider).valueOrNull?.usable(appHasKey: auctionApiKey.isNotEmpty) ?? false;
 
   @override
   Future<Map<String, AuctionPrice>> build() async {
     // 0) 서버가 Firestore에 새 시세를 저장하는 순간 화면을 바로 바꾼다
     ref.listen<AsyncValue<ServerMarket?>>(serverMarketProvider, (_, next) {
       final s = next.valueOrNull;
-      if (s != null && s.fresh) state = AsyncData(s.prices);
+      if (s != null && s.usable(appHasKey: auctionApiKey.isNotEmpty)) state = AsyncData(s.prices);
     });
     // 1) 서버 시세가 끊겼을 때만: 5분마다 자동 새로고침  2) 앱을 다시 화면에 띄울 때(백그라운드 → 복귀) 새로고침
     final timer =
@@ -141,7 +144,7 @@ class MarketViewModel extends AsyncNotifier<Map<String, AuctionPrice>> {
     // 처음 열 때: 서버 시세가 최근 것이면 그걸로 시작, 아니면 앱이 API로 직접 받는다
     try {
       final s = await ref.read(serverMarketProvider.future).timeout(const Duration(seconds: 6));
-      if (s != null && s.fresh) return s.prices;
+      if (s != null && s.usable(appHasKey: auctionApiKey.isNotEmpty)) return s.prices;
     } catch (_) {
       // 서버 시세를 못 읽으면 아래 직접 조회로 넘어간다
     }
@@ -155,7 +158,7 @@ class MarketViewModel extends AsyncNotifier<Map<String, AuctionPrice>> {
       try {
         final snap = await FirebaseFirestore.instance.doc(ServerMarket.path).get(const GetOptions(source: Source.server));
         final s = ServerMarket.fromDoc(snap.data());
-        if (s != null && s.fresh) {
+        if (s != null && s.usable(appHasKey: auctionApiKey.isNotEmpty)) {
           state = AsyncData(s.prices);
           return;
         }
@@ -212,6 +215,9 @@ class FarmViewModel {
     }
     return _repo.harvest(p.index, c);
   }
+
+  /// 잘못 심은 작물 뽑기 (다시 심기)
+  Future<String> uproot(Plot p) => _repo.uproot(p.index);
 
   Future<void> useItem(Plot p, String key) =>
       _repo.useItem(p.index, cropOf(p.cropCode!), key);

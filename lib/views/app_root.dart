@@ -16,16 +16,15 @@ class AppRoot extends ConsumerStatefulWidget {
 }
 
 class _AppRootState extends ConsumerState<AppRoot> {
-  static const _tutorialKey = 'tutorialDone';
   int _stage = 0; // 0 스플래시, 1 튜토리얼, 2 앱
 
   void _afterSplash() {
-    final seen = ref.read(prefsProvider).getBool(_tutorialKey) ?? false;
+    final seen = ref.read(prefsProvider).getBool(tutorialDoneKey) ?? false;
     setState(() => _stage = seen ? 2 : 1);
   }
 
   void _afterTutorial() {
-    ref.read(prefsProvider).setBool(_tutorialKey, true);
+    ref.read(prefsProvider).setBool(tutorialDoneKey, true);
     // 튜토리얼이 끝나면 로그인·회원가입 화면으로 간다 (게스트 세션이 남아 있어도 한 번은 보여준다)
     ref.read(loginAfterTutorialProvider.notifier).state = true;
     setState(() => _stage = 2);

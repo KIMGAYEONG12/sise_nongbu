@@ -24,6 +24,10 @@ class ServerMarket {
 
   bool get fresh => updatedAt != null && DateTime.now().difference(updatedAt!) < staleAfter && prices.isNotEmpty;
 
+  /// 앱이 이 서버 시세를 써도 되는지.
+  /// 최근 것이면 당연히 쓰고, 앱에 API 키가 없으면(직접 조회 불가) 조금 오래됐어도 가짜 샘플 대신 실제 시세인 이쪽을 쓴다.
+  bool usable({required bool appHasKey}) => prices.isNotEmpty && (fresh || !appHasKey);
+
   static String _two(int v) => v.toString().padLeft(2, '0');
   static String ymd(DateTime d) => '${d.year}-${_two(d.month)}-${_two(d.day)}';
 

@@ -96,7 +96,7 @@ Android(에뮬레이터·실기기)만 실행·배포한다.
 | 창고 (탭 3)      | 입고 목록, 신선도, 현재 시세 기준 예상 대금, 출하          | `ListView`, `ListTile`, `ElevatedButton`, `AlertDialog`, `SnackBar`             |
 | 거래 기록 (탭 4) | 출하 내역, 누적 수익, 품목별 손익                          | `ListView`, `ListTile`, `Chip`                                                  |
 | 품목 상세 (선택) | 시세 추이 차트, 목표 가격 설정                             | `CustomPaint` 또는 차트 패키지, `Slider`, `TextFormField`                       |
-| 앱 정보          | 출처 표기, 데모 모드 스위치, 가상 게임 안내                | `ListView`, `SwitchListTile`, `AboutListTile`                                   |
+| 앱 정보          | 출처 표기, 데모 모드 스위치(설명 포함), 가상 게임 안내     | `ListView`, `SwitchListTile`, `AboutListTile`                                   |
 
 공통으로 데이터 로딩 중에는 `CircularProgressIndicator`, 실패 시 오류 문구와 재시도 버튼을 보여준다. 시세 조회가 실패해도 마지막 시세로 게임은 계속된다.
 
@@ -436,7 +436,7 @@ https://apis.data.go.kr/<기관코드>/<서비스경로>/<오퍼레이션>
 
 **FCM 푸시**
 
-- `NotificationService`에서 FCM 토큰을 발급받고, 확인용으로 앱 화면이나 로그에 표시한다.
+- `NotificationService`에서 FCM 토큰을 발급받고, 개발 중에는 터미널 로그(`FCM 토큰: ...`)에만 표시한다. (앱 화면에는 보이지 않음)
 - Firebase 콘솔의 테스트 메시지로 수신을 확인한다. 포그라운드, 백그라운드, 종료 상태를 각각 시연할 수 있게 한다.
 - 백그라운드 메시지 핸들러는 최상위 함수로 등록한다.
 - 앱이 켜져 있는 동안(포그라운드) 받은 FCM 메시지는 Android가 알림을 자동으로 띄우지 않으므로, 앱에서 로컬 알림이나 스낵바로 표시한다.

@@ -48,6 +48,9 @@ int? plotExpandCost(int currentPlots) {
   return 50000 * (steps < 0 ? 1 : steps + 1);
 }
 
+/// 잘못 심은 작물을 뽑을 때, 심은 지 이 시간 안이면 파종비(또는 씨앗)를 돌려준다.
+const uprootRefundWindow = Duration(minutes: 10);
+
 const greenhouseCost = 100000;
 const greenhouseSpeed = 0.8; // 하우스가 있으면 성장 시간 × 0.8
 

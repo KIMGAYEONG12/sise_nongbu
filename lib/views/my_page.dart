@@ -7,6 +7,7 @@ import 'about_page.dart';
 import 'achievement_page.dart';
 import 'support_page.dart';
 import 'trade_history_page.dart';
+import 'tutorial_page.dart';
 
 /// MY 탭: 프로필, 보유 금액, 내 농장·통계·업적·고객센터, 로그아웃
 class MyPage extends ConsumerWidget {
@@ -25,36 +26,6 @@ class MyPage extends ConsumerWidget {
     await runGuarded(context, () => ref.read(farmRepoProvider).setNickname(name), ok: '닉네임을 바꿨어요');
   }
 
-  void _stats(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.bg,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => Consumer(builder: (_, r, __) {
-        final u = r.watch(userDataProvider);
-        Widget line(String a, String b) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 5),
-              child: Row(children: [Text(a, style: const TextStyle(fontWeight: FontWeight.w700)), const Spacer(), Text(b, style: const TextStyle(fontWeight: FontWeight.w900))]),
-            );
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Text('농작물 통계', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 10),
-              line('누적 수익', won(u.totalProfit)),
-              line('파종', '${u.stat('plant')}회'),
-              line('수확', '${u.stat('harvest')}회'),
-              line('판매', '${u.stat('sell')}회'),
-              const Divider(),
-              for (final c in crops) line('${c.emoji} ${c.name} 수확', '${u.stat('crop_${c.code}')}회'),
-            ]),
-          ),
-        );
-      }),
-    );
-  }
-
   Future<void> _logout(BuildContext context, WidgetRef ref) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -69,6 +40,9 @@ class MyPage extends ConsumerWidget {
     );
     if (ok != true || !context.mounted) return;
     ref.read(shellIndexProvider.notifier).state = 1;
+    // 다음에 앱을 켜면 스플래시 → 튜토리얼 → 로그인 순서로 다시 보여준다
+    await ref.read(prefsProvider).remove(tutorialDoneKey);
+    if (!context.mounted) return;
     await runGuarded(context, ref.read(authServiceProvider).signOut);
   }
 
@@ -116,7 +90,7 @@ class MyPage extends ConsumerWidget {
       const SizedBox(height: 18),
       SoftCard(
         color: Colors.white,
-        onTap: () => _stats(context, ref),
+        onTap: () => showCropStats(context),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Row(children: [
           const SizedBox(
@@ -145,10 +119,11 @@ class MyPage extends ConsumerWidget {
         padding: EdgeInsets.zero,
         child: Column(children: [
           menu(Icons.home_work_outlined, '내 농장', () => ref.read(shellIndexProvider.notifier).state = 1),
-          menu(Icons.bar_chart_rounded, '농작물 통계', () => _stats(context, ref)),
+          menu(Icons.bar_chart_rounded, '농작물 통계', () => showCropStats(context)),
           menu(Icons.emoji_events_outlined, '업적', () => _push(context, const AchievementPage())),
           menu(Icons.receipt_long_outlined, '거래 기록', () => _push(context, const TradeHistoryPage())),
           menu(Icons.support_agent_rounded, '고객센터', () => _push(context, const SupportPage())),
+          menu(Icons.menu_book_rounded, '튜토리얼 다시 보기', () => _push(context, TutorialPage(onDone: () => Navigator.of(context).pop()))),
           menu(Icons.info_outline_rounded, '앱 정보', () => _push(context, const AboutPage())),
           menu(Icons.logout_rounded, '로그아웃', () => _logout(context, ref), last: true),
         ]),
@@ -156,3 +131,35 @@ class MyPage extends ConsumerWidget {
     ]);
   }
 }
+
+/// 농작물 통계 (누적 수익, 파종·수확·판매 횟수, 작물별 수확 횟수). MY 화면과 고객센터에서 연다.
+void showCropStats(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: AppColors.bg,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (_) => Consumer(builder: (_, r, __) {
+      final u = r.watch(userDataProvider);
+      Widget line(String a, String b) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Row(children: [Text(a, style: const TextStyle(fontWeight: FontWeight.w700)), const Spacer(), Text(b, style: const TextStyle(fontWeight: FontWeight.w900))]),
+          );
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('농작물 통계', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 10),
+            line('누적 수익', won(u.totalProfit)),
+            line('파종', '${u.stat('plant')}회'),
+            line('수확', '${u.stat('harvest')}회'),
+            line('판매', '${u.stat('sell')}회'),
+            const Divider(),
+            for (final c in crops) line('${c.emoji} ${c.name} 수확', '${u.stat('crop_${c.code}')}회'),
+          ]),
+        ),
+      );
+    }),
+  );
+}
+
