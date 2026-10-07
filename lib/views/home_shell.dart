@@ -26,6 +26,8 @@ class HomeShell extends ConsumerWidget {
     return Scaffold(
       body: GameBackground(
         child: SafeArea(
+          // 농장 탭은 시안처럼 하늘을 상태바 뒤까지 그리므로 위쪽 여백을 직접 처리한다
+          top: i != 1,
           bottom: false,
           child: IndexedStack(index: i, children: const [MarketPage(), FarmPage(), InventoryPage(), ShopPage(), MyPage()]),
         ),

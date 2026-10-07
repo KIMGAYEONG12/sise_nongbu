@@ -6,6 +6,7 @@ import '../models/models.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
 import 'point_shop_page.dart';
+import '../core/korean.dart';
 
 /// 상점 탭: 일반 상점(씨앗·소모품·시설)과 포인트 상점
 class ShopPage extends ConsumerStatefulWidget {
@@ -72,7 +73,7 @@ class _ShopPageState extends ConsumerState<ShopPage> {
                 const SectionTitle('성장 아이템'),
                 for (final i in consumables)
                   _row(i.emoji, i.name, '${i.desc}\n보유 ${user.item(i.key)}개',
-                      _buyBtn(won(i.price), user.money < i.price ? null : () => runGuarded(context, () => vm.buyConsumable(i), ok: '${i.name}을(를) 샀어요'))),
+                      _buyBtn(won(i.price), user.money < i.price ? null : () => runGuarded(context, () => vm.buyConsumable(i), ok: '${withJosa(i.name, '을', '를')} 샀어요'))),
                 const SectionTitle('농장 시설'),
                 _row('🟫', '밭 넓히기', plots.length >= maxPlots ? '최대 $maxPlots칸까지 넓혔어요' : '${plots.length}칸 → ${plots.length + plotExpandStep}칸',
                     _buyBtn(expandCost == null ? '최대' : won(expandCost), expandCost == null || user.money < expandCost ? null : () => runGuarded(context, vm.expandPlots, ok: '밭을 넓혔어요 🌾'))),

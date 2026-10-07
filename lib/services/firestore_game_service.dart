@@ -50,6 +50,44 @@ class FirestoreGameService {
     await b.commit();
   }
 
+  /// 테스트 도구: 보유 자금을 시작 자금(100,000원)으로 되돌린다.
+  Future<void> resetMoney() => _user.update({'money': startMoney, 'updatedAt': FieldValue.serverTimestamp()});
+
+  /// 성장 시간이 줄어든 작물(예: 배추 4시간 → 50분)이 예전 시간으로 심겨 있으면 새 시간에 맞춘다.
+  /// 바뀐 밭의 (번호, 작물, 새 수확 시각)을 돌려준다.
+  Future<List<(int, CropSpec, DateTime)>> fitGrowTimes({DateTime? now}) async {
+    final t = now ?? DateTime.now();
+    final snap = await _col('plots').get();
+    final b = db.batch();
+    final changed = <(int, CropSpec, DateTime)>[];
+    for (final d in snap.docs) {
+      final m = d.data();
+      final code = m['cropCode'];
+      if (code is! String) continue;
+      final idx = int.tryParse(d.id);
+      if (idx == null) continue;
+      CropSpec c;
+      try {
+        c = cropOf(code);
+      } catch (_) {
+        continue;
+      }
+      final ready = (m['readyAt'] as Timestamp?)?.toDate();
+      if (ready == null || !ready.isAfter(t)) continue;
+      final full = c.growMinutes * 60 * 1000;
+      final growMs = _int(m['growMs']);
+      if (growMs <= full) continue;
+      final planted = ready.subtract(Duration(milliseconds: growMs));
+      var r = planted.add(Duration(milliseconds: full));
+      if (r.isBefore(t)) r = t;
+      if (!r.isBefore(ready)) continue;
+      b.update(d.reference, {'readyAt': Timestamp.fromDate(r), 'growMs': full});
+      changed.add((idx, c, r));
+    }
+    if (changed.isNotEmpty) await b.commit();
+    return changed;
+  }
+
   Future<void> setNickname(String name) => _user.update({'nickname': name.trim(), 'updatedAt': FieldValue.serverTimestamp()});
 
   Stream<Map<String, dynamic>> user() => _user.snapshots().map((s) => s.data() ?? {});

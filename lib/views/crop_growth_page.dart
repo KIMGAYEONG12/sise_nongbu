@@ -8,6 +8,7 @@ import '../widgets/common.dart';
 import '../widgets/farm_scene.dart';
 import 'farm_actions.dart';
 import 'mission_page.dart';
+import '../core/korean.dart';
 
 /// 작물 성장 화면: 선택한 밭의 진행률, 전체 밭, 물주기·영양제·성장촉진제, 오늘의 미션
 class CropGrowthPage extends ConsumerStatefulWidget {
@@ -46,10 +47,10 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
     }
     final have = ref.read(userDataProvider).item(key);
     if (have <= 0) {
-      showMsg(context, '${itemName(key)}이(가) 없어요. 상점에서 구매해 주세요');
+      showMsg(context, '${withJosa(itemName(key), '이', '가')} 없어요. 상점에서 구매해 주세요');
       return;
     }
-    await runGuarded(context, () => ref.read(farmViewModelProvider).useItem(p, key), ok: '${itemName(key)}을(를) 사용했어요');
+    await runGuarded(context, () => ref.read(farmViewModelProvider).useItem(p, key), ok: '${withJosa(itemName(key), '을', '를')} 사용했어요');
   }
 
   @override

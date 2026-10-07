@@ -449,3 +449,69 @@ class FarmerAvatar extends StatelessWidget {
         child: Text('👩‍🌾', style: TextStyle(fontSize: size * .56, height: 1)),
       );
 }
+
+/// 글자를 한 줄 입력받는 대화상자. 취소하면 null.
+///
+/// 컨트롤러를 대화상자 위젯 안에서 만들고 정리한다. 예전처럼 showDialog가 끝나자마자 바깥에서 dispose하면
+/// 닫히는 애니메이션 동안 아직 남아 있는 입력칸이 정리된 컨트롤러를 써서
+/// "'_dependents.isEmpty': is not true" 빨간 화면이 떴다.
+Future<String?> showTextInputDialog(
+  BuildContext context, {
+  required String title,
+  String initial = '',
+  String? hint,
+  String? message,
+  String okLabel = '저장',
+  int? maxLength,
+  TextInputType? keyboardType,
+}) =>
+    showDialog<String>(
+      context: context,
+      builder: (_) => _TextInputDialog(title: title, initial: initial, hint: hint, message: message, okLabel: okLabel, maxLength: maxLength, keyboardType: keyboardType),
+    );
+
+class _TextInputDialog extends StatefulWidget {
+  const _TextInputDialog({required this.title, required this.initial, required this.okLabel, this.hint, this.message, this.maxLength, this.keyboardType});
+  final String title, initial, okLabel;
+  final String? hint, message;
+  final int? maxLength;
+  final TextInputType? keyboardType;
+  @override
+  State<_TextInputDialog> createState() => _TextInputDialogState();
+}
+
+class _TextInputDialogState extends State<_TextInputDialog> {
+  late final TextEditingController _c = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  void _ok() => Navigator.of(context).pop(_c.text.trim());
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: Text(widget.title),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (widget.message != null) ...[Text(widget.message!, style: const TextStyle(fontSize: 13)), const SizedBox(height: 12)],
+          TextField(
+            controller: _c,
+            autofocus: true,
+            maxLength: widget.maxLength,
+            keyboardType: widget.keyboardType ?? TextInputType.text,
+            textInputAction: TextInputAction.done,
+            // 한글 조합 입력이 끊기지 않도록 자동 수정·추천을 끈다
+            autocorrect: false,
+            enableSuggestions: false,
+            decoration: InputDecoration(hintText: widget.hint),
+            onSubmitted: (_) => _ok(),
+          ),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('취소')),
+          TextButton(onPressed: _ok, child: Text(widget.okLabel)),
+        ],
+      );
+}

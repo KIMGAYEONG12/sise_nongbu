@@ -5,6 +5,7 @@ import '../core/game_rules.dart';
 import '../core/progress_rules.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
+import '../core/korean.dart';
 
 /// 포인트 상점 목록 (상점 탭과 독립 화면에서 같이 쓴다)
 class PointShopBody extends ConsumerWidget {
@@ -12,7 +13,7 @@ class PointShopBody extends ConsumerWidget {
 
   Future<void> _buy(BuildContext context, WidgetRef ref, PointItem item) async {
     String? code;
-    var msg = '${item.name}을(를) 받았어요';
+    var msg = '${withJosa(item.name, '을', '를')} 받았어요';
     if (item.key == pointRareSeed) {
       final c = crops[Random().nextInt(crops.length)];
       code = c.code;

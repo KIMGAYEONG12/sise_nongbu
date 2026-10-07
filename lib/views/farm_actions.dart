@@ -6,6 +6,7 @@ import '../models/models.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
 import 'harvest_result_page.dart';
+import '../core/korean.dart';
 
 /// 성장 시간 문구 (예: 4시간, 6분, 24초)
 String durText(Duration d) {
@@ -41,7 +42,7 @@ Future<void> showPlantSheet(BuildContext context, WidgetRef ref, Plot plot) {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     onTap: () {
                       Navigator.pop(sheetContext);
-                      runGuarded(context, () => ref.read(farmViewModelProvider).plant(plot.index, c), ok: '${c.name}을(를) 심었어요 🌱');
+                      runGuarded(context, () => ref.read(farmViewModelProvider).plant(plot.index, c), ok: '${withJosa(c.name, '을', '를')} 심었어요 🌱');
                     },
                     child: Row(children: [
                       EmojiBadge(c.emoji),

@@ -54,31 +54,47 @@ class FarmPage extends ConsumerWidget {
       ('🧾', '거래 기록', () => _push(context, const TradeHistoryPage()), null),
     ];
 
-    return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [
-      // 시안: 노란 원 안의 농부 아바타 · 닉네임 · Lv · 금화 알약 · 톱니바퀴
-      Row(children: [
-        const FarmerAvatar(size: 58),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(user.nickname, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20))),
-            const SizedBox(height: 3),
-            Text('Lv.${lv.level}', style: const TextStyle(fontSize: 13, color: Color(0xFF3D4A40), fontWeight: FontWeight.w700)),
-            const SizedBox(height: 4),
-            SizedBox(width: 84, child: ThinBar(value: lv.ratio, height: 5)),
-          ]),
+    final topInset = MediaQuery.paddingOf(context).top;
+
+    return LayoutBuilder(builder: (context, box) {
+      // 첫 화면 한 장(시안의 농장 화면)을 꽉 채우고, 그 아래로 작물 관리·바로가기가 이어진다.
+      final heroH = box.maxHeight.isFinite && box.maxHeight > 640 ? box.maxHeight : 640.0;
+      return ListView(padding: EdgeInsets.zero, children: [
+        SizedBox(
+          height: heroH,
+          child: _FarmHero(
+            topInset: topInset,
+            header: Column(mainAxisSize: MainAxisSize.min, children: [
+              // 시안: 노란 원 안의 농부 아바타 · 닉네임 · Lv · 금화 알약 · 톱니바퀴
+              Row(children: [
+                const FarmerAvatar(size: 60),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(user.nickname, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20))),
+                    const SizedBox(height: 3),
+                    Text('Lv.${lv.level}', style: const TextStyle(fontSize: 14, color: Color(0xFF2B3A30), fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    SizedBox(width: 84, child: ThinBar(value: lv.ratio, height: 5, track: Colors.white70)),
+                  ]),
+                ),
+                MoneyPill(money: user.money),
+                IconButton(onPressed: () => _push(context, const AboutPage()), icon: const Icon(Icons.settings_outlined, color: AppColors.ink, size: 28)),
+              ]),
+              const SizedBox(height: 10),
+              _WeatherCard(weather: ref.watch(weatherProvider)),
+            ]),
+            board: plots.when(
+              loading: () => const SizedBox(height: 120, child: Center(child: CircularProgressIndicator())),
+              error: (e, _) => SoftCard(child: Text('밭을 불러오지 못했어요\n${errMsg(e)}')),
+              data: (list) => SoilBoard(plots: list, now: now, maxTile: 64, grass: true, onTap: (p) => _onPlot(context, ref, p, now)),
+            ),
+            decor: user.decor,
+          ),
         ),
-        MoneyPill(money: user.money),
-        IconButton(onPressed: () => _push(context, const AboutPage()), icon: const Icon(Icons.settings_outlined, color: AppColors.ink, size: 26)),
-      ]),
-      const SizedBox(height: 10),
-      _WeatherCard(weather: ref.watch(weatherProvider)),
-      const SizedBox(height: 12),
-      plots.when(
-        loading: () => const SizedBox(height: 220, child: Center(child: CircularProgressIndicator())),
-        error: (e, _) => SoftCard(child: Text('밭을 불러오지 못했어요\n${errMsg(e)}')),
-        data: (list) => FarmYard(plots: list, now: now, decor: user.decor, onTapPlot: (p) => _onPlot(context, ref, p, now)),
-      ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       const SizedBox(height: 12),
       GreenButton(label: '작물 관리', icon: const Icon(Icons.eco_rounded, size: 20), onPressed: () => _push(context, const CropGrowthPage())),
       const SectionTitle('바로가기'),
@@ -103,7 +119,113 @@ class FarmPage extends ConsumerWidget {
             ),
         ],
       ),
-    ]);
+          ]),
+        ),
+      ]);
+    });
+  }
+}
+
+/// 시안의 농장 화면 한 장: 하늘(프로필·날씨) → 집이 있는 농장 일러스트(가리지 않고 전부 보이게) → 아래 들판의 밭 판
+class _FarmHero extends StatelessWidget {
+  const _FarmHero({required this.topInset, required this.header, required this.board, required this.decor});
+  final double topInset;
+  final Widget header;
+  final Widget board;
+  final int decor;
+
+  static const _imgAspect = 936 / 714;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
+        final w = box.maxWidth;
+        final imgH = w / _imgAspect;
+        // 일러스트 위치: 날씨 카드 바로 아래쪽이 일러스트 윗부분과 살짝 겹치게 (시안과 같은 배치)
+        final imgTop = topInset + 150;
+        return Stack(children: [
+          // 하늘
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            height: imgTop + 40,
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF7CCDF4), Color(0xFFB4E6F7), Color(0xFFCDF0F6)]),
+              ),
+            ),
+          ),
+          Positioned(left: -20, top: topInset + 58, child: const _Cloud(width: 130)),
+          Positioned(right: -10, top: topInset + 8, child: const _Cloud(width: 110)),
+          Positioned(right: 70, top: topInset + 120, child: const _Cloud(width: 80)),
+          // 들판 (일러스트 아래쪽 색을 이어 받는다)
+          Positioned(
+            left: 0,
+            right: 0,
+            top: imgTop + imgH - 30,
+            bottom: 0,
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF8DA94A), Color(0xFF8FC25A), Color(0xFFB5DC86)]),
+              ),
+            ),
+          ),
+          // 농장 일러스트 (위·아래 가장자리는 하늘·들판에 자연스럽게 녹아들게)
+          Positioned(
+            left: 0,
+            right: 0,
+            top: imgTop,
+            height: imgH,
+            child: ShaderMask(
+              blendMode: BlendMode.dstIn,
+              shaderCallback: (r) => const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, Colors.white, Colors.white, Colors.transparent],
+                stops: [0, .07, .9, 1],
+              ).createShader(r),
+              child: Image.asset(AppImages.farmScene, fit: BoxFit.fill, filterQuality: FilterQuality.medium),
+            ),
+          ),
+          if (decor > 0)
+            Positioned(left: 14, top: imgTop + imgH - 44, child: Text('🌻' * decor, style: const TextStyle(fontSize: 22, height: 1))),
+          // 프로필·날씨
+          Positioned(left: 16, right: 6, top: topInset + 8, child: header),
+          // 밭 판: 일러스트 아래 들판에 놓는다. 화면이 짧으면 일러스트 맨 아래(그림 속 밭 자리)와만 겹친다.
+          Positioned(left: w * .1, right: w * .1, bottom: 16, child: board),
+        ]);
+      });
+}
+
+class _Cloud extends StatelessWidget {
+  const _Cloud({required this.width});
+  final double width;
+  @override
+  Widget build(BuildContext context) {
+    final h = width * .42;
+    Widget puff(double l, double t, double d) => Positioned(
+          left: l,
+          top: t,
+          child: Container(width: d, height: d, decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: .92))),
+        );
+    return IgnorePointer(
+      child: SizedBox(
+        width: width,
+        height: h,
+        child: Stack(children: [
+          puff(width * .08, h * .35, h * .6),
+          puff(width * .28, h * .05, h * .85),
+          puff(width * .55, h * .22, h * .7),
+          Positioned(
+            left: width * .05,
+            right: width * .05,
+            bottom: 0,
+            height: h * .4,
+            child: Container(decoration: BoxDecoration(color: Colors.white.withValues(alpha: .92), borderRadius: BorderRadius.circular(h))),
+          ),
+        ]),
+      ),
+    );
   }
 }
 

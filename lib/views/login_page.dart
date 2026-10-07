@@ -138,31 +138,23 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Future<void> _resetDialog(BuildContext context) async {
-    final c = TextEditingController(text: _email.text);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('비밀번호 찾기'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('가입한 이메일로 비밀번호 재설정 링크를 보내드려요.', style: TextStyle(fontSize: 13)),
-          const SizedBox(height: 12),
-          TextField(controller: c, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(hintText: '이메일')),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('보내기')),
-        ],
-      ),
+    final email = await showTextInputDialog(
+      context,
+      title: '비밀번호 찾기',
+      message: '가입한 이메일로 비밀번호 재설정 링크를 보내드려요.',
+      initial: _email.text.trim(),
+      hint: '이메일',
+      okLabel: '보내기',
+      keyboardType: TextInputType.emailAddress,
     );
-    final email = c.text.trim();
-    c.dispose();
-    if (ok != true || !mounted) return;
+    if (email == null || !mounted) return;
     if (email.isEmpty) {
       showMsg(this.context, '이메일을 입력해 주세요');
       return;
     }
+    final auth = ref.read(authServiceProvider);
     await _run(() async {
-      await ref.read(authServiceProvider).sendPasswordReset(email);
+      await auth.sendPasswordReset(email);
       if (mounted) showMsg(this.context, '재설정 메일을 보냈어요. 메일함을 확인해 주세요');
     });
   }

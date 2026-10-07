@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/game_rules.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
+import '../core/korean.dart';
 
 /// 수확 완료 화면: 수확량과 현재 시세 기준 예상 판매 금액을 보여준다.
 class HarvestResultPage extends ConsumerWidget {
@@ -34,7 +35,7 @@ class HarvestResultPage extends ConsumerWidget {
                 child: Text(c.emoji, style: const TextStyle(fontSize: 130, height: 1)),
               ),
               const SizedBox(height: 8),
-              Text('${c.name}을(를) 수확했습니다!', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              Text('${withJosa(c.name, '을', '를')} 수확했습니다!', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
               const Text('+20 경험치', style: TextStyle(fontSize: 12, color: AppColors.greenDark, fontWeight: FontWeight.w700)),
               const Spacer(),

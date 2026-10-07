@@ -17,6 +17,21 @@ class FarmRepository {
 
   Future<void> ensureUser({String? nickname}) => _db.ensureUser(nickname: nickname);
   Future<void> setNickname(String name) => _db.setNickname(name);
+  Future<void> resetMoney() => _db.resetMoney();
+
+  /// 예전 성장 시간으로 심겨 있는 작물을 새 시간에 맞추고, 수확 알림도 다시 예약한다. 바뀐 밭 수를 돌려준다.
+  Future<int> fitGrowTimes() async {
+    final changed = await _db.fitGrowTimes();
+    for (final (idx, c, at) in changed) {
+      try {
+        await _noti.cancel(idx);
+        await _noti.scheduleHarvest(idx, c.name, at);
+      } catch (_) {
+        // 알림 예약 실패는 게임 진행과 무관하므로 무시한다.
+      }
+    }
+    return changed.length;
+  }
 
   Future<void> plant(int idx, CropSpec c, DateTime readyAt) async {
     await _db.plant(idx, c, readyAt);

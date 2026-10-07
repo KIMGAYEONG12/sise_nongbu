@@ -15,20 +15,13 @@ class MyPage extends ConsumerWidget {
   void _push(BuildContext context, Widget page) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
 
   Future<void> _rename(BuildContext context, WidgetRef ref, String current) async {
-    final ctl = TextEditingController(text: current);
-    final name = await showDialog<String>(
-      context: context,
-      builder: (d) => AlertDialog(
-        title: const Text('닉네임 바꾸기'),
-        content: TextField(controller: ctl, maxLength: 12, autofocus: true),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(d), child: const Text('취소')),
-          TextButton(onPressed: () => Navigator.pop(d, ctl.text.trim()), child: const Text('저장')),
-        ],
-      ),
-    );
-    ctl.dispose();
-    if (name == null || name.isEmpty || !context.mounted) return;
+    final name = await showTextInputDialog(context, title: '닉네임 바꾸기', initial: current, hint: '2~12자 (한글·영어·숫자)', maxLength: 12);
+    if (name == null || !context.mounted) return; // 취소
+    if (name.length < 2) {
+      showMsg(context, '닉네임은 2자 이상 입력해 주세요');
+      return;
+    }
+    if (name == current) return;
     await runGuarded(context, () => ref.read(farmRepoProvider).setNickname(name), ok: '닉네임을 바꿨어요');
   }
 

@@ -19,6 +19,8 @@ void main() {
   });
   test('데모 배속은 성장 시간을 줄인다', () {
     final c = cropOf('CABBAGE');
-    expect(growDuration(c, 600).inSeconds, 24);
+    expect(growDuration(c, 1).inMinutes, 50); // 배추는 1시간 이내
+    expect(growDuration(c, 600).inSeconds, 5);
+    expect(growDuration(cropOf('RADISH'), 600).inSeconds, 24);
   });
 }

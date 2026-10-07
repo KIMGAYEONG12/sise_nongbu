@@ -87,8 +87,13 @@ class _UserReadyState extends ConsumerState<_UserReady> {
 
   Future<void> _prepare() async {
     final nick = ref.read(pendingNicknameProvider) ?? widget.user.displayName;
-    await ref.read(farmRepoProvider).ensureUser(nickname: nick);
+    final repo = ref.read(farmRepoProvider);
+    await repo.ensureUser(nickname: nick);
     ref.read(pendingNicknameProvider.notifier).state = null;
+    // 성장 시간이 줄어든 작물(배추 50분)이 예전 시간으로 심겨 있으면 새 시간에 맞춘다. 실패해도 게임은 계속한다.
+    try {
+      await repo.fitGrowTimes();
+    } catch (_) {}
   }
 
   @override

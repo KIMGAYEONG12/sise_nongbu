@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import '../core/korean.dart';
 
 class NotificationService {
   final _local = FlutterLocalNotificationsPlugin();
@@ -22,7 +23,7 @@ class NotificationService {
   Future<String?> fcmToken() => FirebaseMessaging.instance.getToken();
 
   Future<void> scheduleHarvest(int plotIdx, String cropName, DateTime at) => _local.zonedSchedule(
-        plotIdx, '수확 시간이에요!', '$cropName을(를) 수확할 수 있어요', tz.TZDateTime.from(at, tz.local), _details,
+        plotIdx, '수확 시간이에요!', '${withJosa(cropName, '을', '를')} 수확할 수 있어요', tz.TZDateTime.from(at, tz.local), _details,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       );
