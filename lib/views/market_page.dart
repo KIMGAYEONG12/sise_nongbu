@@ -14,7 +14,6 @@ class MarketPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final vm = ref.watch(marketViewModelProvider);
-    final fetched = ref.read(marketRepoProvider).fetchedAt;
 
     Widget header() => PageHeader(
           title: '시세판',
@@ -54,10 +53,11 @@ class MarketPage extends ConsumerWidget {
             child: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
-                child: Text(
-                  '가상 게임이며 실제 투자·거래 조언이 아닙니다.${fetched == null ? '' : '  ·  ${fetched.hour.toString().padLeft(2, '0')}:${fetched.minute.toString().padLeft(2, '0')} 조회'}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.sub),
-                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const _LiveClock(),
+                  const SizedBox(height: 2),
+                  const Text('가상 게임이며 실제 투자·거래 조언이 아닙니다.', style: TextStyle(fontSize: 12, color: AppColors.sub)),
+                ]),
               ),
               for (final c in crops)
                 if (prices[c.code] case final p?)
@@ -85,5 +85,27 @@ class MarketPage extends ConsumerWidget {
         ),
       ]),
     );
+  }
+}
+
+/// 지금 한국 날짜·시각 (1초마다 바뀜). 에뮬레이터 시간대가 달라도 한국 시간(UTC+9)으로 보여준다.
+class _LiveClock extends ConsumerWidget {
+  const _LiveClock();
+
+  static const _week = ['월', '화', '수', '목', '금', '토', '일'];
+  static String _two(int v) => v.toString().padLeft(2, '0');
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(tickProvider); // 1초마다 다시 그린다
+    final t = DateTime.now().toUtc().add(const Duration(hours: 9));
+    return Row(children: [
+      const Icon(Icons.schedule_rounded, size: 15, color: AppColors.greenDark),
+      const SizedBox(width: 5),
+      Text(
+        '${t.year}년 ${t.month}월 ${t.day}일 (${_week[t.weekday - 1]})  ${_two(t.hour)}:${_two(t.minute)}:${_two(t.second)}',
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.greenDark, fontFeatures: [FontFeature.tabularFigures()]),
+      ),
+    ]);
   }
 }

@@ -46,3 +46,8 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# 서버 작업(tools)용 npm 패키지와 Firebase 서비스 계정 키는 올리지 않는다
+node_modules/
+*service-account*.json
+*firebase-adminsdk*.json

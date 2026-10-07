@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/game_rules.dart';
 import '../core/progress_rules.dart';
 import '../models/models.dart';
+import '../models/server_market.dart';
 import '../repositories/farm_repository.dart';
 import '../repositories/market_repository.dart';
 import '../services/auction_api_service.dart';
@@ -78,25 +79,57 @@ final weatherProvider =
     FutureProvider<Weather?>((_) => WeatherService(http.Client()).current());
 
 /// 품목 상세 화면용: 최근 7일 시세와 거래량
+/// 서버가 저장해 둔 값이 있으면 그것을, 없으면 앱이 API로 직접 받는다.
 final priceHistoryProvider = FutureProvider.autoDispose
-    .family<List<double?>, String>(
-        (ref, code) => ref.read(marketRepoProvider).history(code));
+    .family<List<double?>, String>((ref, code) async {
+  final server = ref.read(serverMarketProvider).valueOrNull;
+  if (server != null && server.fresh) {
+    final h = server.history(code);
+    if (h.any((v) => v != null)) return h;
+  }
+  return ref.read(marketRepoProvider).history(code);
+});
 final priceVolumeProvider =
-    FutureProvider.autoDispose.family<double?, String>((ref, code) {
+    FutureProvider.autoDispose.family<double?, String>((ref, code) async {
   final asOf = ref.read(marketViewModelProvider).valueOrNull?[code]?.asOf ??
       DateTime.now();
+  final server = ref.read(serverMarketProvider).valueOrNull;
+  if (server != null && server.fresh) {
+    final v = server.volumeKg(code, asOf);
+    if (v != null) return v;
+  }
   return ref.read(marketRepoProvider).volumeKg(code, asOf);
+});
+
+/// 서버(GitHub Actions)가 Firestore `market/prices`에 저장한 시세를 실시간으로 듣는다.
+/// 문서가 없거나 보안 규칙 때문에 읽을 수 없으면 null을 내보내고, 앱은 API로 직접 받는 방식을 쓴다.
+final serverMarketProvider = StreamProvider<ServerMarket?>((ref) {
+  return FirebaseFirestore.instance
+      .doc(ServerMarket.path)
+      .snapshots()
+      .map((s) => ServerMarket.fromDoc(s.data()))
+      .transform(StreamTransformer<ServerMarket?, ServerMarket?>.fromHandlers(
+        handleError: (e, st, sink) => sink.add(null),
+      ));
 });
 
 class MarketViewModel extends AsyncNotifier<Map<String, AuctionPrice>> {
   /// 앱이 켜져 있는 동안 시세를 저절로 다시 불러오는 간격 (공공데이터 API 하루 10,000건 한도 안에서 넉넉한 값)
-  static const autoRefreshEvery = Duration(minutes: 1);
+  static const autoRefreshEvery = Duration(minutes: 5);
 
   bool _busy = false;
 
+  /// 서버 시세가 최근 것이면 true. 이때는 앱이 API를 따로 부르지 않는다.
+  bool get _serverFresh => ref.read(serverMarketProvider).valueOrNull?.fresh ?? false;
+
   @override
-  Future<Map<String, AuctionPrice>> build() {
-    // 1) 10분마다 자동 새로고침  2) 앱을 다시 화면에 띄울 때(백그라운드 → 복귀) 새로고침
+  Future<Map<String, AuctionPrice>> build() async {
+    // 0) 서버가 Firestore에 새 시세를 저장하는 순간 화면을 바로 바꾼다
+    ref.listen<AsyncValue<ServerMarket?>>(serverMarketProvider, (_, next) {
+      final s = next.valueOrNull;
+      if (s != null && s.fresh) state = AsyncData(s.prices);
+    });
+    // 1) 서버 시세가 끊겼을 때만: 5분마다 자동 새로고침  2) 앱을 다시 화면에 띄울 때(백그라운드 → 복귀) 새로고침
     final timer =
         Timer.periodic(autoRefreshEvery, (_) => _autoRefresh(force: true));
     final life =
@@ -105,17 +138,40 @@ class MarketViewModel extends AsyncNotifier<Map<String, AuctionPrice>> {
       timer.cancel();
       life.dispose();
     });
+    // 처음 열 때: 서버 시세가 최근 것이면 그걸로 시작, 아니면 앱이 API로 직접 받는다
+    try {
+      final s = await ref.read(serverMarketProvider.future).timeout(const Duration(seconds: 6));
+      if (s != null && s.fresh) return s.prices;
+    } catch (_) {
+      // 서버 시세를 못 읽으면 아래 직접 조회로 넘어간다
+    }
     return ref.read(marketRepoProvider).fetch();
   }
 
   /// 새로고침 버튼·당겨서 새로고침
-  Future<void> refresh() async => state = await AsyncValue.guard(
-      () => ref.read(marketRepoProvider).fetch(force: true));
+  Future<void> refresh() async {
+    if (_serverFresh) {
+      // 서버 시세를 쓰는 중이면 Firestore에서 한 번 더 읽어 온다 (API 호출 없음)
+      try {
+        final snap = await FirebaseFirestore.instance.doc(ServerMarket.path).get(const GetOptions(source: Source.server));
+        final s = ServerMarket.fromDoc(snap.data());
+        if (s != null && s.fresh) {
+          state = AsyncData(s.prices);
+          return;
+        }
+      } catch (_) {
+        // 실패하면 아래 직접 조회
+      }
+    }
+    state = await AsyncValue.guard(() => ref.read(marketRepoProvider).fetch(force: true));
+  }
 
   /// 화면을 로딩 상태로 바꾸지 않고 뒤에서 조용히 갱신한다. 실패하면 지금 보이는 시세를 그대로 둔다.
   /// force가 false면 마지막 조회 후 10분이 안 지났을 때 저장해 둔 값을 쓴다(API 호출 안 함).
   Future<void> _autoRefresh({required bool force}) async {
     if (_busy || state.isLoading) return;
+    // 서버가 Firestore로 시세를 계속 보내주고 있으면 앱은 API를 부르지 않는다 (하루 호출 한도 절약)
+    if (_serverFresh) return;
     _busy = true;
     try {
       final next = await AsyncValue.guard(

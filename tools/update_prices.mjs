@@ -1,0 +1,172 @@
+// 시세 농부 서버 작업: 공공데이터 "전국 공영도매시장 실시간 경매정보" API를 불러
+// Firestore 문서 market/prices 에 품목별 kg당 시세를 저장한다.
+// GitHub Actions(.github/workflows/prices.yml)가 정해진 시간마다 실행한다.
+//
+// 필요한 환경변수 (GitHub 저장소 → Settings → Secrets and variables → Actions)
+//   AUCTION_API_KEY          : 공공데이터포털 인증키
+//   FIREBASE_SERVICE_ACCOUNT : Firebase 서비스 계정 키 JSON 전체
+//
+// 저장 형태 (market/prices)
+//   updatedAt : 서버 저장 시각
+//   CABBAGE   : { price, prev, asOf: '2026-10-07', prevDate, volumeKg }   ← 시세판에 쓰는 값
+//   days      : { '2026-10-07': { done: true, CABBAGE: { p, v }, ... }, ... }  ← 최근 14일 (품목 상세 7일 그래프용)
+
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+
+const RAW_KEY = (process.env.AUCTION_API_KEY || '').trim();
+const SA = process.env.FIREBASE_SERVICE_ACCOUNT;
+if (!RAW_KEY || !SA) {
+  console.error('AUCTION_API_KEY 또는 FIREBASE_SERVICE_ACCOUNT 시크릿이 없어요. GitHub 저장소 설정에서 등록해 주세요.');
+  process.exit(1);
+}
+// 공공데이터포털 "Encoding" 키(%가 들어 있음)를 넣어도 두 번 인코딩되지 않게
+const SERVICE_KEY = RAW_KEY.includes('%') ? decodeURIComponent(RAW_KEY) : RAW_KEY;
+
+initializeApp({ credential: cert(JSON.parse(SA)) });
+const db = getFirestore();
+
+const BASE = 'https://apis.data.go.kr/B552845/katRealTime2/trades2';
+const MARKET = '110001'; // 서울가락 (앱 lib/services/auction_api_service.dart 와 같은 값)
+const CROPS = {
+  CABBAGE: ['10', '01'], // 엽경채류 > 배추
+  RADISH: ['11', '01'], // 근채류 > 무
+  ONION: ['12', '01'], // 조미채소류 > 양파
+  APPLE: ['06', '01'], // 과실류 > 사과
+  TOMATO: ['08', '03'], // 과일과채류 > 토마토
+  POTATO: ['05', '01'], // 서류 > 감자
+};
+const KEEP_DAYS = 14; // 저장해 두는 날짜 수
+const RECENT_DAYS = 2; // 오늘·어제는 거래가 계속 들어올 수 있어 매번 다시 받는다 (그 전 날짜는 한 번 받으면 재사용)
+const PAGE = 1000;
+
+/** 한국 날짜 'YYYY-MM-DD' (back일 전) */
+const kstYmd = (back) => new Date(Date.now() + 9 * 3600e3 - back * 86400e3).toISOString().slice(0, 10);
+
+/** 단위명 → kg 배수. 무게 단위가 아니면 null */
+function kgFactor(unit) {
+  const u = String(unit ?? '').trim().toLowerCase();
+  if (!u || u === 'kg' || u === '키로' || u === '킬로그램') return 1;
+  if (u === 'g' || u === '그램') return 0.001;
+  if (u === 't' || u === 'ton' || u === '톤') return 1000;
+  return null;
+}
+
+async function getJson(url) {
+  let lastErr;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
+      const text = await res.text();
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 150)}`);
+      if (text.trimStart().startsWith('<')) throw new Error(`XML 오류 응답: ${text.slice(0, 150)}`);
+      const j = JSON.parse(text);
+      const h = j?.response?.header;
+      if (h && String(h.resultCode) !== '0' && String(h.resultCode) !== '00') throw new Error(`API ${h.resultCode}: ${h.resultMsg}`);
+      return j;
+    } catch (e) {
+      lastErr = e;
+      await new Promise((r) => setTimeout(r, 1500 * attempt));
+    }
+  }
+  throw lastErr;
+}
+
+/** 하루치 품목 거래 건 전부 (1,000건씩 여러 쪽) */
+async function fetchItems(code, day) {
+  const [l, m] = CROPS[code];
+  const all = [];
+  for (let page = 1; page <= 5; page++) {
+    const qs = new URLSearchParams({
+      serviceKey: SERVICE_KEY,
+      returnType: 'json',
+      pageNo: String(page),
+      numOfRows: String(PAGE),
+      'cond[trd_clcln_ymd::EQ]': day,
+      'cond[whsl_mrkt_cd::EQ]': MARKET,
+      'cond[gds_lclsf_cd::EQ]': l,
+      'cond[gds_mclsf_cd::EQ]': m,
+      selectable: 'scsbd_prc,qty,unit_qty,unit_nm,trd_se',
+    });
+    const j = await getJson(`${BASE}?${qs}`);
+    const body = j?.response?.body ?? {};
+    let it = body?.items?.item ?? [];
+    if (!Array.isArray(it)) it = [it];
+    all.push(...it);
+    const total = Number(body.totalCount) || 0;
+    if (it.length < PAGE || (total > 0 && all.length >= total)) break;
+  }
+  return all;
+}
+
+/** 거래 건 → { p: kg당 가중평균가, v: 거래량(kg) }. 경매 건 우선, 없으면 정가·수의 건까지. */
+function summarize(items) {
+  const calc = (onlyAuction) => {
+    let vol = 0, sum = 0;
+    for (const i of items) {
+      if (onlyAuction && i.trd_se != null && String(i.trd_se).trim() !== '경매') continue;
+      const f = kgFactor(i.unit_nm);
+      const price = Number(i.scsbd_prc), unitKg = Number(i.unit_qty) * (f ?? 0), qty = Number(i.qty);
+      if (!f || !(price > 0) || !(unitKg > 0) || !(qty > 0)) continue;
+      const kg = qty * unitKg;
+      vol += kg;
+      sum += (price / unitKg) * kg;
+    }
+    return vol > 0 ? { p: Math.round((sum / vol) * 100) / 100, v: Math.round(vol) } : null;
+  };
+  return calc(true) ?? calc(false);
+}
+
+const ref = db.doc('market/prices');
+const snap = await ref.get();
+const oldDays = (snap.exists && snap.data().days) || {};
+
+const days = {};
+let calls = 0, failures = 0;
+for (let back = 0; back < KEEP_DAYS; back++) {
+  const day = kstYmd(back);
+  const prev = oldDays[day];
+  if (back >= RECENT_DAYS && prev && prev.done) {
+    days[day] = prev; // 지난 날짜는 바뀌지 않으므로 그대로 쓴다
+    continue;
+  }
+  const entry = { done: true };
+  for (const code of Object.keys(CROPS)) {
+    try {
+      calls++;
+      const s = summarize(await fetchItems(code, day));
+      if (s) entry[code] = s;
+    } catch (e) {
+      failures++;
+      entry.done = false; // 다음 실행 때 다시 받는다
+      if (prev && prev[code]) entry[code] = prev[code];
+      console.error(`[${day} ${code}] ${e.message}`);
+    }
+  }
+  days[day] = entry;
+}
+
+const out = { updatedAt: FieldValue.serverTimestamp(), market: MARKET, days };
+const newestFirst = Object.keys(days).sort().reverse();
+for (const code of Object.keys(CROPS)) {
+  const dates = newestFirst.filter((d) => days[d][code] && days[d][code].p != null);
+  if (dates.length === 0) continue;
+  const asOf = dates[0], prevDate = dates[1] ?? null;
+  out[code] = {
+    price: days[asOf][code].p,
+    prev: prevDate ? days[prevDate][code].p : null,
+    asOf,
+    prevDate,
+    volumeKg: days[asOf][code].v,
+  };
+}
+
+if (Object.keys(CROPS).every((c) => !out[c])) {
+  console.error(`시세를 하나도 받지 못해 저장하지 않았어요 (요청 ${calls}건, 실패 ${failures}건)`);
+  process.exit(1);
+}
+await ref.set(out);
+console.log(`저장 완료 (요청 ${calls}건, 실패 ${failures}건)`);
+for (const code of Object.keys(CROPS)) {
+  if (out[code]) console.log(`  ${code}: ${Math.round(out[code].price)}원/kg (${out[code].asOf}), 전일 ${out[code].prev == null ? '-' : Math.round(out[code].prev)}`);
+}

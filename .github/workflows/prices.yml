@@ -1,0 +1,30 @@
+name: 시세 갱신
+
+on:
+  schedule:
+    # 10분마다 (UTC 기준이지만 "10분마다"라 시간대와 상관없음).
+    # GitHub 예약 실행은 몇 분씩 늦거나 가끔 건너뛰기도 해요.
+    # private 저장소라면 무료 시간(월 2,000분)을 넘지 않게 '*/30 * * * *'(30분마다)로 바꾸세요.
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Actions 탭의 "Run workflow" 버튼으로 바로 실행
+
+concurrency:
+  group: market-prices
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: firebase-admin 설치
+        run: npm install --no-save --no-audit --no-fund firebase-admin@12
+      - name: 시세 받아서 Firestore에 저장
+        run: node tools/update_prices.mjs
+        env:
+          AUCTION_API_KEY: ${{ secrets.AUCTION_API_KEY }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
