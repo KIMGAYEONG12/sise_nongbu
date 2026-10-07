@@ -6,6 +6,9 @@ import '../models/models.dart';
 Map<String, dynamic>? _asMap(Object? v) => v is Map ? Map<String, dynamic>.from(v) : null;
 int _int(Object? v) => (v as num?)?.toInt() ?? 0;
 
+/// 닉네임을 정하지 않은 농부의 기본 이름 (MY 화면에서 바꿀 수 있다)
+const defaultNickname = '농부이서';
+
 Map<String, dynamic> _emptyPlot() =>
     {'cropCode': null, 'status': 'empty', 'plantedAt': null, 'readyAt': null, 'growMs': 0, 'bonus': 0, 'watered': 0, 'boosted': false};
 
@@ -20,11 +23,13 @@ class FirestoreGameService {
   /// 처음 로그인한 사용자의 문서와 밭을 만든다. 이미 있으면 닉네임이 비어 있을 때만 채운다.
   Future<void> ensureUser({String? nickname}) async {
     final name = (nickname != null && nickname.trim().isNotEmpty) ? nickname.trim() : null;
-    final fallback = '농부${uid.substring(0, uid.length < 4 ? uid.length : 4)}';
+    const fallback = defaultNickname;
+    // 예전에 자동으로 붙던 이름 (예: 농부UcHh) — 이런 이름은 기본 닉네임으로 바꿔 준다
+    final oldAuto = '농부${uid.substring(0, uid.length < 4 ? uid.length : 4)}';
     final snap = await _user.get();
     if (snap.exists) {
       final cur = snap.data()?['nickname'];
-      if (cur == null || cur == '') await _user.update({'nickname': name ?? fallback});
+      if (cur == null || cur == '' || cur == oldAuto) await _user.update({'nickname': name ?? fallback});
       return;
     }
     final b = db.batch();

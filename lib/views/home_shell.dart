@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/progress_rules.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
 import 'farm_page.dart';
@@ -20,9 +21,18 @@ class HomeShell extends ConsumerWidget {
     (Icons.person_rounded, 'MY'),
   ];
 
+  static int _levelOf(Map<String, dynamic>? u) => levelInfo((u?['exp'] as num?)?.toInt() ?? 0).level;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final i = ref.watch(shellIndexProvider);
+    // 레벨이 오르면 "Lv.1 → Lv.2" 축하 창을 띄운다 (처음 불러올 때는 띄우지 않는다)
+    ref.listen<AsyncValue<Map<String, dynamic>>>(userProvider, (prev, next) {
+      final before = prev?.valueOrNull, after = next.valueOrNull;
+      if (before == null || after == null || before.isEmpty) return;
+      final from = _levelOf(before), to = _levelOf(after);
+      if (to > from) showLevelUpDialog(context, from, to, levelInfo((after['exp'] as num?)?.toInt() ?? 0));
+    });
     return Scaffold(
       body: GameBackground(
         child: SafeArea(
@@ -66,3 +76,30 @@ class HomeShell extends ConsumerWidget {
     );
   }
 }
+
+/// 레벨 업 축하 창
+Future<void> showLevelUpDialog(BuildContext context, int from, int to, LevelInfo now) => showDialog<void>(
+      context: context,
+      builder: (d) => AlertDialog(
+        backgroundColor: AppColors.bg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 28, 24, 8),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('🎉', style: TextStyle(fontSize: 56, height: 1)),
+          const SizedBox(height: 10),
+          const Text('레벨 업!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.greenDark)),
+          const SizedBox(height: 12),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            Text('Lv.$from', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.sub)),
+            const Padding(padding: EdgeInsets.symmetric(horizontal: 10), child: Icon(Icons.arrow_forward_rounded, color: AppColors.green)),
+            Text('Lv.$to', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: AppColors.ink)),
+          ]),
+          const SizedBox(height: 12),
+          Text('Lv.$from에서 Lv.$to로 올라갔어요!\n다음 레벨까지 경험치 ${now.need - now.exp} 남았어요.',
+              textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: AppColors.sub, height: 1.5)),
+        ]),
+        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+        actions: [GreenButton(label: '확인', onPressed: () => Navigator.of(d).pop())],
+      ),
+    );
