@@ -25,6 +25,9 @@ final prefsProvider = Provider<SharedPreferences>((_) => throw UnimplementedErro
 final authServiceProvider = Provider((_) => AuthService());
 final authStateProvider = StreamProvider<User?>((_) => FirebaseAuth.instance.authStateChanges());
 
+/// 튜토리얼을 막 끝냈으면 true. 이때는 예전에 쓰던 게스트(익명) 세션이 남아 있어도 로그인·회원가입 화면을 먼저 보여준다.
+final loginAfterTutorialProvider = StateProvider<bool>((_) => false);
+
 /// 회원가입 직후 닉네임을 Firestore 문서에 넣기 위해 잠깐 들고 있는 값
 final pendingNicknameProvider = StateProvider<String?>((_) => null);
 

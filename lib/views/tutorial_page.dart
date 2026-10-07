@@ -5,9 +5,9 @@ import '../core/progress_rules.dart';
 import '../models/models.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
-import '../widgets/farm_scene.dart';
 
 /// 처음 한 번 보여주는 5장짜리 튜토리얼 (시세 확인 → 파종 → 성장 → 판매 → 시작)
+/// 2~5장 그림은 챗GPT 시안 일러스트(assets/images)를 그대로 쓴다.
 class TutorialPage extends ConsumerStatefulWidget {
   const TutorialPage({super.key, required this.onDone});
   final VoidCallback onDone;
@@ -39,12 +39,12 @@ class _TutorialPageState extends ConsumerState<TutorialPage> {
     if (_i >= _total - 1) {
       widget.onDone();
     } else {
-      _ctrl.nextPage(duration: const Duration(milliseconds: 280), curve: Curves.easeOut);
+      _ctrl.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
     }
   }
 
   void _back() {
-    if (_i > 0) _ctrl.previousPage(duration: const Duration(milliseconds: 280), curve: Curves.easeOut);
+    if (_i > 0) _ctrl.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
   }
 
   @override
@@ -52,35 +52,54 @@ class _TutorialPageState extends ConsumerState<TutorialPage> {
         body: GameBackground(
           child: SafeArea(
             child: Column(children: [
-              PageHeader(title: '튜토리얼 ${_i + 1}/$_total', onBack: _i > 0 ? _back : null, trailing: TextButton(onPressed: widget.onDone, child: const Text('건너뛰기', style: TextStyle(color: AppColors.sub)))),
+              // 시안: 왼쪽 < , 가운데 "튜토리얼 n/5", 오른쪽 건너뛰기
+              SizedBox(
+                height: 56,
+                child: Stack(alignment: Alignment.center, children: [
+                  if (_i > 0)
+                    Positioned(
+                      left: 4,
+                      child: IconButton(onPressed: _back, icon: const Icon(Icons.chevron_left_rounded, size: 32, color: AppColors.ink)),
+                    ),
+                  Text('튜토리얼 ${_i + 1} / $_total', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF3D4A40))),
+                  Positioned(
+                    right: 8,
+                    child: TextButton(onPressed: widget.onDone, child: const Text('건너뛰기', style: TextStyle(color: AppColors.sub, fontWeight: FontWeight.w600))),
+                  ),
+                ]),
+              ),
               Expanded(
                 child: PageView.builder(
                   controller: _ctrl,
                   itemCount: _total,
                   onPageChanged: (v) => setState(() => _i = v),
                   itemBuilder: (_, i) => Padding(
-                    padding: const EdgeInsets.fromLTRB(22, 6, 22, 0),
+                    padding: const EdgeInsets.fromLTRB(22, 4, 22, 0),
                     child: Column(children: [
-                      Text(_titles[i], style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 8),
-                      Text(_subs[i], textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: AppColors.sub, height: 1.5)),
-                      const SizedBox(height: 16),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(_titles[i], style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20))),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(_subs[i], textAlign: TextAlign.center, style: const TextStyle(fontSize: 13.5, color: Color(0xFF5B6B5F), height: 1.55, fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 18),
                       Expanded(child: _Visual(index: i)),
                     ]),
                   ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(22, 14, 22, 8),
-                child: GreenButton(label: _i == _total - 1 ? '시작하기' : '다음', onPressed: _next),
+                padding: const EdgeInsets.fromLTRB(22, 18, 22, 12),
+                child: GreenButton(label: _i == _total - 1 ? '시작하기' : '다음', height: 52, onPressed: _next),
               ),
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 for (var i = 0; i < _total; i++)
-                  Container(
-                    width: 7,
-                    height: 7,
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: i == _i ? AppColors.green : AppColors.line),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 8,
+                    height: 8,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: i <= _i ? AppColors.green : const Color(0xFFD3DCCB)),
                   ),
               ]),
               const SizedBox(height: 16),
@@ -98,30 +117,25 @@ class _Visual extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     switch (index) {
       case 0:
-        return _PriceCard(prices: ref.watch(marketViewModelProvider).valueOrNull);
+        return Align(alignment: Alignment.topCenter, child: _PriceCard(prices: ref.watch(marketViewModelProvider).valueOrNull));
       case 1:
-        return _SceneCard(child: Center(child: _PlantDemo()));
+        // 집·나무가 있는 농장 + 가운데 밭을 손가락으로 누르는 그림
+        return const IllustCard(asset: AppImages.tutPlant, aspect: 810 / 801);
       case 2:
-        return _SceneCard(child: Center(child: _GrowDemo()));
+        // 파종 → 성장 → 수확
+        return const IllustCard(asset: AppImages.tutGrow, aspect: 813 / 771);
       case 3:
-        return _SceneCard(child: Center(child: _SellDemo(price: ref.watch(marketViewModelProvider).valueOrNull?['CABBAGE'])));
+        // 농장 그림 위의 시세 카드는 실제 배추 시세로 다시 그린다
+        return IllustCard(
+          asset: AppImages.tutSell,
+          aspect: 807 / 765,
+          overlay: _SellOverlay(price: ref.watch(marketViewModelProvider).valueOrNull?['CABBAGE']),
+        );
       default:
-        return _SceneCard(child: const Align(alignment: Alignment(-.6, .75), child: Text('👩‍🌾', style: TextStyle(fontSize: 110, height: 1))));
+        // 시작 화면의 농부 일러스트
+        return const IllustCard(asset: AppImages.tutReady, aspect: 993 / 786);
     }
   }
-}
-
-class _SceneCard extends StatelessWidget {
-  const _SceneCard({required this.child});
-  final Widget child;
-  @override
-  Widget build(BuildContext context) => ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: Container(
-          decoration: BoxDecoration(border: Border.all(color: AppColors.line, width: 2), borderRadius: BorderRadius.circular(22)),
-          child: ClipRRect(borderRadius: BorderRadius.circular(20), child: SceneBackground(fence: true, child: child)),
-        ),
-      );
 }
 
 /// 1. 오늘의 시세 카드 (실제 시세를 불러왔으면 그 값, 아니면 안내 문구)
@@ -129,109 +143,102 @@ class _PriceCard extends StatelessWidget {
   const _PriceCard({required this.prices});
   final Map<String, AuctionPrice>? prices;
   @override
-  Widget build(BuildContext context) => SoftCard(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Row(children: [Icon(Icons.show_chart_rounded, size: 20), SizedBox(width: 6), Text('오늘의 시세', style: TextStyle(fontWeight: FontWeight.w800))]),
-          const SizedBox(height: 6),
-          for (final c in crops.take(5))
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 7),
-              child: Builder(builder: (_) {
-                final p = prices?[c.code];
-                final pct = p == null ? null : changePercent(p.pricePerKg, p.prevPerKg);
-                return Row(children: [
-                  Text(c.emoji, style: const TextStyle(fontSize: 22)),
-                  const SizedBox(width: 10),
-                  SizedBox(width: 50, child: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w700))),
-                  Expanded(child: Text(p == null ? '시세를 불러오는 중…' : '${commaNum(p.pricePerKg)}원/kg', style: const TextStyle(fontWeight: FontWeight.w700))),
-                  ChangeChip(percent: pct),
-                ]);
-              }),
-            ),
+  Widget build(BuildContext context) {
+    final list = crops.take(5).toList();
+    return SoftCard(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+        const Row(children: [
+          Icon(Icons.trending_up_rounded, size: 20, color: AppColors.ink),
+          SizedBox(width: 8),
+          Text('오늘의 시세', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
         ]),
-      );
+        const SizedBox(height: 6),
+        for (var k = 0; k < list.length; k++) ...[
+          Builder(builder: (_) {
+            final c = list[k];
+            final p = prices?[c.code];
+            final pct = p == null ? null : changePercent(p.pricePerKg, p.prevPerKg);
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 9),
+              child: Row(children: [
+                Text(c.emoji, style: const TextStyle(fontSize: 24, height: 1)),
+                const SizedBox(width: 12),
+                SizedBox(width: 54, child: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15))),
+                Expanded(
+                  child: Text(p == null ? '시세를 불러오는 중…' : '${commaNum(p.pricePerKg)}원/kg',
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: p == null ? AppColors.sub : AppColors.ink)),
+                ),
+                ChangeChip(percent: pct),
+              ]),
+            );
+          }),
+          if (k < list.length - 1) const Divider(height: 1, color: Color(0xFFEDF1E8)),
+        ],
+      ]),
+    );
+  }
 }
 
-/// 2. 3×2 밭 중 가운데 칸을 눌러 심는 모습
-class _PlantDemo extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => Container(
-        width: 216,
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: AppColors.soil, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.soilDark, width: 3)),
-        child: Wrap(spacing: 6, runSpacing: 6, children: [
-          for (var i = 0; i < 6; i++)
-            i == 4
-                ? Stack(clipBehavior: Clip.none, children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(color: AppColors.green.withValues(alpha: .85), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white, width: 2)),
-                      child: const Icon(Icons.add_rounded, color: Colors.white, size: 34),
-                    ),
-                    const Positioned(right: -8, bottom: -14, child: Text('👆', style: TextStyle(fontSize: 34))),
-                  ])
-                : PlotTile(plot: Plot(i, null, null), now: DateTime.now(), size: 60, onTap: () {}),
-        ]),
-      );
-}
-
-/// 3. 파종 → 성장 → 수확
-class _GrowDemo extends StatelessWidget {
-  Widget _step(String emoji, String label) => Container(
-        width: 78,
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(color: Colors.white.withValues(alpha: .92), borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.line)),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(emoji, style: const TextStyle(fontSize: 34, height: 1.2)),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-        ]),
-      );
-
-  @override
-  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
-        _step('🌱', '파종'),
-        const Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: Icon(Icons.arrow_forward_rounded, color: AppColors.green)),
-        _step('🌿', '성장'),
-        const Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: Icon(Icons.arrow_forward_rounded, color: AppColors.green)),
-        _step('🥬', '수확'),
-      ]);
-}
-
-/// 4. 시세 카드 + 판매하기 버튼
-class _SellDemo extends StatelessWidget {
-  const _SellDemo({required this.price});
+/// 4. 그림 위 시세 카드 자리(시안과 같은 위치)에 실제 배추 시세 + 판매하기 버튼
+class _SellOverlay extends StatelessWidget {
+  const _SellOverlay({required this.price});
   final AuctionPrice? price;
   @override
   Widget build(BuildContext context) {
     final p = price;
     final pct = p == null ? null : changePercent(p.pricePerKg, p.prevPerKg);
-    return Container(
-      width: 220,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: Colors.white.withValues(alpha: .95), borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.line)),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Row(children: [
-          const Text('🥬', style: TextStyle(fontSize: 34)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('배추', style: TextStyle(fontSize: 12, color: AppColors.sub)),
-              Text(p == null ? '시세 확인 중' : '${commaNum(p.pricePerKg)}원/kg', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-            ]),
+    final up = (pct ?? 0) >= 0;
+    return LayoutBuilder(builder: (context, box) {
+      final w = box.maxWidth, h = box.maxHeight;
+      return Stack(children: [
+        Positioned(
+          left: w * .055,
+          right: w * .045,
+          top: h * .395,
+          bottom: h * .095,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .12), blurRadius: 10, offset: const Offset(0, 3))],
+            ),
+            padding: const EdgeInsets.fromLTRB(14, 10, 12, 12),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: SizedBox(
+                width: 260,
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Row(children: [
+                    const Text('🥬', style: TextStyle(fontSize: 46, height: 1)),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        const Text('배추', style: TextStyle(fontSize: 14, color: Color(0xFF4A5A4E), fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Text(p == null ? '시세 확인 중' : '${commaNum(p.pricePerKg)}원/kg', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20))),
+                      ]),
+                    ),
+                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      const Icon(Icons.chevron_right_rounded, color: AppColors.sub, size: 22),
+                      const SizedBox(height: 4),
+                      if (pct != null) Text(up ? '▲' : '▼', style: TextStyle(fontSize: 16, color: up ? AppColors.up : AppColors.down)),
+                    ]),
+                  ]),
+                  const SizedBox(height: 14),
+                  Container(
+                    height: 44,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: AppColors.green, borderRadius: BorderRadius.circular(22)),
+                    child: const Text('판매하기', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                  ),
+                ]),
+              ),
+            ),
           ),
-          ChangeChip(percent: pct),
-        ]),
-        const SizedBox(height: 10),
-        Container(
-          height: 38,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(color: AppColors.green, borderRadius: BorderRadius.circular(19)),
-          child: const Text('판매하기', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
         ),
-      ]),
-    );
+      ]);
+    });
   }
 }

@@ -24,3 +24,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/auction_sample.json
+    - assets/images/

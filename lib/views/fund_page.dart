@@ -38,18 +38,60 @@ class _FundPageState extends ConsumerState<FundPage> {
             PageHeader(title: '마을 공동기금', onBack: () => Navigator.of(context).pop(), trailing: MoneyPill(money: user.money)),
             Expanded(
               child: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
+                // 시안: 배추 그림 + "우리 마을 발전 기금" + 금액/목표 + 진행 막대 + %
                 SoftCard(
-                  child: Column(children: [
-                    const Text('🏡', style: TextStyle(fontSize: 54)),
-                    const SizedBox(height: 6),
-                    const Text('우리 마을 기금', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 12),
-                    ThinBar(value: fund.ratio, height: 14),
-                    const SizedBox(height: 8),
-                    Text('$pct%  ·  ${won(fund.total)} / ${won(fund.goal)}', style: const TextStyle(fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 4),
-                    Text('내 기부 합계 ${won(user.fundGiven)}', style: const TextStyle(fontSize: 12, color: AppColors.sub)),
+                  color: Colors.white,
+                  child: Row(children: [
+                    const EmojiBadge('🥬', size: 66, color: Color(0xFFEAF5DF)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        const Text('우리 마을 발전 기금', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900)),
+                        const SizedBox(height: 4),
+                        Text.rich(TextSpan(children: [
+                          TextSpan(text: won(fund.total), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                          TextSpan(text: ' / ${won(fund.goal)}', style: const TextStyle(fontSize: 11, color: AppColors.sub)),
+                        ])),
+                        const SizedBox(height: 8),
+                        Row(children: [
+                          Expanded(child: ThinBar(value: fund.ratio, height: 12, track: const Color(0xFFE3EBDD))),
+                          const SizedBox(width: 8),
+                          Text('$pct%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                        ]),
+                      ]),
+                    ),
                   ]),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(color: const Color(0xFFEAF5DF), borderRadius: BorderRadius.circular(18)),
+                  child: const Text('🌿  단계별 목표 달성 시 기부한 농부에게 포인트 보상!  🌿', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.greenDark)),
+                ),
+                const SizedBox(height: 10),
+                SoftCard(
+                  color: Colors.white,
+                  child: Column(children: [
+                    Row(children: [
+                      const Text('기여 내역', style: TextStyle(fontWeight: FontWeight.w800)),
+                      const Spacer(),
+                      const Text('내 기여도', style: TextStyle(fontSize: 12, color: AppColors.sub)),
+                      const SizedBox(width: 8),
+                      Text(won(user.fundGiven), style: const TextStyle(fontWeight: FontWeight.w900)),
+                    ]),
+                    const Divider(height: 18, color: Color(0xFFEDF1E8)),
+                    Row(children: [
+                      const Text('전체 기여도', style: TextStyle(fontSize: 12, color: AppColors.sub)),
+                      const Spacer(),
+                      Text(won(fund.total), style: const TextStyle(fontWeight: FontWeight.w900)),
+                    ]),
+                  ]),
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: SizedBox(height: 110, child: Image.asset(AppImages.loginLand, fit: BoxFit.cover, alignment: Alignment.bottomCenter)),
                 ),
                 const SectionTitle('기부하기'),
                 SoftCard(

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/auth_service.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
-import '../widgets/farm_scene.dart';
+import 'login_page.dart';
 
 class SignupPage extends ConsumerStatefulWidget {
   const SignupPage({super.key});
@@ -43,13 +43,16 @@ class _SignupPageState extends ConsumerState<SignupPage> {
       return;
     }
     setState(() => _busy = true);
+    final flag = ref.read(loginAfterTutorialProvider.notifier);
+    final pending = ref.read(pendingNicknameProvider.notifier);
     try {
-      ref.read(pendingNicknameProvider.notifier).state = _nick.text.trim();
+      pending.state = _nick.text.trim();
       await ref.read(authServiceProvider).signUp(_email.text, _pw.text, _nick.text);
+      flag.state = false;
       if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
     } catch (e) {
-      ref.read(pendingNicknameProvider.notifier).state = null;
-      showMsg(context, AuthService.message(e));
+      pending.state = null;
+      if (mounted) showMsg(context, AuthService.message(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -57,59 +60,79 @@ class _SignupPageState extends ConsumerState<SignupPage> {
 
   Future<void> _google() async {
     setState(() => _busy = true);
+    final flag = ref.read(loginAfterTutorialProvider.notifier);
     try {
       await ref.read(authServiceProvider).signInWithGoogle();
+      flag.state = false;
       if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
     } catch (e) {
-      showMsg(context, AuthService.message(e));
+      if (mounted) showMsg(context, AuthService.message(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        body: GameBackground(
-          child: Stack(children: [
-            const Positioned(left: 0, right: 0, bottom: 0, height: 150, child: IgnorePointer(child: CustomPaint(painter: ScenePainter(hillsOnly: true, fence: true)))),
-            SafeArea(
-              child: Column(children: [
-                PageHeader(title: '회원가입', onBack: () => Navigator.of(context).pop()),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(28, 14, 28, 40),
-                    child: Column(children: [
-                      TextField(controller: _email, keyboardType: TextInputType.emailAddress, autocorrect: false, decoration: const InputDecoration(prefixIcon: Icon(Icons.mail_outline_rounded), hintText: '이메일 입력')),
-                      const SizedBox(height: 12),
-                      TextField(controller: _nick, maxLength: 12, decoration: const InputDecoration(prefixIcon: Icon(Icons.person_outline_rounded), hintText: '닉네임 입력 (2자 이상)', counterText: '')),
-                      const SizedBox(height: 12),
-                      TextField(controller: _pw, obscureText: true, decoration: const InputDecoration(prefixIcon: Icon(Icons.lock_outline_rounded), hintText: '비밀번호 입력 (6자 이상)')),
-                      const SizedBox(height: 12),
-                      TextField(controller: _pw2, obscureText: true, onSubmitted: (_) => _submit(), decoration: const InputDecoration(prefixIcon: Icon(Icons.lock_outline_rounded), hintText: '비밀번호 확인')),
-                      const SizedBox(height: 18),
-                      GreenButton(label: '회원가입', loading: _busy, onPressed: _submit),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                        child: Row(children: [
-                          Expanded(child: Divider(color: AppColors.line)),
-                          Padding(padding: EdgeInsets.symmetric(horizontal: 10), child: Text('또는', style: TextStyle(fontSize: 12, color: AppColors.sub))),
-                          Expanded(child: Divider(color: AppColors.line)),
-                        ]),
-                      ),
-                      GreenButton(
-                        label: 'Google로 로그인',
-                        outlined: true,
-                        icon: const Text('G', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF4285F4))),
-                        onPressed: _busy ? null : _google,
-                      ),
-                      const SizedBox(height: 14),
-                      TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('이미 계정이 있나요? 로그인')),
-                    ]),
+  Widget build(BuildContext context) {
+    final h = MediaQuery.sizeOf(context).height;
+    return Scaffold(
+      body: GameBackground(
+        child: Stack(children: [
+          // 시안 하단의 농장 풍경 일러스트
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: h * .2,
+            child: IgnorePointer(child: Image.asset(AppImages.signupLand, fit: BoxFit.cover, alignment: Alignment.bottomCenter, filterQuality: FilterQuality.medium)),
+          ),
+          SafeArea(
+            child: Column(children: [
+              SizedBox(
+                height: 64,
+                child: Stack(alignment: Alignment.center, children: [
+                  Positioned(
+                    left: 6,
+                    child: IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.chevron_left_rounded, size: 32, color: AppColors.ink)),
                   ),
+                  const Text('회원가입', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.ink)),
+                ]),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(26, 18, 26, 40),
+                  child: Column(children: [
+                    ShadowField(
+                      child: TextField(controller: _email, keyboardType: TextInputType.emailAddress, autocorrect: false, decoration: const InputDecoration(prefixIcon: Icon(Icons.mail_outline_rounded), hintText: '이메일 입력')),
+                    ),
+                    const SizedBox(height: 12),
+                    ShadowField(
+                      child: TextField(controller: _nick, maxLength: 12, decoration: const InputDecoration(prefixIcon: Icon(Icons.person_outline_rounded), hintText: '닉네임 입력 (2자 이상)', counterText: '')),
+                    ),
+                    const SizedBox(height: 12),
+                    ShadowField(
+                      child: TextField(controller: _pw, obscureText: true, decoration: const InputDecoration(prefixIcon: Icon(Icons.lock_outline_rounded), hintText: '비밀번호 입력 (6자 이상)')),
+                    ),
+                    const SizedBox(height: 12),
+                    ShadowField(
+                      child: TextField(controller: _pw2, obscureText: true, onSubmitted: (_) => _submit(), decoration: const InputDecoration(prefixIcon: Icon(Icons.lock_outline_rounded), hintText: '비밀번호 확인')),
+                    ),
+                    const SizedBox(height: 20),
+                    GreenButton(label: '회원가입', loading: _busy, height: 52, onPressed: _submit),
+                    const OrDivider(),
+                    GreenButton(label: 'Google로 로그인', outlined: true, height: 52, icon: const GoogleG(), onPressed: _busy ? null : _google),
+                    const SizedBox(height: 14),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('이미 계정이 있나요?  로그인', style: TextStyle(color: Color(0xFF3D4A40), fontWeight: FontWeight.w700)),
+                    ),
+                  ]),
                 ),
-              ]),
-            ),
-          ]),
-        ),
-      );
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
 }

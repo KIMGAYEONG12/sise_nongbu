@@ -55,28 +55,21 @@ class FarmPage extends ConsumerWidget {
     ];
 
     return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [
+      // 시안: 노란 원 안의 농부 아바타 · 닉네임 · Lv · 금화 알약 · 톱니바퀴
       Row(children: [
-        Container(
-          width: 46,
-          height: 46,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: AppColors.line, width: 2)),
-          child: const Text('👩‍🌾', style: TextStyle(fontSize: 26, height: 1)),
-        ),
+        const FarmerAvatar(size: 58),
         const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Flexible(child: Text(user.nickname, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900))),
-              const SizedBox(width: 6),
-              Text('Lv.${lv.level}', style: const TextStyle(fontSize: 12, color: AppColors.greenDark, fontWeight: FontWeight.w800)),
-            ]),
+            Text(user.nickname, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20))),
+            const SizedBox(height: 3),
+            Text('Lv.${lv.level}', style: const TextStyle(fontSize: 13, color: Color(0xFF3D4A40), fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
-            SizedBox(width: 90, child: ThinBar(value: lv.ratio, height: 6)),
+            SizedBox(width: 84, child: ThinBar(value: lv.ratio, height: 5)),
           ]),
         ),
         MoneyPill(money: user.money),
-        IconButton(onPressed: () => _push(context, const AboutPage()), icon: const Icon(Icons.settings_rounded, color: AppColors.ink)),
+        IconButton(onPressed: () => _push(context, const AboutPage()), icon: const Icon(Icons.settings_outlined, color: AppColors.ink, size: 26)),
       ]),
       const SizedBox(height: 10),
       _WeatherCard(weather: ref.watch(weatherProvider)),
@@ -129,18 +122,20 @@ class _WeatherCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = weather.valueOrNull;
     return SoftCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      color: Colors.white.withValues(alpha: .92),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(children: [
-        Text(w?.emoji ?? '🌤️', style: const TextStyle(fontSize: 34, height: 1)),
-        const SizedBox(width: 10),
+        Text(w?.emoji ?? '🌤️', style: const TextStyle(fontSize: 40, height: 1)),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('오늘의 날씨', style: TextStyle(fontSize: 11, color: AppColors.sub)),
-            Text(w == null ? (weather.isLoading ? '불러오는 중…' : '날씨를 불러오지 못했어요') : '${w.label} ${w.tempC.round()}°C',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+            const Text('오늘의 날씨', style: TextStyle(fontSize: 12, color: Color(0xFF4A5A4E), fontWeight: FontWeight.w600)),
+            const SizedBox(height: 2),
+            Text(w == null ? (weather.isLoading ? '불러오는 중…' : '날씨를 불러오지 못했어요') : '${w.label}  ${w.tempC.round()}°C',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20))),
           ]),
         ),
-        if (w != null) Text(_tip(w.label), textAlign: TextAlign.right, style: const TextStyle(fontSize: 11, color: AppColors.sub, height: 1.3)),
+        if (w != null) Text(_tip(w.label), textAlign: TextAlign.right, style: const TextStyle(fontSize: 11, color: Color(0xFF4A5A4E), height: 1.35)),
       ]),
     );
   }

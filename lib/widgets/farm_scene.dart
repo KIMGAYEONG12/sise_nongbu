@@ -188,7 +188,75 @@ class PlotTile extends StatelessWidget {
   }
 }
 
-/// 집·나무가 있는 풍경 아래에 흙 밭 칸들이 놓인 농장 카드
+/// 밭 칸들을 [cols]열 격자로 놓는다. 칸 크기는 가로폭에 맞춰 정확히 계산해서 줄바꿈으로 칸이 밀리지 않게 한다.
+class PlotGrid extends StatelessWidget {
+  const PlotGrid({super.key, required this.plots, required this.now, required this.onTap, this.selected, this.cols = 3, this.gap = 8, this.maxTile = 110});
+  final List<Plot> plots;
+  final DateTime now;
+  final ValueChanged<Plot> onTap;
+  final int? selected;
+  final int cols;
+  final double gap, maxTile;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
+        final tile = ((box.maxWidth - gap * (cols - 1)) / cols).floorToDouble().clamp(40.0, maxTile).toDouble();
+        final rows = <Widget>[];
+        for (var r = 0; r * cols < plots.length; r++) {
+          final cells = <Widget>[];
+          for (var c = 0; c < cols; c++) {
+            final i = r * cols + c;
+            if (c > 0) cells.add(SizedBox(width: gap));
+            cells.add(i < plots.length
+                ? PlotTile(plot: plots[i], now: now, size: tile, selected: selected == plots[i].index, onTap: () => onTap(plots[i]))
+                : SizedBox(width: tile, height: tile));
+          }
+          if (r > 0) rows.add(SizedBox(height: gap));
+          rows.add(Row(mainAxisSize: MainAxisSize.min, children: cells));
+        }
+        return Center(child: Column(mainAxisSize: MainAxisSize.min, children: rows));
+      });
+}
+
+/// 나무 테두리 안에 흙 밭 칸들이 놓인 밭 판 (시안의 갈색 밭)
+class SoilBoard extends StatelessWidget {
+  const SoilBoard({super.key, required this.plots, required this.now, required this.onTap, this.selected, this.maxTile = 110, this.grass = false});
+  final List<Plot> plots;
+  final DateTime now;
+  final ValueChanged<Plot> onTap;
+  final int? selected;
+  final double maxTile;
+
+  /// true면 시안의 작물 성장 화면처럼 잔디 테두리를 한 겹 더 두른다.
+  final bool grass;
+
+  @override
+  Widget build(BuildContext context) {
+    final board = Container(
+      padding: const EdgeInsets.all(9),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFB07A48), Color(0xFF8E5B32)]),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.soilDark, width: 3),
+        boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 8, offset: Offset(0, 3))],
+      ),
+      child: PlotGrid(plots: plots, now: now, onTap: onTap, selected: selected, maxTile: maxTile),
+    );
+    if (!grass) return board;
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF9BD267), Color(0xFF6DB146)]),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [BoxShadow(color: AppColors.green.withValues(alpha: .18), blurRadius: 10, offset: const Offset(0, 3))],
+      ),
+      child: board,
+    );
+  }
+}
+
+/// 챗GPT 시안의 농장 일러스트(집·연못·밭) 위에 실제로 누를 수 있는 밭 칸들을 올린 농장 카드
 class FarmYard extends StatelessWidget {
   const FarmYard({super.key, required this.plots, required this.now, required this.onTapPlot, this.decor = 0, this.selected});
   final List<Plot> plots;
@@ -197,45 +265,36 @@ class FarmYard extends StatelessWidget {
   final int decor;
   final int? selected;
 
+  static const _imgAspect = 936 / 714;
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
-        const pad = 12.0, gap = 8.0, inner = 8.0, cols = 3;
         final w = box.maxWidth;
-        final tile = ((w - pad * 2 - inner * 2 - gap * (cols - 1)) / cols).clamp(48.0, 96.0).toDouble();
-        final rows = plots.isEmpty ? 1 : (plots.length / cols).ceil();
-        final boardH = rows * tile + (rows - 1) * gap + inner * 2;
-        const skyH = 118.0;
+        final imgH = w / _imgAspect;
+        // 밭 판: 가로 76%, 3열
+        final boardW = w * .76;
+        const gap = 8.0, pad = 9.0 + 3.0;
+        final tile = ((boardW - pad * 2 - gap * 2) / 3).floorToDouble().clamp(40.0, 84.0).toDouble();
+        final rows = plots.isEmpty ? 1 : (plots.length / 3).ceil();
+        final boardH = rows * tile + (rows - 1) * gap + pad * 2;
+        // 그림의 위쪽 45%(하늘·집)는 보이게 두고 아래쪽 들판 위에 밭 판을 얹는다
+        final totalH = imgH > imgH * .45 + boardH + 14 ? imgH : imgH * .45 + boardH + 14;
         return ClipRRect(
           borderRadius: BorderRadius.circular(22),
-          child: SizedBox(
-            height: skyH + boardH + 14,
-            child: CustomPaint(
-              painter: const ScenePainter(),
-              child: Stack(children: [
-                const Positioned(left: 14, top: 22, child: Text('🏡', style: TextStyle(fontSize: 70, height: 1))),
-                const Positioned(right: 20, top: 34, child: Text('🌳', style: TextStyle(fontSize: 52, height: 1))),
-                const Positioned(right: 78, top: 56, child: Text('🌳', style: TextStyle(fontSize: 34, height: 1))),
-                Positioned(left: 96, top: 66, child: Text('🌻' * decor, style: const TextStyle(fontSize: 22, height: 1))),
-                Positioned(
-                  left: pad,
-                  right: pad,
-                  bottom: 10,
-                  child: Container(
-                    padding: const EdgeInsets.all(inner),
-                    decoration: BoxDecoration(
-                      color: AppColors.soil,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.soilDark, width: 3),
-                      boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 8, offset: Offset(0, 3))],
-                    ),
-                    child: Wrap(spacing: gap, runSpacing: gap, children: [
-                      for (final p in plots)
-                        PlotTile(plot: p, now: now, size: tile, selected: selected == p.index, onTap: () => onTapPlot(p)),
-                    ]),
-                  ),
-                ),
-              ]),
-            ),
+          child: Container(
+            height: totalH,
+            decoration: BoxDecoration(border: Border.all(color: Colors.white, width: 2), borderRadius: BorderRadius.circular(22)),
+            child: Stack(children: [
+              Positioned.fill(child: Image.asset(AppImages.farmScene, fit: BoxFit.cover, alignment: Alignment.topCenter, filterQuality: FilterQuality.medium)),
+              if (decor > 0)
+                Positioned(left: 12, top: 10, child: Text('🌻' * decor, style: const TextStyle(fontSize: 20, height: 1))),
+              Positioned(
+                left: (w - boardW) / 2,
+                width: boardW,
+                bottom: 10,
+                child: SoilBoard(plots: plots, now: now, onTap: onTapPlot, selected: selected, maxTile: tile),
+              ),
+            ]),
           ),
         );
       });

@@ -26,6 +26,8 @@ class _AppRootState extends ConsumerState<AppRoot> {
 
   void _afterTutorial() {
     ref.read(prefsProvider).setBool(_tutorialKey, true);
+    // 튜토리얼이 끝나면 로그인·회원가입 화면으로 간다 (게스트 세션이 남아 있어도 한 번은 보여준다)
+    ref.read(loginAfterTutorialProvider.notifier).state = true;
     setState(() => _stage = 2);
   }
 
@@ -47,10 +49,15 @@ class AuthGate extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authStateProvider);
+    final askLogin = ref.watch(loginAfterTutorialProvider);
     return auth.when(
       loading: () => const _Loading(),
       error: (e, _) => Scaffold(body: Center(child: Padding(padding: const EdgeInsets.all(24), child: Text('로그인 상태를 확인하지 못했어요\n$e', textAlign: TextAlign.center)))),
-      data: (user) => user == null ? const LoginPage() : _UserReady(key: ValueKey(user.uid), user: user),
+      data: (user) {
+        // 로그인 안 함 → 로그인 화면. 튜토리얼 직후인데 게스트 세션만 남아 있음 → 그래도 로그인 화면 먼저.
+        if (user == null || (askLogin && user.isAnonymous)) return const LoginPage();
+        return _UserReady(key: ValueKey(user.uid), user: user);
+      },
     );
   }
 }

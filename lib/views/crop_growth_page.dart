@@ -93,7 +93,8 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
                 plots.when(
                   loading: () => const SizedBox(height: 160, child: Center(child: CircularProgressIndicator())),
                   error: (e, _) => SoftCard(child: Text('밭을 불러오지 못했어요\n${errMsg(e)}')),
-                  data: (all) => _Board(
+                  data: (all) => SoilBoard(
+                    grass: true,
                     plots: all,
                     now: now,
                     selected: sel?.index,
@@ -110,15 +111,16 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
                 ),
                 const SizedBox(height: 12),
                 Row(children: [
-                  _ActionButton(emoji: '💧', label: '물주기', count: user.item(itemWater), onTap: () => _use(sel, itemWater)),
+                  _ActionButton(emoji: '💧', label: '물주기', tint: const Color(0xFFE2F1FC), count: user.item(itemWater), onTap: () => _use(sel, itemWater)),
                   const SizedBox(width: 8),
-                  _ActionButton(emoji: '🧪', label: '영양제', count: user.item(itemFertilizer), onTap: () => _use(sel, itemFertilizer)),
+                  _ActionButton(emoji: '🌿', label: '영양제', tint: const Color(0xFFE6F4DD), count: user.item(itemFertilizer), onTap: () => _use(sel, itemFertilizer)),
                   const SizedBox(width: 8),
-                  _ActionButton(emoji: '⚡', label: '성장촉진제', count: user.item(itemBooster), onTap: () => _use(sel, itemBooster)),
+                  _ActionButton(emoji: '🧴', label: '성장촉진제', tint: const Color(0xFFFFEEDD), count: user.item(itemBooster), onTap: () => _use(sel, itemBooster)),
                   const SizedBox(width: 8),
                   _ActionButton(
                     emoji: '📋',
                     label: '미션',
+                    tint: const Color(0xFFFFF4D2),
                     badge: '$dailyDone/${dailyMissions.length}',
                     onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const MissionPage())),
                   ),
@@ -128,7 +130,7 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
                   onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const MissionPage())),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [
-                      const Text('🎯', style: TextStyle(fontSize: 18)),
+                      const Text('🌰', style: TextStyle(fontSize: 18)),
                       const SizedBox(width: 6),
                       Text('오늘의 미션 $dailyDone/${dailyMissions.length}', style: const TextStyle(fontWeight: FontWeight.w800)),
                     ]),
@@ -138,7 +140,7 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
                     else
                       Row(children: [
                         Expanded(child: Text('${nextMission.title} (${periodCount(user.daily, tag, nextMission.key)}/${nextMission.target})', style: const TextStyle(fontSize: 13))),
-                        Text('+${nextMission.points}P', style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.coin)),
+                        Text('+${nextMission.points}P', style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFF39A1E))),
                       ]),
                   ]),
                 ),
@@ -162,16 +164,16 @@ class _GrowthHeader extends StatelessWidget {
     final ready = plot.isReady(now);
     final p = plot.progress(now);
     return Row(children: [
-      EmojiBadge(spec.emoji, size: 54),
+      EmojiBadge(spec.emoji, size: 62, color: const Color(0xFFEAF5DF)),
       const SizedBox(width: 12),
       Expanded(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(spec.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+          Text(spec.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
           const SizedBox(height: 6),
           Row(children: [
-            Expanded(child: ThinBar(value: p, height: 9)),
+            Expanded(child: ThinBar(value: p, height: 12, track: const Color(0xFFE3EBDD))),
             const SizedBox(width: 8),
-            Text('${(p * 100).round()}%', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+            Text('${(p * 100).round()}%', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
           ]),
           const SizedBox(height: 4),
           Text('수확 예상: ${plot.readyAt == null ? '-' : leftText(plot.readyAt!, now)}${plot.bonus > 0 ? ' · 수확량 +${(plot.bonus * 100).round()}%' : ''}',
@@ -182,35 +184,10 @@ class _GrowthHeader extends StatelessWidget {
   }
 }
 
-class _Board extends StatelessWidget {
-  const _Board({required this.plots, required this.now, required this.selected, required this.onTap});
-  final List<Plot> plots;
-  final DateTime now;
-  final int? selected;
-  final ValueChanged<Plot> onTap;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
-        const gap = 8.0, inner = 10.0, cols = 3;
-        final tile = ((box.maxWidth - inner * 2 - gap * (cols - 1)) / cols).clamp(48.0, 110.0).toDouble();
-        return Container(
-          padding: const EdgeInsets.all(inner),
-          decoration: BoxDecoration(
-            color: AppColors.soil,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.soilDark, width: 3),
-            boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 8, offset: Offset(0, 3))],
-          ),
-          child: Wrap(spacing: gap, runSpacing: gap, children: [
-            for (final p in plots) PlotTile(plot: p, now: now, size: tile, selected: selected == p.index, onTap: () => onTap(p)),
-          ]),
-        );
-      });
-}
-
 class _ActionButton extends StatelessWidget {
-  const _ActionButton({required this.emoji, required this.label, required this.onTap, this.count, this.badge});
+  const _ActionButton({required this.emoji, required this.label, required this.onTap, this.count, this.badge, this.tint = Colors.white});
   final String emoji, label;
+  final Color tint;
   final int? count;
   final String? badge;
   final VoidCallback onTap;
@@ -222,16 +199,17 @@ class _ActionButton extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: empty ? .55 : .95),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.line),
+            color: tint.withValues(alpha: empty ? .6 : 1),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white, width: 2),
+            boxShadow: [BoxShadow(color: AppColors.green.withValues(alpha: .08), blurRadius: 8, offset: const Offset(0, 2))],
           ),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Opacity(opacity: empty ? .5 : 1, child: Text(emoji, style: const TextStyle(fontSize: 26, height: 1.1))),
+            Opacity(opacity: empty ? .55 : 1, child: Text(emoji, style: const TextStyle(fontSize: 30, height: 1.1))),
             const SizedBox(height: 4),
-            Text(label, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
+            Text(label, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
             Text(count != null ? '보유 $count' : (badge ?? ''), style: TextStyle(fontSize: 10, color: empty ? AppColors.sub : AppColors.greenDark, fontWeight: FontWeight.w800)),
           ]),
         ),

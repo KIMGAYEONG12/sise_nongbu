@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 /// 시안(연두 파스텔 + 짙은 초록 버튼) 색상
 class AppColors {
-  static const bg = Color(0xFFF4FAEC);
-  static const bg2 = Color(0xFFE6F3DA);
+  static const bg = Color(0xFFF6F8EB); // 시안의 크림빛 연두 배경
+  static const bg2 = Color(0xFFEAF3DC);
   static const green = Color(0xFF2F8F3E);
   static const greenDark = Color(0xFF1F6B2E);
   static const greenLight = Color(0xFFD8EDC8);
@@ -15,6 +15,32 @@ class AppColors {
   static const soilDark = Color(0xFF6E4524);
   static const up = Color(0xFFE5483B); // 상승: 빨강 (한국 시세 표기)
   static const down = Color(0xFF3B82E0); // 하락: 파랑
+}
+
+/// 챗GPT 시안에서 가져온 일러스트 이미지 (assets/images)
+class AppImages {
+  static const splash = 'assets/images/splash_bg.jpg';
+  static const tutPlant = 'assets/images/tut_plant.jpg';
+  static const tutGrow = 'assets/images/tut_grow.jpg';
+  static const tutSell = 'assets/images/tut_sell.jpg';
+  static const tutReady = 'assets/images/tut_ready.jpg';
+  static const farmScene = 'assets/images/farm_scene.jpg';
+  static const loginLand = 'assets/images/login_land.png';
+  static const signupLand = 'assets/images/signup_land.png';
+  static const leafTopRight = 'assets/images/leaf_tr.png';
+  static const leafTopLeft = 'assets/images/leaf_tl.png';
+
+  /// 스플래시가 떠 있는 동안 미리 읽어 두면 다음 화면에서 그림이 늦게 뜨지 않는다.
+  static Future<void> precacheAll(BuildContext context) async {
+    for (final a in const [splash, tutPlant, tutGrow, tutSell, tutReady, farmScene, loginLand, signupLand, leafTopRight, leafTopLeft]) {
+      if (!context.mounted) return;
+      try {
+        await precacheImage(AssetImage(a), context);
+      } catch (_) {
+        // 미리 읽기에 실패해도 화면에서 다시 읽으므로 무시한다.
+      }
+    }
+  }
 }
 
 String commaNum(num v) => v.round().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
@@ -70,8 +96,9 @@ ThemeData buildTheme() {
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       hintStyle: const TextStyle(color: AppColors.sub, fontSize: 14),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.line)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.line)),
+      prefixIconColor: AppColors.ink,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE3ECD9))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE3ECD9))),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.green, width: 1.6)),
     ),
   );
@@ -84,11 +111,11 @@ class GameBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFF7FCF1), AppColors.bg2]),
+          gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFF8FAEE), AppColors.bg, AppColors.bg2]),
         ),
         child: Stack(children: [
-          Positioned(top: 4, right: 4, child: Opacity(opacity: .45, child: Text('🌿', style: TextStyle(fontSize: 54, height: 1)))),
-          Positioned(top: 4, left: 4, child: Opacity(opacity: .25, child: Transform.flip(flipX: true, child: Text('🍃', style: TextStyle(fontSize: 34, height: 1))))),
+          Positioned(top: 0, right: 0, child: IgnorePointer(child: Image.asset(AppImages.leafTopRight, width: 58, fit: BoxFit.contain))),
+          Positioned(top: 4, left: 2, child: IgnorePointer(child: Image.asset(AppImages.leafTopLeft, width: 34, fit: BoxFit.contain))),
           Positioned.fill(child: child),
         ]),
       );
@@ -174,7 +201,7 @@ class GreenButton extends StatelessWidget {
             if (icon != null) ...[icon!, const SizedBox(width: 6)],
             Flexible(child: Text(label, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
           ]);
-    final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(14));
+    final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(height / 2)); // 시안의 알약 모양 버튼
     return SizedBox(
       width: double.infinity,
       height: height,
@@ -184,7 +211,9 @@ class GreenButton extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.ink,
                 backgroundColor: Colors.white,
-                side: const BorderSide(color: AppColors.line),
+                elevation: 1.5,
+                shadowColor: AppColors.green.withValues(alpha: .25),
+                side: const BorderSide(color: Color(0xFFE3ECD9)),
                 shape: shape,
               ),
               child: child,
@@ -196,7 +225,8 @@ class GreenButton extends StatelessWidget {
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: AppColors.green.withValues(alpha: .4),
                 disabledForegroundColor: Colors.white,
-                elevation: 0,
+                elevation: 2,
+                shadowColor: AppColors.greenDark.withValues(alpha: .4),
                 shape: shape,
               ),
               child: child,
@@ -259,10 +289,79 @@ class MoneyPill extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(color: Colors.white.withValues(alpha: .9), borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.line)),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.monetization_on_rounded, color: AppColors.coin, size: 20),
-          const SizedBox(width: 4),
+          const CoinIcon(size: 22),
+          const SizedBox(width: 6),
           Text('${commaNum(money)} 원', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
         ]),
+      );
+}
+
+/// 시안의 금화 아이콘 (동그란 금색 동전)
+class CoinIcon extends StatelessWidget {
+  const CoinIcon({super.key, this.size = 22});
+  final double size;
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const RadialGradient(center: Alignment(-.3, -.4), colors: [Color(0xFFFFE07A), Color(0xFFF6B21B), Color(0xFFE08A00)]),
+          border: Border.all(color: const Color(0xFFD98200), width: size * .06),
+          boxShadow: [BoxShadow(color: const Color(0xFFE08A00).withValues(alpha: .35), blurRadius: 3, offset: const Offset(0, 1))],
+        ),
+        child: Container(
+          width: size * .56,
+          height: size * .56,
+          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFFFFF1B8).withValues(alpha: .9), width: size * .06)),
+        ),
+      );
+}
+
+/// 구글 로그인 버튼의 4색 G
+class GoogleG extends StatelessWidget {
+  const GoogleG({super.key, this.size = 22});
+  final double size;
+  @override
+  Widget build(BuildContext context) => ShaderMask(
+        blendMode: BlendMode.srcIn,
+        shaderCallback: (r) => const SweepGradient(
+          colors: [Color(0xFFEA4335), Color(0xFFFBBC05), Color(0xFF34A853), Color(0xFF4285F4), Color(0xFF4285F4), Color(0xFFEA4335)],
+          stops: [0.0, 0.25, 0.45, 0.62, 0.9, 1.0],
+          startAngle: 3.6,
+          endAngle: 3.6 + 6.283,
+        ).createShader(r),
+        child: Text('G', style: TextStyle(fontSize: size, fontWeight: FontWeight.w900, height: 1, color: Colors.white)),
+      );
+}
+
+/// 그림 카드: 이미지 비율을 지키며 둥근 모서리로 보여주고, [overlay]를 같은 크기로 위에 얹는다.
+class IllustCard extends StatelessWidget {
+  const IllustCard({super.key, required this.asset, required this.aspect, this.overlay, this.radius = 20});
+  final String asset;
+  final double aspect;
+  final Widget? overlay;
+  final double radius;
+  @override
+  Widget build(BuildContext context) => Center(
+        child: AspectRatio(
+          aspectRatio: aspect,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(radius),
+              border: Border.all(color: Colors.white, width: 3),
+              boxShadow: [BoxShadow(color: AppColors.green.withValues(alpha: .15), blurRadius: 12, offset: const Offset(0, 4))],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(radius - 3),
+              child: Stack(fit: StackFit.expand, children: [
+                Image.asset(asset, fit: BoxFit.cover, filterQuality: FilterQuality.medium),
+                if (overlay != null) overlay!,
+              ]),
+            ),
+          ),
+        ),
       );
 }
 
@@ -310,7 +409,8 @@ class ChangeChip extends StatelessWidget {
     final color = up ? AppColors.up : AppColors.down;
     final label = percent != null ? '${up ? '+' : ''}${percent!.toStringAsFixed(1)}%' : won(amount!.abs());
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(up ? Icons.arrow_drop_up_rounded : Icons.arrow_drop_down_rounded, color: color, size: 22),
+      Text(up ? '▲' : '▼', style: TextStyle(color: color, fontSize: 10, height: 1)),
+      const SizedBox(width: 4),
       Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 13)),
     ]);
   }
@@ -328,5 +428,24 @@ class SectionTitle extends StatelessWidget {
           Expanded(child: Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800))),
           if (trailing != null) trailing!,
         ]),
+      );
+}
+
+/// 시안의 프로필 아바타: 노란 원 + 흰 테두리 안의 농부
+class FarmerAvatar extends StatelessWidget {
+  const FarmerAvatar({super.key, this.size = 56});
+  final double size;
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const RadialGradient(colors: [Color(0xFFFFF0A8), Color(0xFFFFD34E)]),
+          border: Border.all(color: Colors.white, width: size * .06),
+          boxShadow: [BoxShadow(color: const Color(0xFFE0A800).withValues(alpha: .3), blurRadius: 8, offset: const Offset(0, 2))],
+        ),
+        child: Text('👩‍🌾', style: TextStyle(fontSize: size * .56, height: 1)),
       );
 }

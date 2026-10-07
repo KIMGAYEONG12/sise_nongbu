@@ -84,60 +84,82 @@ class MyPage extends ConsumerWidget {
     final user = ref.watch(userDataProvider);
     final lv = user.level;
 
-    Widget menu(IconData icon, String label, VoidCallback onTap) => SoftCard(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          onTap: onTap,
-          child: Row(children: [
-            Icon(icon, color: AppColors.green),
-            const SizedBox(width: 14),
-            Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15))),
-            const Icon(Icons.chevron_right_rounded, color: AppColors.sub),
-          ]),
-        );
-
-    return ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), children: [
-      const PageHeader(title: 'MY'),
-      SoftCard(
-        child: Column(children: [
-          Row(children: [
-            const EmojiBadge('🧑‍🌾', size: 62),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Flexible(child: Text(user.nickname, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
-                  IconButton(visualDensity: VisualDensity.compact, onPressed: () => _rename(context, ref, user.nickname), icon: const Icon(Icons.edit_rounded, size: 18, color: AppColors.sub)),
-                ]),
-                Text('Lv.${lv.level}', style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.greenDark)),
+    Widget menu(IconData icon, String label, VoidCallback onTap, {bool last = false}) => Column(mainAxisSize: MainAxisSize.min, children: [
+          InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+              child: Row(children: [
+                Icon(icon, color: const Color(0xFF2B3A30), size: 24),
+                const SizedBox(width: 14),
+                Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF1C2B20)))),
+                const Icon(Icons.chevron_right_rounded, color: Color(0xFF2B3A30)),
               ]),
             ),
+          ),
+          if (!last) const Divider(height: 1, indent: 16, endIndent: 16, color: Color(0xFFEDF1E8)),
+        ]);
+
+    return ListView(padding: const EdgeInsets.fromLTRB(16, 14, 16, 24), children: [
+      // 시안: 큰 아바타 + 닉네임 + Lv + 경험치 막대
+      Row(children: [
+        const FarmerAvatar(size: 84),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Flexible(child: Text(user.nickname, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20)))),
+              IconButton(visualDensity: VisualDensity.compact, onPressed: () => _rename(context, ref, user.nickname), icon: const Icon(Icons.edit_rounded, size: 18, color: AppColors.sub)),
+            ]),
+            Text('Lv.${lv.level}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF3D4A40))),
+            const SizedBox(height: 8),
+            Stack(alignment: Alignment.center, children: [
+              ThinBar(value: lv.ratio, height: 16, track: const Color(0xFFE3EBDD)),
+              Text('${lv.exp} / ${lv.need}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF2B3A30))),
+            ]),
           ]),
-          const SizedBox(height: 10),
-          ThinBar(value: lv.ratio, height: 10),
-          const SizedBox(height: 4),
-          Align(alignment: Alignment.centerRight, child: Text('EXP ${lv.exp} / ${lv.need}', style: const TextStyle(fontSize: 11, color: AppColors.sub))),
-        ]),
-      ),
-      const SizedBox(height: 10),
+        ),
+      ]),
+      const SizedBox(height: 18),
       SoftCard(
+        color: Colors.white,
+        onTap: () => _stats(context, ref),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Row(children: [
-          const Icon(Icons.monetization_on_rounded, color: AppColors.coin, size: 30),
-          const SizedBox(width: 10),
-          const Text('보유 금액', style: TextStyle(fontWeight: FontWeight.w700)),
-          const Spacer(),
-          Text(won(user.money), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+          const SizedBox(
+            width: 52,
+            height: 40,
+            child: Stack(children: [
+              Positioned(left: 0, bottom: 0, child: CoinIcon(size: 30)),
+              Positioned(left: 18, bottom: 6, child: CoinIcon(size: 30)),
+              Positioned(left: 8, top: 0, child: CoinIcon(size: 24)),
+            ]),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('보유 금액', style: TextStyle(fontSize: 12, color: Color(0xFF4A5A4E), fontWeight: FontWeight.w600)),
+              const SizedBox(height: 2),
+              Text(won(user.money), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20))),
+            ]),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: Color(0xFF2B3A30)),
         ]),
       ),
-      const SizedBox(height: 14),
-      menu(Icons.grass_rounded, '내 농장', () => ref.read(shellIndexProvider.notifier).state = 1),
-      menu(Icons.bar_chart_rounded, '농작물 통계', () => _stats(context, ref)),
-      menu(Icons.emoji_events_rounded, '업적', () => _push(context, const AchievementPage())),
-      menu(Icons.receipt_long_rounded, '거래 기록', () => _push(context, const TradeHistoryPage())),
-      menu(Icons.support_agent_rounded, '고객센터', () => _push(context, const SupportPage())),
-      menu(Icons.info_outline_rounded, '앱 정보', () => _push(context, const AboutPage())),
-      const SizedBox(height: 8),
-      GreenButton(label: '로그아웃', outlined: true, onPressed: () => _logout(context, ref)),
+      const SizedBox(height: 12),
+      SoftCard(
+        color: Colors.white,
+        padding: EdgeInsets.zero,
+        child: Column(children: [
+          menu(Icons.home_work_outlined, '내 농장', () => ref.read(shellIndexProvider.notifier).state = 1),
+          menu(Icons.bar_chart_rounded, '농작물 통계', () => _stats(context, ref)),
+          menu(Icons.emoji_events_outlined, '업적', () => _push(context, const AchievementPage())),
+          menu(Icons.receipt_long_outlined, '거래 기록', () => _push(context, const TradeHistoryPage())),
+          menu(Icons.support_agent_rounded, '고객센터', () => _push(context, const SupportPage())),
+          menu(Icons.info_outline_rounded, '앱 정보', () => _push(context, const AboutPage())),
+          menu(Icons.logout_rounded, '로그아웃', () => _logout(context, ref), last: true),
+        ]),
+      ),
     ]);
   }
 }
