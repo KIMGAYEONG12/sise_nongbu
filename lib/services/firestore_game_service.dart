@@ -1,51 +1,141 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../core/game_rules.dart';
+import '../core/progress_rules.dart';
 import '../models/models.dart';
+
+Map<String, dynamic>? _asMap(Object? v) => v is Map ? Map<String, dynamic>.from(v) : null;
+int _int(Object? v) => (v as num?)?.toInt() ?? 0;
+
+Map<String, dynamic> _emptyPlot() =>
+    {'cropCode': null, 'status': 'empty', 'plantedAt': null, 'readyAt': null, 'growMs': 0, 'bonus': 0, 'watered': 0, 'boosted': false};
 
 class FirestoreGameService {
   FirestoreGameService(this.db, this.uid);
   final FirebaseFirestore db;
   final String uid;
   DocumentReference<Map<String, dynamic>> get _user => db.collection('users').doc(uid);
+  DocumentReference<Map<String, dynamic>> get _fund => db.collection('community').doc('fund');
   CollectionReference<Map<String, dynamic>> _col(String n) => _user.collection(n);
 
-  Future<void> ensureUser() async {
-    if ((await _user.get()).exists) return;
+  /// 처음 로그인한 사용자의 문서와 밭을 만든다. 이미 있으면 닉네임이 비어 있을 때만 채운다.
+  Future<void> ensureUser({String? nickname}) async {
+    final name = (nickname != null && nickname.trim().isNotEmpty) ? nickname.trim() : null;
+    final fallback = '농부${uid.substring(0, uid.length < 4 ? uid.length : 4)}';
+    final snap = await _user.get();
+    if (snap.exists) {
+      final cur = snap.data()?['nickname'];
+      if (cur == null || cur == '') await _user.update({'nickname': name ?? fallback});
+      return;
+    }
     final b = db.batch();
-    b.set(_user, {'money': startMoney, 'totalProfit': 0, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()});
+    b.set(_user, {
+      'money': startMoney,
+      'totalProfit': 0,
+      'exp': 0,
+      'points': 0,
+      'nickname': name ?? fallback,
+      'warehouseLevel': 0,
+      'warehouseBonusKg': 0,
+      'greenhouse': false,
+      'decor': 0,
+      'items': <String, dynamic>{},
+      'stats': <String, dynamic>{},
+      'fundGiven': 0,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
     for (var i = 0; i < plotCount; i++) {
-      b.set(_col('plots').doc('$i'), {'cropCode': null, 'status': 'empty', 'plantedAt': null, 'readyAt': null});
+      b.set(_col('plots').doc('$i'), _emptyPlot());
     }
     await b.commit();
   }
+
+  Future<void> setNickname(String name) => _user.update({'nickname': name.trim(), 'updatedAt': FieldValue.serverTimestamp()});
 
   Stream<Map<String, dynamic>> user() => _user.snapshots().map((s) => s.data() ?? {});
   Stream<List<Plot>> plots() => _col('plots').snapshots().map((s) => s.docs.map(Plot.fromDoc).toList()..sort((a, b) => a.index - b.index));
   Stream<List<Lot>> lots() => _col('inventory').snapshots().map((s) => s.docs.map(Lot.fromDoc).toList());
   Stream<List<Trade>> trades() =>
       _col('trades').orderBy('createdAt', descending: true).snapshots().map((s) => s.docs.map(Trade.fromDoc).toList());
+  Stream<FundData> fund() => _fund.snapshots().map((s) => FundData.fromMap(s.data()));
 
-  Future<void> plant(int idx, CropSpec c, DateTime readyAt) => db.runTransaction((tx) async {
-        final u = (await tx.get(_user)).data()!;
-        final money = (u['money'] as num).toInt();
-        if (money < c.seedCost) throw StateError('자금이 부족해요');
-        tx.update(_user, {'money': money - c.seedCost, 'totalProfit': (u['totalProfit'] as num).toInt() - c.seedCost, 'updatedAt': FieldValue.serverTimestamp()});
-        tx.set(_col('plots').doc('$idx'), {'cropCode': c.code, 'status': 'growing', 'plantedAt': FieldValue.serverTimestamp(), 'readyAt': Timestamp.fromDate(readyAt)});
-      });
-
-  Future<void> harvest(int idx, CropSpec c) {
-    final b = db.batch();
-    b.set(_col('plots').doc('$idx'), {'cropCode': null, 'status': 'empty', 'plantedAt': null, 'readyAt': null});
-    b.set(_col('inventory').doc(), {'cropCode': c.code, 'quantityKg': c.yieldKg, 'harvestedAt': FieldValue.serverTimestamp()});
-    return b.commit();
+  /// 미션 카운터(일일·주간)를 한 번에 올리는 업데이트 항목
+  Map<String, dynamic> _bumps(Map<String, dynamic> u, DateTime t, List<String> keys) {
+    var d = _asMap(u['daily']);
+    var w = _asMap(u['weekly']);
+    for (final k in keys) {
+      d = bumpPeriod(d, dayTag(t), k);
+      w = bumpPeriod(w, weekTag(t), k);
+    }
+    return {'daily': d, 'weekly': w};
   }
 
-  /// 자금 증가 + 입고분 삭제 + 거래 기록을 한 트랜잭션으로 처리
-  Future<void> sell(Lot lot, AuctionPrice p, double freshness, int amount) => db.runTransaction((tx) async {
+  // ───────────────────────── 파종·수확·출하 ─────────────────────────
+
+  /// 씨앗이 있으면 씨앗을 쓰고, 없으면 파종비를 낸다.
+  Future<void> plant(int idx, CropSpec c, DateTime readyAt, {DateTime? now}) => db.runTransaction((tx) async {
+        final t = now ?? DateTime.now();
         final u = (await tx.get(_user)).data()!;
+        final money = _int(u['money']);
+        final key = seedKey(c.code);
+        final seeds = _int(_asMap(u['items'])?[key]);
+        final useSeed = seeds > 0;
+        if (!useSeed && money < c.seedCost) throw StateError('자금이 부족해요');
+        final upd = <String, dynamic>{
+          'money': useSeed ? money : money - c.seedCost,
+          'totalProfit': _int(u['totalProfit']) - (useSeed ? 0 : c.seedCost),
+          'exp': _int(u['exp']) + 5,
+          'stats.plant': FieldValue.increment(1),
+          ..._bumps(u, t, ['plant']),
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
+        if (useSeed) upd['items.$key'] = seeds - 1;
+        tx.update(_user, upd);
+        tx.set(_col('plots').doc('$idx'), {
+          'cropCode': c.code,
+          'status': 'growing',
+          'plantedAt': FieldValue.serverTimestamp(),
+          'readyAt': Timestamp.fromDate(readyAt),
+          'growMs': readyAt.difference(t).inMilliseconds,
+          'bonus': 0,
+          'watered': 0,
+          'boosted': false,
+        });
+      });
+
+  /// 수확해서 창고에 넣고, 수확량(kg)을 돌려준다. 영양제로 늘어난 수확량이 반영된다.
+  Future<double> harvest(int idx, CropSpec c, {DateTime? now}) => db.runTransaction<double>((tx) async {
+        final t = now ?? DateTime.now();
+        final pm = (await tx.get(_col('plots').doc('$idx'))).data() ?? {};
+        final u = (await tx.get(_user)).data()!;
+        final bonus = (pm['bonus'] as num?)?.toDouble() ?? 0;
+        final kg = c.yieldKg * (1 + bonus);
+        tx.set(_col('plots').doc('$idx'), _emptyPlot());
+        tx.set(_col('inventory').doc(), {'cropCode': c.code, 'quantityKg': kg, 'harvestedAt': FieldValue.serverTimestamp()});
         tx.update(_user, {
-          'money': (u['money'] as num).toInt() + amount,
-          'totalProfit': (u['totalProfit'] as num).toInt() + amount,
+          'exp': _int(u['exp']) + 20,
+          'stats.harvest': FieldValue.increment(1),
+          'stats.harvestKg': FieldValue.increment(kg),
+          'stats.crop_${c.code}': FieldValue.increment(1),
+          ..._bumps(u, t, ['harvest']),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        return kg;
+      });
+
+  /// 자금 증가 + 입고분 삭제 + 거래 기록을 한 트랜잭션으로 처리
+  Future<void> sell(Lot lot, AuctionPrice p, double freshness, int amount, {DateTime? now}) => db.runTransaction((tx) async {
+        final t = now ?? DateTime.now();
+        final u = (await tx.get(_user)).data()!;
+        final good = (p.change ?? 0) > 0;
+        tx.update(_user, {
+          'money': _int(u['money']) + amount,
+          'totalProfit': _int(u['totalProfit']) + amount,
+          'points': FieldValue.increment(5),
+          'exp': _int(u['exp']) + (amount ~/ 2000 < 1 ? 1 : amount ~/ 2000),
+          'stats.sell': FieldValue.increment(1),
+          if (good) 'stats.goodSell': FieldValue.increment(1),
+          ..._bumps(u, t, ['sell']),
           'updatedAt': FieldValue.serverTimestamp(),
         });
         tx.delete(_col('inventory').doc(lot.id));
@@ -54,4 +144,226 @@ class FirestoreGameService {
           'amount': amount, 'priceAsOf': Timestamp.fromDate(p.asOf), 'createdAt': FieldValue.serverTimestamp(),
         });
       });
+
+  // ───────────────────────── 아이템 ─────────────────────────
+
+  /// 일반 상점 구매 (씨앗·물통·영양제·성장촉진제)
+  Future<void> buyItem(String key, int price, {int qty = 1, DateTime? now}) => db.runTransaction((tx) async {
+        final t = now ?? DateTime.now();
+        final u = (await tx.get(_user)).data()!;
+        final total = price * qty;
+        final money = _int(u['money']);
+        if (money < total) throw StateError('자금이 부족해요');
+        final have = _int(_asMap(u['items'])?[key]);
+        tx.update(_user, {
+          'money': money - total,
+          'items.$key': have + qty,
+          'exp': _int(u['exp']) + 3,
+          'stats.shop': FieldValue.increment(1),
+          ..._bumps(u, t, ['shop']),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      });
+
+  /// 밭에 아이템을 쓴다. 성장 시간이 줄면 새 수확 시각을 돌려주고, 아니면 null.
+  Future<DateTime?> useItem(int idx, String key, {DateTime? now}) => db.runTransaction<DateTime?>((tx) async {
+        final t = now ?? DateTime.now();
+        final u = (await tx.get(_user)).data()!;
+        final pref = _col('plots').doc('$idx');
+        final pm = (await tx.get(pref)).data() ?? {};
+        if (pm['cropCode'] == null) throw StateError('작물이 심어진 밭에만 쓸 수 있어요');
+        final have = _int(_asMap(u['items'])?[key]);
+        if (have <= 0) throw StateError('아이템이 없어요. 상점에서 구매해 주세요');
+        final ready = (pm['readyAt'] as Timestamp?)?.toDate();
+        if (ready == null) throw StateError('밭 정보를 읽지 못했어요');
+        final left = ready.difference(t).inMilliseconds;
+        final growMs = _int(pm['growMs']) > 0 ? _int(pm['growMs']) : (left > 0 ? left : 1);
+
+        final plotUpd = <String, dynamic>{};
+        final userUpd = <String, dynamic>{'items.$key': have - 1, 'updatedAt': FieldValue.serverTimestamp()};
+        DateTime? newReady;
+        if (key == itemWater || key == itemBooster) {
+          if (left <= 0) throw StateError('이미 다 자랐어요. 수확해 주세요');
+          final cut = key == itemWater ? waterCut : boosterCut;
+          if (key == itemWater) {
+            final watered = _int(pm['watered']);
+            if (watered >= waterMaxPerPlot) throw StateError('물은 한 밭에 $waterMaxPerPlot번까지 줄 수 있어요');
+            plotUpd['watered'] = watered + 1;
+            userUpd['stats.water'] = FieldValue.increment(1);
+            userUpd['exp'] = _int(u['exp']) + 2;
+            userUpd.addAll(_bumps(u, t, ['water']));
+          } else {
+            if (pm['boosted'] == true) throw StateError('성장촉진제는 한 밭에 1번만 쓸 수 있어요');
+            plotUpd['boosted'] = true;
+            userUpd['stats.booster'] = FieldValue.increment(1);
+          }
+          var r = ready.subtract(Duration(milliseconds: (growMs * cut).round()));
+          if (r.isBefore(t)) r = t;
+          newReady = r;
+          plotUpd['readyAt'] = Timestamp.fromDate(r);
+        } else if (key == itemFertilizer) {
+          final bonus = (pm['bonus'] as num?)?.toDouble() ?? 0;
+          if (bonus >= fertilizerMaxBonus - 1e-9) throw StateError('영양제는 한 밭에 2번까지 쓸 수 있어요');
+          plotUpd['bonus'] = bonus + fertilizerBonus;
+          userUpd['stats.fertilizer'] = FieldValue.increment(1);
+        } else {
+          throw StateError('여기서는 쓸 수 없는 아이템이에요');
+        }
+        tx.update(pref, plotUpd);
+        tx.update(_user, userUpd);
+        return newReady;
+      });
+
+  // ───────────────────────── 시설 확장 ─────────────────────────
+
+  Future<void> expandPlots(int currentCount) => db.runTransaction((tx) async {
+        final cost = plotExpandCost(currentCount);
+        if (cost == null) throw StateError('더 이상 밭을 넓힐 수 없어요');
+        final u = (await tx.get(_user)).data()!;
+        final money = _int(u['money']);
+        if (money < cost) throw StateError('자금이 부족해요');
+        tx.update(_user, {'money': money - cost, 'updatedAt': FieldValue.serverTimestamp()});
+        for (var i = currentCount; i < currentCount + plotExpandStep && i < maxPlots; i++) {
+          tx.set(_col('plots').doc('$i'), _emptyPlot());
+        }
+      });
+
+  Future<void> expandWarehouse() => db.runTransaction((tx) async {
+        final u = (await tx.get(_user)).data()!;
+        final lv = _int(u['warehouseLevel']);
+        if (lv >= maxWarehouseLevel) throw StateError('창고를 더 이상 넓힐 수 없어요');
+        final cost = warehouseCost(lv);
+        final money = _int(u['money']);
+        if (money < cost) throw StateError('자금이 부족해요');
+        tx.update(_user, {'money': money - cost, 'warehouseLevel': lv + 1, 'updatedAt': FieldValue.serverTimestamp()});
+      });
+
+  Future<void> buyGreenhouse() => db.runTransaction((tx) async {
+        final u = (await tx.get(_user)).data()!;
+        if (u['greenhouse'] == true) throw StateError('이미 하우스가 있어요');
+        final money = _int(u['money']);
+        if (money < greenhouseCost) throw StateError('자금이 부족해요');
+        tx.update(_user, {'money': money - greenhouseCost, 'greenhouse': true, 'updatedAt': FieldValue.serverTimestamp()});
+      });
+
+  // ───────────────────────── 포인트 ─────────────────────────
+
+  /// 포인트 상점 구매. 희귀 씨앗은 [cropCode]로 받을 씨앗 종류를 정한다.
+  Future<void> buyPointItem(String key, {String? cropCode}) => db.runTransaction((tx) async {
+        PointItem? item;
+        for (final p in pointItems) {
+          if (p.key == key) item = p;
+        }
+        if (item == null) throw StateError('알 수 없는 상품이에요');
+        final u = (await tx.get(_user)).data()!;
+        final pts = _int(u['points']);
+        if (pts < item.cost) throw StateError('포인트가 부족해요');
+        final upd = <String, dynamic>{'points': pts - item.cost, 'updatedAt': FieldValue.serverTimestamp()};
+        final items = _asMap(u['items']) ?? {};
+        switch (key) {
+          case pointRareSeed:
+            final k = seedKey(cropCode ?? crops.first.code);
+            upd['items.$k'] = _int(items[k]) + 3;
+            break;
+          case pointDecor:
+            final d = _int(u['decor']);
+            if (d >= maxDecor) throw StateError('농장 장식은 최대 $maxDecor개까지예요');
+            upd['decor'] = d + 1;
+            break;
+          case pointVault:
+            final b = _int(u['warehouseBonusKg']);
+            if (b >= maxVaultBonusKg) throw StateError('특별 보관함은 최대 ${maxVaultBonusKg ~/ vaultStepKg}번까지 살 수 있어요');
+            upd['warehouseBonusKg'] = b + vaultStepKg;
+            break;
+          case pointLucky:
+            upd['items.$itemFertilizer'] = _int(items[itemFertilizer]) + 3;
+            break;
+        }
+        tx.update(_user, upd);
+      });
+
+  Future<void> claimMission(MissionDef def, {DateTime? now}) => db.runTransaction((tx) async {
+        final t = now ?? DateTime.now();
+        final u = (await tx.get(_user)).data()!;
+        final field = def.weekly ? 'weekly' : 'daily';
+        final tag = def.weekly ? weekTag(t) : dayTag(t);
+        final cur = _asMap(u[field]);
+        if (periodCount(cur, tag, def.key) < def.target) throw StateError('아직 완료하지 못한 미션이에요');
+        if (periodClaimed(cur, tag).contains(def.id)) throw StateError('이미 받은 보상이에요');
+        tx.update(_user, {
+          field: markClaimed(cur, tag, def.id),
+          'points': FieldValue.increment(def.points),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      });
+
+  Future<void> claimAchievement(AchievementDef def, int plots) => db.runTransaction((tx) async {
+        final u = (await tx.get(_user)).data()!;
+        final claimed = (u['achClaimed'] is List) ? (u['achClaimed'] as List).map((e) => '$e').toList() : <String>[];
+        if (claimed.contains(def.id)) throw StateError('이미 받은 보상이에요');
+        if (achievementProgress(def, u, plots) < def.target) throw StateError('아직 달성하지 못했어요');
+        tx.update(_user, {
+          'achClaimed': FieldValue.arrayUnion([def.id]),
+          'points': FieldValue.increment(def.points),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      });
+
+  // ───────────────────────── 마을 공동기금 ─────────────────────────
+
+  Future<void> donateToFund(int amount) => db.runTransaction((tx) async {
+        if (amount <= 0) throw StateError('기부할 금액을 입력해 주세요');
+        final u = (await tx.get(_user)).data()!;
+        final f = (await tx.get(_fund)).data();
+        final money = _int(u['money']);
+        if (money < amount) throw StateError('자금이 부족해요');
+        final total = _int(f?['total']);
+        final goal = _int(f?['goal']) > 0 ? _int(f?['goal']) : fundDefaultGoal;
+        tx.update(_user, {
+          'money': money - amount,
+          'fundGiven': FieldValue.increment(amount),
+          'stats.donate': FieldValue.increment(amount),
+          'exp': _int(u['exp']) + (amount ~/ 1000 < 1 ? 1 : amount ~/ 1000),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        tx.set(_fund, {'total': total + amount, 'goal': goal, 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+      });
+
+  Future<void> claimFundMilestone(FundMilestone m) => db.runTransaction((tx) async {
+        final u = (await tx.get(_user)).data()!;
+        final f = FundData.fromMap((await tx.get(_fund)).data());
+        final claimed = (u['fundClaimed'] is List) ? (u['fundClaimed'] as List).map((e) => '$e').toList() : <String>[];
+        if (claimed.contains('${m.percent}')) throw StateError('이미 받은 보상이에요');
+        if (_int(u['fundGiven']) <= 0) throw StateError('기금에 기부한 농부만 받을 수 있어요');
+        if (f.ratio * 100 + 1e-9 < m.percent) throw StateError('아직 ${m.percent}%에 도달하지 못했어요');
+        tx.update(_user, {
+          'fundClaimed': FieldValue.arrayUnion(['${m.percent}']),
+          'points': FieldValue.increment(m.points),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      });
+
+  // ───────────────────────── 작물 매칭·고객센터 ─────────────────────────
+
+  /// 게임 결과를 정산한다. 하루 [gameDailyRewardLimit]번까지만 보상이 있고, 보상을 받았으면 true.
+  Future<bool> gameReward(int score, {DateTime? now}) => db.runTransaction<bool>((tx) async {
+        final t = now ?? DateTime.now();
+        final u = (await tx.get(_user)).data()!;
+        final played = periodCount(_asMap(u['daily']), dayTag(t), 'game');
+        final rewarded = played < gameDailyRewardLimit;
+        final money = rewarded ? gameRewardMoney(score) : 0;
+        final pts = rewarded ? gameRewardPoints(score) : 0;
+        tx.update(_user, {
+          'money': _int(u['money']) + money,
+          'points': FieldValue.increment(pts),
+          'exp': _int(u['exp']) + 10,
+          'stats.game': FieldValue.increment(1),
+          ..._bumps(u, t, ['game']),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        return rewarded;
+      });
+
+  Future<void> sendFeedback(String text) =>
+      db.collection('feedback').add({'uid': uid, 'text': text.trim(), 'createdAt': FieldValue.serverTimestamp()});
 }
