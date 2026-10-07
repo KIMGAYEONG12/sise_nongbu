@@ -405,7 +405,16 @@ class ChangeChip extends StatelessWidget {
   Widget build(BuildContext context) {
     if (percent == null && amount == null) return const SizedBox.shrink();
     final v = percent ?? amount ?? 0;
-    final up = v >= 0;
+    // 0.0%(소수 첫째 자리에서 0)는 오르지도 내리지도 않은 "보합": 회색 – 로 보여준다
+    final flat = percent != null ? percent!.abs() < 0.05 : v.abs() < 0.5;
+    if (flat) {
+      return Row(mainAxisSize: MainAxisSize.min, children: [
+        const Text('–', style: TextStyle(color: AppColors.sub, fontSize: 13, fontWeight: FontWeight.w800, height: 1)),
+        const SizedBox(width: 4),
+        Text(percent != null ? '0.0%' : '0원', style: const TextStyle(color: AppColors.sub, fontWeight: FontWeight.w800, fontSize: 13)),
+      ]);
+    }
+    final up = v > 0;
     final color = up ? AppColors.up : AppColors.down;
     final label = percent != null ? '${up ? '+' : ''}${percent!.toStringAsFixed(1)}%' : won(amount!.abs());
     return Row(mainAxisSize: MainAxisSize.min, children: [

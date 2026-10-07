@@ -189,7 +189,7 @@ class _SellOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = price;
     final pct = p == null ? null : changePercent(p.pricePerKg, p.prevPerKg);
-    final up = (pct ?? 0) >= 0;
+    final up = (pct ?? 0) > 0;
     return LayoutBuilder(builder: (context, box) {
       final w = box.maxWidth, h = box.maxHeight;
       return Stack(children: [
@@ -223,7 +223,7 @@ class _SellOverlay extends StatelessWidget {
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                       const Icon(Icons.chevron_right_rounded, color: AppColors.sub, size: 22),
                       const SizedBox(height: 4),
-                      if (pct != null) Text(up ? '▲' : '▼', style: TextStyle(fontSize: 16, color: up ? AppColors.up : AppColors.down)),
+                      if (pct != null && pct.abs() >= 0.05) Text(up ? '▲' : '▼', style: TextStyle(fontSize: 16, color: up ? AppColors.up : AppColors.down)),
                     ]),
                   ]),
                   const SizedBox(height: 14),

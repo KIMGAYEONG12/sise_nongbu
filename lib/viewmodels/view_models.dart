@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleListener;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,13 +18,16 @@ import '../services/sample_auction_source.dart';
 import '../services/weather_service.dart';
 
 // main()에서 override
-final notificationProvider = Provider<NotificationService>((_) => throw UnimplementedError());
-final prefsProvider = Provider<SharedPreferences>((_) => throw UnimplementedError());
+final notificationProvider =
+    Provider<NotificationService>((_) => throw UnimplementedError());
+final prefsProvider =
+    Provider<SharedPreferences>((_) => throw UnimplementedError());
 
 // ───────────────────────── 로그인 ─────────────────────────
 
 final authServiceProvider = Provider((_) => AuthService());
-final authStateProvider = StreamProvider<User?>((_) => FirebaseAuth.instance.authStateChanges());
+final authStateProvider =
+    StreamProvider<User?>((_) => FirebaseAuth.instance.authStateChanges());
 
 /// 튜토리얼을 막 끝냈으면 true. 이때는 예전에 쓰던 게스트(익명) 세션이 남아 있어도 로그인·회원가입 화면을 먼저 보여준다.
 final loginAfterTutorialProvider = StateProvider<bool>((_) => false);
@@ -33,48 +37,101 @@ final pendingNicknameProvider = StateProvider<String?>((_) => null);
 
 /// 로그인한 사용자의 uid로 Firestore 서비스를 만든다. 사용자가 바뀌면 이 서비스와 아래 스트림이 모두 새로 만들어진다.
 final gameServiceProvider = Provider<FirestoreGameService>((ref) {
-  final uid = ref.watch(authStateProvider.select((a) => a.valueOrNull?.uid)) ?? FirebaseAuth.instance.currentUser?.uid;
+  final uid = ref.watch(authStateProvider.select((a) => a.valueOrNull?.uid)) ??
+      FirebaseAuth.instance.currentUser?.uid;
   if (uid == null) throw StateError('로그인이 필요해요');
   return FirestoreGameService(FirebaseFirestore.instance, uid);
 });
 
 // 키가 없으면 샘플 시세로 동작 (개발·테스트용): 배추는 실제 경매현황 JSON, 나머지 품목은 Fake
-final auctionSourceProvider = Provider<AuctionSource>(
-    (_) => auctionApiKey.isEmpty ? SampleAuctionSource(FakeAuctionSource()) : AuctionApiService(http.Client()));
-final marketRepoProvider = Provider((ref) => MarketRepository(ref.watch(auctionSourceProvider), ref.watch(prefsProvider)));
-final farmRepoProvider = Provider((ref) => FarmRepository(ref.watch(gameServiceProvider), ref.watch(notificationProvider)));
+final auctionSourceProvider = Provider<AuctionSource>((_) =>
+    auctionApiKey.isEmpty
+        ? SampleAuctionSource(FakeAuctionSource())
+        : AuctionApiService(http.Client()));
+final marketRepoProvider = Provider((ref) => MarketRepository(
+    ref.watch(auctionSourceProvider), ref.watch(prefsProvider)));
+final farmRepoProvider = Provider((ref) => FarmRepository(
+    ref.watch(gameServiceProvider), ref.watch(notificationProvider)));
 
-final userProvider = StreamProvider((ref) => ref.watch(farmRepoProvider).user());
-final plotsProvider = StreamProvider((ref) => ref.watch(farmRepoProvider).plots());
-final lotsProvider = StreamProvider((ref) => ref.watch(farmRepoProvider).lots());
-final tradesProvider = StreamProvider((ref) => ref.watch(farmRepoProvider).trades());
-final fundProvider = StreamProvider((ref) => ref.watch(farmRepoProvider).fund());
+final userProvider =
+    StreamProvider((ref) => ref.watch(farmRepoProvider).user());
+final plotsProvider =
+    StreamProvider((ref) => ref.watch(farmRepoProvider).plots());
+final lotsProvider =
+    StreamProvider((ref) => ref.watch(farmRepoProvider).lots());
+final tradesProvider =
+    StreamProvider((ref) => ref.watch(farmRepoProvider).trades());
+final fundProvider =
+    StreamProvider((ref) => ref.watch(farmRepoProvider).fund());
 final speedProvider = StateProvider<int>((_) => 1); // 데모 모드: 600배속
-final tickProvider = StreamProvider((_) => Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now()));
+final tickProvider = StreamProvider(
+    (_) => Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now()));
 
 /// 화면에서 쓰기 좋게 감싼 사용자 문서 (필드가 없는 이전 데이터도 기본값으로 읽는다)
-final userDataProvider = Provider<UserData>((ref) => UserData(ref.watch(userProvider).valueOrNull ?? const <String, dynamic>{}));
+final userDataProvider = Provider<UserData>((ref) =>
+    UserData(ref.watch(userProvider).valueOrNull ?? const <String, dynamic>{}));
 
 /// 하단 탭 번호 (0 시세판, 1 농장, 2 창고, 3 상점, 4 MY). 다른 화면에서 탭을 바꿀 때 쓴다.
 final shellIndexProvider = StateProvider<int>((_) => 1);
 
-final weatherProvider = FutureProvider<Weather?>((_) => WeatherService(http.Client()).current());
+final weatherProvider =
+    FutureProvider<Weather?>((_) => WeatherService(http.Client()).current());
 
 /// 품목 상세 화면용: 최근 7일 시세와 거래량
-final priceHistoryProvider =
-    FutureProvider.autoDispose.family<List<double?>, String>((ref, code) => ref.read(marketRepoProvider).history(code));
-final priceVolumeProvider = FutureProvider.autoDispose.family<double?, String>((ref, code) {
-  final asOf = ref.read(marketViewModelProvider).valueOrNull?[code]?.asOf ?? DateTime.now();
+final priceHistoryProvider = FutureProvider.autoDispose
+    .family<List<double?>, String>(
+        (ref, code) => ref.read(marketRepoProvider).history(code));
+final priceVolumeProvider =
+    FutureProvider.autoDispose.family<double?, String>((ref, code) {
+  final asOf = ref.read(marketViewModelProvider).valueOrNull?[code]?.asOf ??
+      DateTime.now();
   return ref.read(marketRepoProvider).volumeKg(code, asOf);
 });
 
 class MarketViewModel extends AsyncNotifier<Map<String, AuctionPrice>> {
+  /// 앱이 켜져 있는 동안 시세를 저절로 다시 불러오는 간격 (공공데이터 API 하루 10,000건 한도 안에서 넉넉한 값)
+  static const autoRefreshEvery = Duration(minutes: 1);
+
+  bool _busy = false;
+
   @override
-  Future<Map<String, AuctionPrice>> build() => ref.read(marketRepoProvider).fetch();
-  Future<void> refresh() async => state = await AsyncValue.guard(() => ref.read(marketRepoProvider).fetch(force: true));
+  Future<Map<String, AuctionPrice>> build() {
+    // 1) 10분마다 자동 새로고침  2) 앱을 다시 화면에 띄울 때(백그라운드 → 복귀) 새로고침
+    final timer =
+        Timer.periodic(autoRefreshEvery, (_) => _autoRefresh(force: true));
+    final life =
+        AppLifecycleListener(onResume: () => _autoRefresh(force: false));
+    ref.onDispose(() {
+      timer.cancel();
+      life.dispose();
+    });
+    return ref.read(marketRepoProvider).fetch();
+  }
+
+  /// 새로고침 버튼·당겨서 새로고침
+  Future<void> refresh() async => state = await AsyncValue.guard(
+      () => ref.read(marketRepoProvider).fetch(force: true));
+
+  /// 화면을 로딩 상태로 바꾸지 않고 뒤에서 조용히 갱신한다. 실패하면 지금 보이는 시세를 그대로 둔다.
+  /// force가 false면 마지막 조회 후 10분이 안 지났을 때 저장해 둔 값을 쓴다(API 호출 안 함).
+  Future<void> _autoRefresh({required bool force}) async {
+    if (_busy || state.isLoading) return;
+    _busy = true;
+    try {
+      final next = await AsyncValue.guard(
+          () => ref.read(marketRepoProvider).fetch(force: force));
+      if (next.hasValue && next.value!.isNotEmpty) state = next;
+    } catch (_) {
+      // 이미 dispose된 뒤라면 무시
+    } finally {
+      _busy = false;
+    }
+  }
 }
 
-final marketViewModelProvider = AsyncNotifierProvider<MarketViewModel, Map<String, AuctionPrice>>(MarketViewModel.new);
+final marketViewModelProvider =
+    AsyncNotifierProvider<MarketViewModel, Map<String, AuctionPrice>>(
+        MarketViewModel.new);
 
 class FarmViewModel {
   FarmViewModel(this._ref);
@@ -92,14 +149,16 @@ class FarmViewModel {
   Future<double> harvest(Plot p) {
     final c = cropOf(p.cropCode!);
     final cap = _ref.read(userDataProvider).warehouseCapKg;
-    final used = (_ref.read(lotsProvider).valueOrNull ?? const <Lot>[]).fold<double>(0, (a, l) => a + l.kg);
+    final used = (_ref.read(lotsProvider).valueOrNull ?? const <Lot>[])
+        .fold<double>(0, (a, l) => a + l.kg);
     if (used + c.yieldKg * (1 + p.bonus) > cap + 1e-9) {
       throw StateError('창고가 가득 찼어요. 먼저 판매하거나 창고를 넓혀주세요');
     }
     return _repo.harvest(p.index, c);
   }
 
-  Future<void> useItem(Plot p, String key) => _repo.useItem(p.index, cropOf(p.cropCode!), key);
+  Future<void> useItem(Plot p, String key) =>
+      _repo.useItem(p.index, cropOf(p.cropCode!), key);
 
   /// 시세가 없으면 출하하지 않는다.
   Future<void> sell(Lot lot) async {
@@ -109,17 +168,20 @@ class FarmViewModel {
   }
 
   // 상점
-  Future<void> buySeed(CropSpec c) => _repo.buyItem(seedKey(c.code), seedPrice(c));
+  Future<void> buySeed(CropSpec c) =>
+      _repo.buyItem(seedKey(c.code), seedPrice(c));
   Future<void> buyConsumable(ShopItem i) => _repo.buyItem(i.key, i.price);
-  Future<void> expandPlots() => _repo.expandPlots((_ref.read(plotsProvider).valueOrNull ?? const <Plot>[]).length);
+  Future<void> expandPlots() => _repo.expandPlots(
+      (_ref.read(plotsProvider).valueOrNull ?? const <Plot>[]).length);
   Future<void> expandWarehouse() => _repo.expandWarehouse();
   Future<void> buyGreenhouse() => _repo.buyGreenhouse();
-  Future<void> buyPointItem(PointItem i, {String? cropCode}) => _repo.buyPointItem(i.key, cropCode: cropCode);
+  Future<void> buyPointItem(PointItem i, {String? cropCode}) =>
+      _repo.buyPointItem(i.key, cropCode: cropCode);
 
   // 미션·업적·기금·기타
   Future<void> claimMission(MissionDef d) => _repo.claimMission(d);
-  Future<void> claimAchievement(AchievementDef d) =>
-      _repo.claimAchievement(d, (_ref.read(plotsProvider).valueOrNull ?? const <Plot>[]).length);
+  Future<void> claimAchievement(AchievementDef d) => _repo.claimAchievement(
+      d, (_ref.read(plotsProvider).valueOrNull ?? const <Plot>[]).length);
   Future<void> donate(int amount) => _repo.donateToFund(amount);
   Future<void> claimFund(FundMilestone m) => _repo.claimFundMilestone(m);
   Future<bool> gameReward(int score) => _repo.gameReward(score);

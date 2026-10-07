@@ -16,6 +16,13 @@ void main() {
     expect(find.text('-5.2%'), findsOneWidget);
   });
 
+  testWidgets('변동 없음(0.0%)은 ▲가 아니라 – 로 보여준다', (tester) async {
+    await tester.pumpWidget(_wrap(const ChangeChip(percent: 0.0)));
+    expect(find.text('▲'), findsNothing);
+    expect(find.text('–'), findsOneWidget);
+    expect(find.text('0.0%'), findsOneWidget);
+  });
+
   testWidgets('초록 버튼을 누르면 콜백이 불린다', (tester) async {
     var tapped = 0;
     await tester.pumpWidget(_wrap(GreenButton(label: '다음', onPressed: () => tapped++)));

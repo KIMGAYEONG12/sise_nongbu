@@ -18,24 +18,42 @@ class MarketRepository {
     if (_cache != null && _at != null && DateTime.now().difference(_at!) < minInterval && !force) return _cache!;
     final out = <String, AuctionPrice>{};
     final now = DateTime.now();
-    for (final c in crops) {
+    // 품목 6개를 동시에 조회해 시세판이 빨리 뜨게 한다
+    Future<void> one(CropSpec c) async {
       try {
-        // 경매 시간이 아니면 비어 있을 수 있어 하루 전으로 재조회
-        var p = weightedPrice(await _src.rows(c.code, now));
+        // 오늘 경매가 아직 없거나 휴장일(일요일·명절)이면 최근 7일 안에서 거래가 있었던 가장 최근 날을 쓴다
+        double? p;
         var asOf = now;
-        if (p == null) {
-          asOf = now.subtract(const Duration(days: 1));
-          p = weightedPrice(await _src.rows(c.code, asOf));
+        for (var i = 0; i < 7 && p == null; i++) {
+          final d = now.subtract(Duration(days: i));
+          final v = weightedPrice(await _src.rows(c.code, d));
+          if (v != null) {
+            p = v;
+            asOf = d;
+          }
         }
         if (p == null) throw StateError('no data');
-        final prev = weightedPrice(await _src.rows(c.code, asOf.subtract(const Duration(days: 1))));
+        // 비교할 전일 시세: 그 전에 거래가 있었던 날 (휴장일은 건너뛴다). 못 구해도 오늘 시세는 그대로 쓴다.
+        double? prev;
+        try {
+          for (var i = 1; i <= 7 && prev == null; i++) {
+            prev = weightedPrice(await _src.rows(c.code, asOf.subtract(Duration(days: i))));
+          }
+        } catch (_) {
+          prev = null;
+        }
         out[c.code] = AuctionPrice(c.code, p, asOf, prevPerKg: prev);
         _prefs.setString('price_${c.code}', '$p|${asOf.toIso8601String()}');
       } catch (_) {
         final saved = _prefs.getString('price_${c.code}')?.split('|'); // 마지막 성공 시세로 계속 진행
-        if (saved != null) out[c.code] = AuctionPrice(c.code, double.parse(saved[0]), DateTime.parse(saved[1]));
+        if (saved != null && saved.length == 2) {
+          final v = double.tryParse(saved[0]), at = DateTime.tryParse(saved[1]);
+          if (v != null && at != null) out[c.code] = AuctionPrice(c.code, v, at);
+        }
       }
     }
+
+    await Future.wait(crops.map(one));
     _at = now;
     return _cache = out;
   }
