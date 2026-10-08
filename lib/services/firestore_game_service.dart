@@ -20,6 +20,19 @@ class FirestoreGameService {
   DocumentReference<Map<String, dynamic>> get _user => db.collection('users').doc(uid);
   DocumentReference<Map<String, dynamic>> get _fund => db.collection('community').doc('fund');
   CollectionReference<Map<String, dynamic>> _col(String n) => _user.collection(n);
+  /// Firestore 트랜잭션. 일시적인 오류(unknown·aborted·unavailable 등)는 잠깐 쉬었다가 최대 3번까지 다시 시도한다.
+  /// (에뮬레이터나 불안정한 네트워크에서 [cloud_firestore/unknown] null 같은 오류가 한 번 나고 지나가는 일이 있어서)
+  Future<T> _tx<T>(Future<T> Function(Transaction tx) handler) async {
+    for (var attempt = 0;; attempt++) {
+      try {
+        return await db.runTransaction<T>(handler);
+      } on FirebaseException catch (e) {
+        const retryable = {'unknown', 'aborted', 'unavailable', 'deadline-exceeded', 'internal'};
+        if (!retryable.contains(e.code) || attempt >= 2) rethrow;
+        await Future<void>.delayed(Duration(milliseconds: 400 * (attempt + 1)));
+      }
+    }
+  }
 
   /// 처음 로그인한 사용자의 문서와 밭을 만든다. 이미 있으면 닉네임이 비어 있을 때만 채운다.
   Future<void> ensureUser({String? nickname}) async {
@@ -43,6 +56,7 @@ class FirestoreGameService {
       'warehouseLevel': 0,
       'warehouseBonusKg': 0,
       'greenhouse': false,
+      'greenhouses': 0,
       'decor': 0,
       'items': <String, dynamic>{},
       'stats': <String, dynamic>{},
@@ -117,7 +131,7 @@ class FirestoreGameService {
   // ───────────────────────── 파종·수확·출하 ─────────────────────────
 
   /// 씨앗이 있으면 씨앗을 쓰고, 없으면 파종비를 낸다.
-  Future<void> plant(int idx, CropSpec c, DateTime readyAt, {DateTime? now}) => db.runTransaction((tx) async {
+  Future<void> plant(int idx, CropSpec c, DateTime readyAt, {DateTime? now}) => _tx((tx) async {
         final t = now ?? DateTime.now();
         final u = (await tx.get(_user)).data()!;
         final money = _int(u['money']);
@@ -128,7 +142,7 @@ class FirestoreGameService {
         final upd = <String, dynamic>{
           'money': useSeed ? money : money - c.seedCost,
           'totalProfit': _int(u['totalProfit']) - (useSeed ? 0 : c.seedCost),
-          'exp': _int(u['exp']) + 5,
+          'exp': _int(u['exp']) + 5 * expBoost,
           'stats.plant': FieldValue.increment(1),
           ..._bumps(u, t, ['plant']),
           'updatedAt': FieldValue.serverTimestamp(),
@@ -151,7 +165,7 @@ class FirestoreGameService {
 
   /// 잘못 심은 작물을 뽑아 밭을 비운다. 심은 지 [uprootRefundWindow] 안이면 파종비(또는 씨앗)를 돌려준다.
   /// 돌려준 내용을 사용자에게 보여줄 문구로 돌려준다.
-  Future<String> uproot(int idx, {DateTime? now}) => db.runTransaction<String>((tx) async {
+  Future<String> uproot(int idx, {DateTime? now}) => _tx<String>((tx) async {
         final t = now ?? DateTime.now();
         final plotRef = _col('plots').doc('$idx');
         final pm = (await tx.get(plotRef)).data() ?? {};
@@ -167,7 +181,7 @@ class FirestoreGameService {
         var msg = '${withJosa(c.name, '을', '를')} 뽑았어요. 빈 밭에 다시 심어 주세요';
         if (refund) {
           // 파종으로 얻은 경험치는 되돌린다 (심었다 뽑기를 반복해 경험치를 얻지 못하게)
-          final exp = _int(u['exp']) - 5;
+          final exp = _int(u['exp']) - 5 * expBoost;
           upd['exp'] = exp < 0 ? 0 : exp;
           if (pm['usedSeed'] == true) {
             upd['items.${seedKey(code)}'] = FieldValue.increment(1);
@@ -187,7 +201,7 @@ class FirestoreGameService {
   static String _comma(int v) => v.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
 
   /// 수확해서 창고에 넣고, 수확량(kg)을 돌려준다. 영양제로 늘어난 수확량이 반영된다.
-  Future<double> harvest(int idx, CropSpec c, {DateTime? now}) => db.runTransaction<double>((tx) async {
+  Future<double> harvest(int idx, CropSpec c, {DateTime? now}) => _tx<double>((tx) async {
         final t = now ?? DateTime.now();
         final pm = (await tx.get(_col('plots').doc('$idx'))).data() ?? {};
         final u = (await tx.get(_user)).data()!;
@@ -196,7 +210,7 @@ class FirestoreGameService {
         tx.set(_col('plots').doc('$idx'), _emptyPlot());
         tx.set(_col('inventory').doc(), {'cropCode': c.code, 'quantityKg': kg, 'harvestedAt': FieldValue.serverTimestamp()});
         tx.update(_user, {
-          'exp': _int(u['exp']) + 20,
+          'exp': _int(u['exp']) + harvestExp,
           'stats.harvest': FieldValue.increment(1),
           'stats.harvestKg': FieldValue.increment(kg),
           'stats.crop_${c.code}': FieldValue.increment(1),
@@ -207,7 +221,7 @@ class FirestoreGameService {
       });
 
   /// 자금 증가 + 입고분 삭제 + 거래 기록을 한 트랜잭션으로 처리
-  Future<void> sell(Lot lot, AuctionPrice p, double freshness, int amount, {DateTime? now}) => db.runTransaction((tx) async {
+  Future<void> sell(Lot lot, AuctionPrice p, double freshness, int amount, {DateTime? now}) => _tx((tx) async {
         final t = now ?? DateTime.now();
         final u = (await tx.get(_user)).data()!;
         final good = (p.change ?? 0) > 0;
@@ -215,7 +229,7 @@ class FirestoreGameService {
           'money': _int(u['money']) + amount,
           'totalProfit': _int(u['totalProfit']) + amount,
           'points': FieldValue.increment(sellPointReward),
-          'exp': _int(u['exp']) + (amount ~/ 2000 < 1 ? 1 : amount ~/ 2000),
+          'exp': _int(u['exp']) + sellExp(amount),
           'stats.sell': FieldValue.increment(1),
           if (good) 'stats.goodSell': FieldValue.increment(1),
           ..._bumps(u, t, ['sell']),
@@ -231,7 +245,7 @@ class FirestoreGameService {
   // ───────────────────────── 아이템 ─────────────────────────
 
   /// 일반 상점 구매 (씨앗·물통·영양제·성장촉진제)
-  Future<void> buyItem(String key, int price, {int qty = 1, DateTime? now}) => db.runTransaction((tx) async {
+  Future<void> buyItem(String key, int price, {int qty = 1, DateTime? now}) => _tx((tx) async {
         final t = now ?? DateTime.now();
         final u = (await tx.get(_user)).data()!;
         final total = price * qty;
@@ -241,7 +255,7 @@ class FirestoreGameService {
         tx.update(_user, {
           'money': money - total,
           'items.$key': have + qty,
-          'exp': _int(u['exp']) + 3,
+          'exp': _int(u['exp']) + 3 * expBoost,
           'stats.shop': FieldValue.increment(1),
           ..._bumps(u, t, ['shop']),
           'updatedAt': FieldValue.serverTimestamp(),
@@ -249,7 +263,7 @@ class FirestoreGameService {
       });
 
   /// 밭에 아이템을 쓴다. 성장 시간이 줄면 새 수확 시각을 돌려주고, 아니면 null.
-  Future<DateTime?> useItem(int idx, String key, {DateTime? now}) => db.runTransaction<DateTime?>((tx) async {
+  Future<DateTime?> useItem(int idx, String key, {DateTime? now}) => _tx<DateTime?>((tx) async {
         final t = now ?? DateTime.now();
         final u = (await tx.get(_user)).data()!;
         final pref = _col('plots').doc('$idx');
@@ -273,7 +287,7 @@ class FirestoreGameService {
             if (watered >= waterMaxPerPlot) throw StateError('물은 한 밭에 $waterMaxPerPlot번까지 줄 수 있어요');
             plotUpd['watered'] = watered + 1;
             userUpd['stats.water'] = FieldValue.increment(1);
-            userUpd['exp'] = _int(u['exp']) + 2;
+            userUpd['exp'] = _int(u['exp']) + 2 * expBoost;
             userUpd.addAll(_bumps(u, t, ['water']));
           } else {
             if (pm['boosted'] == true) throw StateError('성장촉진제는 한 밭에 1번만 쓸 수 있어요');
@@ -286,7 +300,7 @@ class FirestoreGameService {
           plotUpd['readyAt'] = Timestamp.fromDate(r);
         } else if (key == itemFertilizer) {
           final bonus = (pm['bonus'] as num?)?.toDouble() ?? 0;
-          if (bonus >= fertilizerMaxBonus - 1e-9) throw StateError('영양제는 한 밭에 2번까지 쓸 수 있어요');
+          if (bonus >= fertilizerMaxBonus - 1e-9) throw StateError('영양제는 한 밭에 $fertilizerMaxPerPlot번까지 쓸 수 있어요');
           plotUpd['bonus'] = bonus + fertilizerBonus;
           userUpd['stats.fertilizer'] = FieldValue.increment(1);
         } else {
@@ -299,7 +313,7 @@ class FirestoreGameService {
 
   // ───────────────────────── 시설 확장 ─────────────────────────
 
-  Future<void> expandPlots(int currentCount) => db.runTransaction((tx) async {
+  Future<void> expandPlots(int currentCount) => _tx((tx) async {
         final cost = plotExpandCost(currentCount);
         if (cost == null) throw StateError('더 이상 밭을 넓힐 수 없어요');
         final u = (await tx.get(_user)).data()!;
@@ -311,7 +325,7 @@ class FirestoreGameService {
         }
       });
 
-  Future<void> expandWarehouse() => db.runTransaction((tx) async {
+  Future<void> expandWarehouse() => _tx((tx) async {
         final u = (await tx.get(_user)).data()!;
         final lv = _int(u['warehouseLevel']);
         if (lv >= maxWarehouseLevel) throw StateError('창고를 더 이상 넓힐 수 없어요');
@@ -321,18 +335,41 @@ class FirestoreGameService {
         tx.update(_user, {'money': money - cost, 'warehouseLevel': lv + 1, 'updatedAt': FieldValue.serverTimestamp()});
       });
 
-  Future<void> buyGreenhouse() => db.runTransaction((tx) async {
+  /// 하우스를 한 채 더 짓는다 (최대 [maxGreenhouses]채, 지을수록 비용이 늘어난다).
+  Future<void> buyGreenhouse() => _tx((tx) async {
         final u = (await tx.get(_user)).data()!;
-        if (u['greenhouse'] == true) throw StateError('이미 하우스가 있어요');
+        final owned = UserData(u).greenhouses;
+        final cost = greenhouseCostFor(owned);
+        if (cost == null) throw StateError('하우스는 최대 $maxGreenhouses채까지 지을 수 있어요');
         final money = _int(u['money']);
-        if (money < greenhouseCost) throw StateError('자금이 부족해요');
-        tx.update(_user, {'money': money - greenhouseCost, 'greenhouse': true, 'updatedAt': FieldValue.serverTimestamp()});
+        if (money < cost) throw StateError('자금이 부족해요');
+        tx.update(_user, {'money': money - cost, 'greenhouse': true, 'greenhouses': owned + 1, 'updatedAt': FieldValue.serverTimestamp()});
+      });
+
+  /// 씨앗 꾸러미: 여섯 작물의 씨앗을 1개씩 한 번에 받는다.
+  Future<void> buySeedPack(int price) => _tx((tx) async {
+        final t = DateTime.now();
+        final u = (await tx.get(_user)).data()!;
+        final money = _int(u['money']);
+        if (money < price) throw StateError('자금이 부족해요');
+        final items = _asMap(u['items']) ?? {};
+        final upd = <String, dynamic>{
+          'money': money - price,
+          'exp': _int(u['exp']) + 3 * expBoost,
+          'stats.shop': FieldValue.increment(1),
+          ..._bumps(u, t, ['shop']),
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
+        for (final c in crops) {
+          upd['items.${seedKey(c.code)}'] = _int(items[seedKey(c.code)]) + 1;
+        }
+        tx.update(_user, upd);
       });
 
   // ───────────────────────── 포인트 ─────────────────────────
 
   /// 포인트 상점 구매. 희귀 씨앗은 [cropCode]로 받을 씨앗 종류를 정한다.
-  Future<void> buyPointItem(String key, {String? cropCode}) => db.runTransaction((tx) async {
+  Future<void> buyPointItem(String key, {String? cropCode}) => _tx((tx) async {
         PointItem? item;
         for (final p in pointItems) {
           if (p.key == key) item = p;
@@ -365,7 +402,7 @@ class FirestoreGameService {
         tx.update(_user, upd);
       });
 
-  Future<void> claimMission(MissionDef def, {DateTime? now}) => db.runTransaction((tx) async {
+  Future<void> claimMission(MissionDef def, {DateTime? now}) => _tx((tx) async {
         final t = now ?? DateTime.now();
         final u = (await tx.get(_user)).data()!;
         final field = def.weekly ? 'weekly' : 'daily';
@@ -380,7 +417,7 @@ class FirestoreGameService {
         });
       });
 
-  Future<void> claimAchievement(AchievementDef def, int plots) => db.runTransaction((tx) async {
+  Future<void> claimAchievement(AchievementDef def, int plots) => _tx((tx) async {
         final u = (await tx.get(_user)).data()!;
         final claimed = (u['achClaimed'] is List) ? (u['achClaimed'] as List).map((e) => '$e').toList() : <String>[];
         if (claimed.contains(def.id)) throw StateError('이미 받은 보상이에요');
@@ -394,7 +431,7 @@ class FirestoreGameService {
 
   // ───────────────────────── 마을 공동기금 ─────────────────────────
 
-  Future<void> donateToFund(int amount) => db.runTransaction((tx) async {
+  Future<void> donateToFund(int amount) => _tx((tx) async {
         if (amount <= 0) throw StateError('기부할 금액을 입력해 주세요');
         final u = (await tx.get(_user)).data()!;
         final f = (await tx.get(_fund)).data();
@@ -406,13 +443,13 @@ class FirestoreGameService {
           'money': money - amount,
           'fundGiven': FieldValue.increment(amount),
           'stats.donate': FieldValue.increment(amount),
-          'exp': _int(u['exp']) + (amount ~/ 1000 < 1 ? 1 : amount ~/ 1000),
+          'exp': _int(u['exp']) + donateExp(amount),
           'updatedAt': FieldValue.serverTimestamp(),
         });
         tx.set(_fund, {'total': total + amount, 'goal': goal, 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
       });
 
-  Future<void> claimFundMilestone(FundMilestone m) => db.runTransaction((tx) async {
+  Future<void> claimFundMilestone(FundMilestone m) => _tx((tx) async {
         final u = (await tx.get(_user)).data()!;
         final f = FundData.fromMap((await tx.get(_fund)).data());
         final claimed = (u['fundClaimed'] is List) ? (u['fundClaimed'] as List).map((e) => '$e').toList() : <String>[];
@@ -429,7 +466,7 @@ class FirestoreGameService {
   // ───────────────────────── 작물 매칭·고객센터 ─────────────────────────
 
   /// 게임 결과를 정산한다. 하루 [gameDailyRewardLimit]번까지만 보상이 있고, 보상을 받았으면 true.
-  Future<bool> gameReward(int score, {DateTime? now}) => db.runTransaction<bool>((tx) async {
+  Future<bool> gameReward(int score, {DateTime? now}) => _tx<bool>((tx) async {
         final t = now ?? DateTime.now();
         final u = (await tx.get(_user)).data()!;
         final played = periodCount(_asMap(u['daily']), dayTag(t), 'game');
@@ -439,7 +476,7 @@ class FirestoreGameService {
         tx.update(_user, {
           'money': _int(u['money']) + money,
           'points': FieldValue.increment(pts),
-          'exp': _int(u['exp']) + 10,
+          'exp': _int(u['exp']) + 10 * expBoost,
           'stats.game': FieldValue.increment(1),
           ..._bumps(u, t, ['game']),
           'updatedAt': FieldValue.serverTimestamp(),

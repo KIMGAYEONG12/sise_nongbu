@@ -89,7 +89,13 @@ class UserData {
   int get warehouseBonusKg => _i('warehouseBonusKg');
   int get decor => _i('decor');
   int get fundGiven => _i('fundGiven');
-  bool get greenhouse => raw['greenhouse'] == true;
+  /// 지은 하우스 수 (예전 데이터의 greenhouse: true 는 1채로 읽는다)
+  int get greenhouses {
+    final n = _i('greenhouses');
+    return n > 0 ? n : (raw['greenhouse'] == true ? 1 : 0);
+  }
+
+  bool get greenhouse => greenhouses > 0;
   String get nickname {
     final n = raw['nickname'];
     return n is String && n.trim().isNotEmpty ? n.trim() : '농부';

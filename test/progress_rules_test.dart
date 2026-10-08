@@ -23,12 +23,20 @@ void main() {
   test('밭 확장 비용: 6칸 5만, 9칸 10만, 12칸은 최대', () {
     expect(plotExpandCost(6), 50000);
     expect(plotExpandCost(9), 100000);
-    expect(plotExpandCost(12), isNull);
+    expect(plotExpandCost(12), 150000);
+    expect(plotExpandCost(21), 300000);
+    expect(plotExpandCost(24), isNull);
   });
 
   test('하우스는 성장 시간을 20% 줄인다', () {
-    expect(applyGreenhouse(const Duration(hours: 10), true), const Duration(hours: 8));
-    expect(applyGreenhouse(const Duration(hours: 10), false), const Duration(hours: 10));
+    expect(applyGreenhouses(const Duration(hours: 10), 1), const Duration(hours: 9));
+    expect(applyGreenhouses(const Duration(hours: 10), 5), const Duration(hours: 5));
+    expect(applyGreenhouses(const Duration(hours: 10), 9), const Duration(hours: 5)); // 최소 50%
+    expect(applyGreenhouses(const Duration(hours: 10), 0), const Duration(hours: 10));
+    expect(greenhouseCostFor(0), 100000);
+    expect(greenhouseCostFor(4), 300000);
+    expect(greenhouseCostFor(5), isNull);
+    expect(fertilizerMaxBonus, closeTo(2.0, 1e-9));
   });
 
   test('씨앗은 파종비의 85%', () {

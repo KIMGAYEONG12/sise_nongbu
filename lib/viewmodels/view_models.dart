@@ -5,6 +5,9 @@ import 'package:flutter/widgets.dart' show AppLifecycleListener;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../ai/ai_agent.dart';
+import '../ai/gemini_llm.dart';
+import '../ai/rule_llm.dart';
 import '../core/game_rules.dart';
 import '../core/progress_rules.dart';
 import '../models/models.dart';
@@ -29,6 +32,9 @@ final prefsProvider =
 final authServiceProvider = Provider((_) => AuthService());
 final authStateProvider =
     StreamProvider<User?>((_) => FirebaseAuth.instance.authStateChanges());
+
+/// 지금 게스트(익명) 계정인지. 게스트를 이메일·Google 계정에 연결하면 false로 바뀐다.
+final isGuestProvider = StreamProvider<bool>((ref) => ref.watch(authServiceProvider).userChanges.map((u) => u?.isAnonymous ?? false));
 
 /// 튜토리얼을 막 끝냈으면 true. 이때는 예전에 쓰던 게스트(익명) 세션이 남아 있어도 로그인·회원가입 화면을 먼저 보여준다.
 final loginAfterTutorialProvider = StateProvider<bool>((_) => false);
@@ -207,10 +213,10 @@ class FarmViewModel {
   final Ref _ref;
   FarmRepository get _repo => _ref.read(farmRepoProvider);
 
-  /// 하우스가 있으면 성장 시간이 20% 줄어든다.
+  /// 하우스가 있으면 한 채마다 성장 시간이 10%씩 줄어든다.
   Future<void> plant(int idx, CropSpec c) {
-    final gh = _ref.read(userDataProvider).greenhouse;
-    final d = applyGreenhouse(growDuration(c, _ref.read(speedProvider)), gh);
+    final gh = _ref.read(userDataProvider).greenhouses;
+    final d = applyGreenhouses(growDuration(c, _ref.read(speedProvider)), gh);
     return _repo.plant(idx, c, DateTime.now().add(d));
   }
 
@@ -247,6 +253,8 @@ class FarmViewModel {
       (_ref.read(plotsProvider).valueOrNull ?? const <Plot>[]).length);
   Future<void> expandWarehouse() => _repo.expandWarehouse();
   Future<void> buyGreenhouse() => _repo.buyGreenhouse();
+  Future<void> buyBundle(BundleItem b) => _repo.buyItem(b.itemKey, b.price, qty: b.qty);
+  Future<void> buySeedPack() => _repo.buySeedPack(seedPackPrice());
   Future<void> buyPointItem(PointItem i, {String? cropCode}) =>
       _repo.buyPointItem(i.key, cropCode: cropCode);
 
@@ -261,3 +269,6 @@ class FarmViewModel {
 }
 
 final farmViewModelProvider = Provider((ref) => FarmViewModel(ref));
+
+/// AI 농사 도우미. GEMINI_API_KEY 가 있으면 Gemini, 없으면 오프라인 규칙 기반 모델을 두뇌로 쓴다.
+final aiAgentProvider = Provider<AiAgent>((ref) => AiAgent(geminiApiKey.isEmpty ? const RuleBasedLlm() : GeminiLlm(http.Client(), apiKey: geminiApiKey)));

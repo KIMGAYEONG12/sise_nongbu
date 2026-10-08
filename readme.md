@@ -260,27 +260,32 @@ const openWeatherApiKey = String.fromEnvironment('OPENWEATHER_API_KEY'); // 날�
 ```json
 {
   "AUCTION_API_KEY": "<공공데이터포털_인증키>",
-  "OPENWEATHER_API_KEY": "<OpenWeather_API_키>"
+  "OPENWEATHER_API_KEY": "<OpenWeather_API_키>",
+  "GEMINI_API_KEY": "<Google_AI_Studio_Gemini_키>"
 }
 ```
+
+- AI 도우미는 `GEMINI_API_KEY`가 있으면 Google Gemini(`lib/ai/gemini_llm.dart`)로 답하고, 없으면 인터넷 없이 동작하는 규칙 기반 답변(`lib/ai/rule_llm.dart`)을 쓴다.
 
 - 날씨는 OpenWeather 키가 있으면 OpenWeather 현재 날씨 API를 쓰고, 키가 없거나 실패하면 Open-Meteo(키 없음)로 가져온다. 30분마다 다시 불러온다.
 
 키가 들어 있는 파일(`env.json`)은 커밋하지 않는다. (`.gitignore`에 포함)
 
+### Firebase 설정 (처음 한 번)
+
+1. **로그인 방식 켜기** — Firebase 콘솔 → Authentication → Sign-in method 에서 `이메일/비밀번호`, `Google`, `익명`을 **사용 설정**한다.
+   (앱에 "이 로그인 방식이 Firebase 콘솔에서 아직 켜져 있지 않아요"가 뜨면 이 단계가 빠진 것이다.)
+   Google 로그인은 프로젝트 설정 → 내 앱(Android)에 **SHA-1 지문**을 등록해야 한다: `cd android && ./gradlew signingReport`
+2. **Firestore 만들기** — Firestore Database → 데이터베이스 만들기 (프로덕션 모드, 서울 `asia-northeast3` 권장).
+3. **보안 규칙 넣기** — Firestore → 규칙 탭에 이 저장소의 `firestore.rules` 내용을 붙여 넣고 게시한다.
+   (또는 `firebase deploy --only firestore:rules`)
+4. **앱 지워도 데이터 남기기** — 농장 데이터는 서버(Firestore)에 `users/{uid}`로 저장되므로 앱을 지워도 사라지지 않는다.
+   다만 **게스트(익명) 계정은 앱을 지우면 uid를 잃어** 데이터를 찾을 수 없다. 그래서 MY 탭의 "계정에 연결"로
+   게스트를 이메일/Google 계정에 연결하면(uid 그대로) 다시 설치해도 같은 계정으로 로그인해 농장을 되찾는다.
+
 ### Firestore Rules
 
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{uid}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
-    }
-  }
-}
-```
-
+`firestore.rules` 파일 참고 (내 농장 `users/{uid}`는 본인만, 마을 기금은 로그인한 사람만 읽기·기부, 서버 시세 `market/*`는 읽기만).
 ### Commands
 
 | 목적             | 명령                                                            |

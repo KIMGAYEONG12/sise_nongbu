@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../core/game_rules.dart';
+import 'veggie_art.dart';
 
 /// 작물 그림 (시안의 둥글고 풍성한 배추처럼 코드로 그린 벡터 그림 → 어떤 크기에서도 선명).
 /// [stage] 0.0~1.0 성장 진행률: 0.34 미만 새싹, 0.67 미만 어린 작물, 그 이상 다 자란 작물.
-/// 배추는 직접 그린 그림, 다른 작물은 다 자랐을 때 이모지를 쓴다.
+/// 배추·무·양파·사과·토마토·감자 모두 이모지가 아니라 직접 그린 그림이라 작물이 바뀌면 그림도 바뀐다.
 class CropArt extends StatelessWidget {
   const CropArt({super.key, required this.code, required this.size, this.stage = 1.0});
   final String code;
@@ -15,25 +15,13 @@ class CropArt extends StatelessWidget {
   Widget build(BuildContext context) {
     final Widget art;
     if (stage < .34) {
-      art = CustomPaint(size: Size.square(size), painter: const _SproutPainter(scale: .62));
-    } else if (stage < .67) {
-      art = code == 'CABBAGE'
-          ? CustomPaint(size: Size.square(size), painter: const CabbagePainter(scale: .72))
-          : CustomPaint(size: Size.square(size), painter: const _SproutPainter(scale: .95, leaves: 4));
+      // 새싹: 작물마다 잎 색이 조금씩 다르다
+      art = CustomPaint(size: Size.square(size), painter: _SproutPainter(scale: .62, tint: _sproutTint(code)));
     } else if (code == 'CABBAGE') {
-      art = CustomPaint(size: Size.square(size), painter: const CabbagePainter());
+      art = CustomPaint(size: Size.square(size), painter: CabbagePainter(scale: stage < .67 ? .72 : 1));
     } else {
-      final spec = cropOf(code);
-      art = SizedBox.square(
-        dimension: size,
-        child: Stack(alignment: Alignment.center, children: [
-          Positioned(
-            bottom: size * .08,
-            child: Container(width: size * .55, height: size * .1, decoration: BoxDecoration(color: Colors.black.withValues(alpha: .16), borderRadius: BorderRadius.circular(size))),
-          ),
-          Text(spec.emoji, style: TextStyle(fontSize: size * .68, height: 1)),
-        ]),
-      );
+      // 어린 작물은 작게, 다 자라면 크게 (작물마다 모양이 다른 벡터 그림)
+      art = CustomPaint(size: Size.square(size), painter: VeggiePainter(code, scale: stage < .67 ? .62 : 1));
     }
     return SizedBox.square(dimension: size, child: art);
   }
@@ -125,10 +113,20 @@ class CabbagePainter extends CustomPainter {
 }
 
 /// 새싹 / 어린 잎
+/// 새싹 잎 색 (작물마다 달라서 심은 작물이 바뀌면 새싹 색도 바뀐다)
+Color _sproutTint(String code) => switch (code) {
+      'RADISH' => const Color(0xFF7FC4B0),
+      'ONION' => const Color(0xFFB4D86A),
+      'APPLE' => const Color(0xFFE8A06A),
+      'TOMATO' => const Color(0xFFE67A6E),
+      'POTATO' => const Color(0xFFC9A76A),
+      _ => const Color(0xFF5DB33A),
+    };
+
 class _SproutPainter extends CustomPainter {
-  const _SproutPainter({this.scale = 1, this.leaves = 2});
+  const _SproutPainter({this.scale = 1, this.tint = const Color(0xFF5DB33A)});
   final double scale;
-  final int leaves;
+  final Color tint;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -152,7 +150,7 @@ class _SproutPainter extends CustomPainter {
         ..quadraticBezierTo(len * .5, len * .3, 0, 0)
         ..close();
       final rect = Rect.fromLTWH(0, -len * .45, len, len * .75);
-      canvas.drawPath(path, Paint()..shader = const LinearGradient(colors: [Color(0xFF5DB33A), Color(0xFF9AD562)]).createShader(rect));
+      canvas.drawPath(path, Paint()..shader = LinearGradient(colors: [tint, Color.lerp(tint, const Color(0xFF9AD562), .6)!]).createShader(rect));
       canvas.drawPath(
           path,
           Paint()
@@ -164,13 +162,8 @@ class _SproutPainter extends CustomPainter {
 
     leaf(top, -math.pi * .92, h * .62);
     leaf(top, -math.pi * .08, h * .62);
-    if (leaves > 2) {
-      final mid = base.translate(0, -h * .32);
-      leaf(mid, -math.pi * .8, h * .5);
-      leaf(mid, -math.pi * .2, h * .5);
-    }
   }
 
   @override
-  bool shouldRepaint(_SproutPainter old) => old.scale != scale || old.leaves != leaves;
+  bool shouldRepaint(_SproutPainter old) => old.scale != scale || old.tint != tint;
 }

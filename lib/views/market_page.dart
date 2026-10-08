@@ -56,7 +56,7 @@ class MarketPage extends ConsumerWidget {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const _LiveClock(),
                   const SizedBox(height: 2),
-                  const Text('가상 게임이며 실제 투자·거래 조언이 아닙니다.', style: TextStyle(fontSize: 12, color: AppColors.sub)),
+                  const Text('가상 게임이며 실제 투자·거래 조언이 아닙니다.', style: TextStyle(fontSize: 13, color: Color(0xFF000000), fontWeight: FontWeight.w600)),
                 ]),
               ),
               for (final c in crops)
@@ -69,8 +69,8 @@ class MarketPage extends ConsumerWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(c.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                          Text('${p.asOf.month}월 ${p.asOf.day}일 기준', style: const TextStyle(fontSize: 12, color: AppColors.sub)),
+                          Text(c.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+                          Text('${p.asOf.month}월 ${p.asOf.day}일 기준', style: const TextStyle(fontSize: 13, color: Color(0xFF000000), fontWeight: FontWeight.w600)),
                         ]),
                       ),
                       Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -100,11 +100,11 @@ class _LiveClock extends ConsumerWidget {
     ref.watch(tickProvider); // 1초마다 다시 그린다
     final t = DateTime.now().toUtc().add(const Duration(hours: 9));
     return Row(children: [
-      const Icon(Icons.schedule_rounded, size: 15, color: AppColors.greenDark),
-      const SizedBox(width: 5),
+      const Icon(Icons.schedule_rounded, size: 22, color: AppColors.greenDark),
+      const SizedBox(width: 7),
       Text(
         '${t.year}년 ${t.month}월 ${t.day}일 (${_week[t.weekday - 1]})  ${_two(t.hour)}:${_two(t.minute)}:${_two(t.second)}',
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.greenDark, fontFeatures: [FontFeature.tabularFigures()]),
+        style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: AppColors.greenDark, fontFeatures: [FontFeature.tabularFigures()]),
       ),
     ]);
   }

@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 내 농장 데이터(자금·밭·창고·거래 기록): 로그인한 본인만 읽고 쓴다.
+    // 계정(이메일·Google)에 연결해 두면 앱을 지웠다 다시 깔아도 같은 uid라서 이 데이터가 그대로 남아 있다.
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // 마을 공동기금: 로그인한 사람은 읽을 수 있고, 기부로 total 이 늘어나는 쓰기만 허용한다.
+    match /community/fund {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+        && request.resource.data.total is int
+        && request.resource.data.total >= (resource == null ? 0 : resource.data.get('total', 0));
+    }
+
+    // 서버(GitHub Actions)가 저장해 두는 시세: 앱은 읽기만 한다 (쓰기는 서버의 관리자 권한으로만).
+    match /market/{doc} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+  }
+}

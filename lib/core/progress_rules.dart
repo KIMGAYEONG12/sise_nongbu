@@ -6,6 +6,18 @@ import 'game_rules.dart';
 /// 현재 레벨에서 다음 레벨까지 필요한 경험치. Lv1 → 200, Lv2 → 300, Lv3 → 400 …
 int expToNext(int level) => 100 * (level + 1);
 
+/// 경험치를 얻는 모든 행동(파종·수확·판매·구매·미션·기부·게임)에 곱하는 배율. 레벨이 빨리 오른다.
+const expBoost = 3;
+
+/// 수확 한 번에 얻는 경험치
+const harvestExp = 20 * expBoost;
+
+/// 판매 금액에 따라 얻는 경험치 (금액 700원당 1, 최소 3)
+int sellExp(int amount) => amount ~/ 700 < 3 ? 3 : amount ~/ 700;
+
+/// 마을 기금 기부 금액에 따라 얻는 경험치 (400원당 1, 최소 3)
+int donateExp(int amount) => amount ~/ 400 < 3 ? 3 : amount ~/ 400;
+
 class LevelInfo {
   const LevelInfo(this.level, this.exp, this.need);
   final int level; // 현재 레벨
@@ -38,7 +50,7 @@ int warehouseCapKg(int level, int bonusKg) => baseWarehouseKg + warehouseStepKg 
 /// 창고 확장 비용. 레벨 0 → 20,000원, 1 → 40,000원 …
 int warehouseCost(int level) => 20000 * (level + 1);
 
-const maxPlots = 12;
+const maxPlots = 24; // 6칸에서 시작해 3칸씩 6번 넓힐 수 있다
 const plotExpandStep = 3;
 
 /// 밭 확장 비용. 6칸 → 50,000원, 9칸 → 100,000원. 최대치면 null.
@@ -51,11 +63,17 @@ int? plotExpandCost(int currentPlots) {
 /// 잘못 심은 작물을 뽑을 때, 심은 지 이 시간 안이면 파종비(또는 씨앗)를 돌려준다.
 const uprootRefundWindow = Duration(minutes: 10);
 
-const greenhouseCost = 100000;
-const greenhouseSpeed = 0.8; // 하우스가 있으면 성장 시간 × 0.8
+/// 하우스는 여러 채 지을 수 있고, 한 채마다 성장 시간이 10%씩 줄어든다 (최대 5채 = 50% 단축).
+const maxGreenhouses = 5;
+const greenhouseStep = 0.1;
 
-Duration applyGreenhouse(Duration d, bool greenhouse) =>
-    greenhouse ? Duration(milliseconds: (d.inMilliseconds * greenhouseSpeed).round()) : d;
+/// [owned]채를 가진 상태에서 다음 하우스를 짓는 비용. 100,000P부터 50,000P씩 늘어난다. 최대치면 null.
+int? greenhouseCostFor(int owned) => owned >= maxGreenhouses ? null : 100000 + 50000 * owned;
+
+/// 하우스 [count]채가 있을 때 성장 시간 배율 (1.0 → 0.9 → … 최소 0.5)
+double greenhouseFactor(int count) => (1 - greenhouseStep * count.clamp(0, maxGreenhouses)).clamp(0.5, 1.0).toDouble();
+
+Duration applyGreenhouses(Duration d, int count) => count <= 0 ? d : Duration(milliseconds: (d.inMilliseconds * greenhouseFactor(count)).round());
 
 // ───────────────────────── 아이템 ─────────────────────────
 
@@ -67,7 +85,8 @@ const waterCut = 0.10; // 물주기: 전체 성장 시간의 10% 단축
 const waterMaxPerPlot = 3;
 const boosterCut = 0.30; // 성장촉진제: 전체 성장 시간의 30% 단축
 const fertilizerBonus = 0.20; // 영양제: 수확량 +20%
-const fertilizerMaxBonus = 0.40;
+const fertilizerMaxPerPlot = 10; // 한 밭에 최대 10번
+const fertilizerMaxBonus = fertilizerBonus * fertilizerMaxPerPlot;
 
 String seedKey(String cropCode) => 'seed_$cropCode';
 
@@ -79,9 +98,25 @@ class ShopItem {
 
 const consumables = [
   ShopItem(itemWater, '물통', '💧', 500, '물주기 1회 · 성장 시간 10% 단축 (밭당 최대 3회)'),
-  ShopItem(itemFertilizer, '영양제', '🧪', 1500, '수확량 +20% (밭당 최대 2회)'),
+  ShopItem(itemFertilizer, '영양제', '🧪', 1500, '수확량 +20% (밭당 최대 10회)'),
   ShopItem(itemBooster, '성장촉진제', '⚡', 3000, '성장 시간 30% 단축 (밭당 1회)'),
 ];
+
+/// 묶음 상품: 같은 아이템을 여러 개 한꺼번에 사면 10% 싸다.
+class BundleItem {
+  const BundleItem(this.itemKey, this.name, this.emoji, this.qty, this.price);
+  final String itemKey, name, emoji;
+  final int qty, price;
+}
+
+const bundles = [
+  BundleItem(itemWater, '물통 10개 묶음', '💧', 10, 4500),
+  BundleItem(itemFertilizer, '영양제 5개 묶음', '🧪', 5, 6750),
+  BundleItem(itemBooster, '성장촉진제 3개 묶음', '⚡', 3, 8100),
+];
+
+/// 씨앗 꾸러미: 여섯 작물의 씨앗을 1개씩. 따로 사는 값의 90%.
+int seedPackPrice() => (crops.fold<int>(0, (a, c) => a + seedPrice(c)) * 0.9).round();
 
 /// 씨앗은 파종비의 85% 가격. 가지고 있으면 파종할 때 파종비 대신 씨앗을 쓴다.
 int seedPrice(CropSpec c) => (c.seedCost * 0.85).round();
@@ -250,7 +285,7 @@ const fundMilestones = [
 
 // ───────────────────────── 작물 매칭 게임 보상 ─────────────────────────
 
-const gameDailyRewardLimit = 3;
+const gameDailyRewardLimit = 10; // 하루 보상 횟수 (테스트하기 쉽게 넉넉히)
 int gameRewardMoney(int score) => (score * 20).clamp(0, 5000).toInt();
 int gameRewardPoints(int score) => (score ~/ 20).clamp(0, 30).toInt();
 

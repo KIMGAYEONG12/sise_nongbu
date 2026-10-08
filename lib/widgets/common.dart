@@ -8,7 +8,7 @@ class AppColors {
   static const greenDark = Color(0xFF1F6B2E);
   static const greenLight = Color(0xFFD8EDC8);
   static const ink = Color(0xFF1F3D2B);
-  static const sub = Color(0xFF6B7F70);
+  static const sub = Color(0xFF1F2A22); // 보조 글씨도 흐린 회색이 아니라 거의 검정(잘 보이게)
   static const line = Color(0xFFD6E8C8);
   static const coin = Color(0xFFF4A81D);
   static const soil = Color(0xFF8A5A33);
@@ -28,6 +28,9 @@ class AppImages {
   /// 튜토리얼 2장에서 움직이는 손가락 (tut_plant.jpg에서 오려 낸 그림)
   static const tutHand = 'assets/images/tut_hand.png';
   static const farmScene = 'assets/images/farm_scene.jpg';
+
+  /// 프로필 아바타: 튜토리얼 마지막 그림(밀짚모자 쓴 농부)에서 오려 낸 그림
+  static const avatarGirl = 'assets/images/avatar_girl.png';
   static const loginLand = 'assets/images/login_land.png';
   static const signupLand = 'assets/images/signup_land.png';
   static const leafTopRight = 'assets/images/leaf_tr.png';
@@ -35,7 +38,7 @@ class AppImages {
 
   /// 스플래시가 떠 있는 동안 미리 읽어 두면 다음 화면에서 그림이 늦게 뜨지 않는다.
   static Future<void> precacheAll(BuildContext context) async {
-    for (final a in const [splash, tutPlant, tutHand, tutGrow, tutSell, tutReady, farmScene, loginLand, signupLand, leafTopRight, leafTopLeft]) {
+    for (final a in const [splash, avatarGirl, tutPlant, tutHand, tutGrow, tutSell, tutReady, farmScene, loginLand, signupLand, leafTopRight, leafTopLeft]) {
       if (!context.mounted) return;
       try {
         await precacheImage(AssetImage(a), context);
@@ -54,9 +57,41 @@ String won(num v) => '${commaNum(v)}P';
 /// 실제 도매시장 시세(kg당 가격)는 현실 가격이라 '원'으로 보여준다.
 String krw(num v) => '${commaNum(v)}원';
 
-/// 한글 낱말이 줄 끝에서 글자 단위로 끊기지 않게(예: "자/라요") 낱말 안 글자 사이에 '붙이기 기호'(U+2060)를 넣는다.
-/// 줄바꿈은 띄어쓰기에서만 일어난다. 길게 줄바꿈되는 설명 문구에 쓴다.
-String ka(String s) => s.replaceAll(RegExp(r'(?<=[가-힣·])(?=[가-힣·a-zA-Z0-9(])|(?<=[a-zA-Z0-9)])(?=[가-힣])'), '\u2060');
+/// 한글 낱말이 줄 끝에서 글자 단위로 끊기지 않게 "띄어쓰기에서만" 줄을 바꾸는 글자 위젯.
+/// 낱말마다 [Text]를 따로 만들어 [Wrap]에 늘어놓는 방식이라 보이지 않는 특수문자를 쓰지 않는다(글꼴이 깨질 일이 없다).
+/// 줄바꿈 문자는 그대로 지켜지고, 길게 이어지는 설명 문구에 쓴다.
+class KoText extends StatelessWidget {
+  const KoText(this.data, {super.key, this.style, this.textAlign = TextAlign.start});
+  final String data;
+  final TextStyle? style;
+  final TextAlign textAlign;
+
+  @override
+  Widget build(BuildContext context) {
+    final st = DefaultTextStyle.of(context).style.merge(style);
+    final size = st.fontSize ?? 14;
+    final align = switch (textAlign) {
+      TextAlign.center => WrapAlignment.center,
+      TextAlign.end || TextAlign.right => WrapAlignment.end,
+      _ => WrapAlignment.start,
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final line in data.split('\n'))
+          line.trim().isEmpty
+              ? SizedBox(height: size * (st.height ?? 1.2))
+              : Wrap(
+                  alignment: align,
+                  spacing: size * .3,
+                  runSpacing: 0,
+                  children: [for (final w in line.split(' ')) if (w.isNotEmpty) Text(w, style: st)],
+                ),
+      ],
+    );
+  }
+}
 
 /// 남은 시간 문구
 String leftText(DateTime ready, DateTime now) {
@@ -94,6 +129,15 @@ Future<bool> runGuarded(BuildContext context, Future<void> Function() job, {Stri
     showMsg(context, errMsg(e));
     return false;
   }
+}
+
+/// 안드로이드 12 이상의 "끝에서 당기면 화면이 늘어나는" 효과를 끈다. 스크롤은 그대로 되고 끝에서만 멈춘다.
+class NoStretchScrollBehavior extends MaterialScrollBehavior {
+  const NoStretchScrollBehavior();
+  @override
+  Widget buildOverscrollIndicator(BuildContext context, Widget child, ScrollableDetails details) => child;
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) => const ClampingScrollPhysics();
 }
 
 ThemeData buildTheme() {
@@ -352,15 +396,22 @@ class GoogleG extends StatelessWidget {
 
 /// 그림 카드: 이미지 비율을 지키며 둥근 모서리로 보여주고, [overlay]를 같은 크기로 위에 얹는다.
 class IllustCard extends StatelessWidget {
-  const IllustCard({super.key, required this.asset, required this.aspect, this.overlay, this.radius = 20});
+  const IllustCard({super.key, required this.asset, this.aspect = 1, this.overlay, this.radius = 20, this.fill = false, this.imageScale = 1.0, this.alignment = Alignment.center});
   final String asset;
   final double aspect;
   final Widget? overlay;
   final double radius;
+
+  /// true면 그림 비율로 크기를 정하지 않고 주어진 칸을 가득 채운다 (그림은 칸을 덮도록 잘린다)
+  final bool fill;
+
+  /// 그림만 천천히 확대·축소하는 연출용 배율
+  final double imageScale;
+  final Alignment alignment;
+
   @override
-  Widget build(BuildContext context) => AspectRatio(
-        aspectRatio: aspect,
-        child: Container(
+  Widget build(BuildContext context) => _frame(
+        Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(radius),
             border: Border.all(color: Colors.white, width: 3),
@@ -369,12 +420,14 @@ class IllustCard extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(radius - 3),
             child: Stack(fit: StackFit.expand, children: [
-              Image.asset(asset, fit: BoxFit.cover, filterQuality: FilterQuality.medium),
+              Transform.scale(scale: imageScale, child: Image.asset(asset, fit: BoxFit.cover, alignment: alignment, filterQuality: FilterQuality.high)),
               if (overlay != null) overlay!,
             ]),
           ),
         ),
       );
+
+  Widget _frame(Widget child) => fill ? SizedBox.expand(child: child) : AspectRatio(aspectRatio: aspect, child: child);
 }
 
 class PointPill extends StatelessWidget {
@@ -467,15 +520,20 @@ class FarmerAvatar extends StatelessWidget {
           border: Border.all(color: Colors.white, width: size * .06),
           boxShadow: [BoxShadow(color: const Color(0xFFE0A800).withValues(alpha: .3), blurRadius: 8, offset: const Offset(0, 2))],
         ),
-        child: ClipOval(child: CustomPaint(size: Size.square(size), painter: const GirlAvatarPainter())),
+        child: ClipOval(child: Image.asset(AppImages.avatarGirl, width: size, height: size, fit: BoxFit.cover, alignment: const Alignment(-.2, -.3), filterQuality: FilterQuality.high)),
       );
 }
 
-/// 밀짚모자(파란 띠)를 쓴 갈색 머리 여자 아이 (스플래시 그림의 농부)
+/// 밀짚모자(파란 띠)를 쓴 갈색 머리 여자 아이 (스플래시 그림의 농부).
+/// 작은 크기에서도 얼굴이 또렷하게 보이도록 얼굴·눈·모자를 크게 그렸다.
 class GirlAvatarPainter extends CustomPainter {
   const GirlAvatarPainter();
 
-  static const _line = Color(0xFF5A3A22);
+  static const _skin = Color(0xFFFFDDBE);
+  static const _hair = Color(0xFF7B4A28);
+  static const _hairDark = Color(0xFF5F3719);
+  static const _straw = Color(0xFFF1D08A);
+  static const _strawDark = Color(0xFFC99A4B);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -483,58 +541,99 @@ class GirlAvatarPainter extends CustomPainter {
     Offset p(double x, double y) => Offset(x * s, y * s);
     Rect r(double l, double t, double rr, double b) => Rect.fromLTRB(l * s, t * s, rr * s, b * s);
     Paint fill(Color c) => Paint()..color = c;
-    Paint edge([double w = .012]) => Paint()
+    Paint edge(Color c, [double w = .012]) => Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = w * s
       ..strokeJoin = StrokeJoin.round
-      ..color = _line;
+      ..strokeCap = StrokeCap.round
+      ..color = c;
 
-    // 몸: 흰 셔츠 + 파란 멜빵바지
-    canvas.drawOval(Rect.fromCenter(center: p(.5, 1.02), width: .84 * s, height: .56 * s), fill(const Color(0xFFFAF7EE)));
-    canvas.drawRRect(RRect.fromRectAndCorners(r(.31, .82, .69, 1.1), topLeft: Radius.circular(.08 * s), topRight: Radius.circular(.08 * s)), fill(const Color(0xFF3E72C9)));
-    canvas.drawRect(r(.33, .74, .41, .9), fill(const Color(0xFF3E72C9)));
-    canvas.drawRect(r(.59, .74, .67, .9), fill(const Color(0xFF3E72C9)));
-    // 머리카락(뒤)
-    canvas.drawRRect(RRect.fromRectAndRadius(r(.2, .42, .8, .88), Radius.circular(.2 * s)), fill(const Color(0xFF7B4B2A)));
-    // 목
-    canvas.drawRect(r(.44, .68, .56, .8), fill(const Color(0xFFF7C9A0)));
-    // 얼굴
-    final face = Rect.fromCenter(center: p(.5, .55), width: .46 * s, height: .46 * s);
-    canvas.drawOval(face, fill(const Color(0xFFFFDCBC)));
-    // 앞머리
-    final bangs = Path()
-      ..moveTo(.27 * s, .52 * s)
-      ..quadraticBezierTo(.28 * s, .3 * s, .5 * s, .3 * s)
-      ..quadraticBezierTo(.72 * s, .3 * s, .73 * s, .52 * s)
-      ..quadraticBezierTo(.64 * s, .4 * s, .52 * s, .44 * s)
-      ..quadraticBezierTo(.4 * s, .4 * s, .27 * s, .52 * s)
+    // 몸: 흰 셔츠 위에 파란 멜빵바지
+    canvas.drawOval(Rect.fromCenter(center: p(.5, 1.06), width: .96 * s, height: .6 * s), fill(const Color(0xFFFFFBF2)));
+    canvas.drawRRect(RRect.fromRectAndCorners(r(.3, .86, .7, 1.1), topLeft: Radius.circular(.07 * s), topRight: Radius.circular(.07 * s)), fill(const Color(0xFF3F74CF)));
+    canvas.drawRect(r(.31, .8, .39, .92), fill(const Color(0xFF3F74CF)));
+    canvas.drawRect(r(.61, .8, .69, .92), fill(const Color(0xFF3F74CF)));
+    canvas.drawCircle(p(.35, .91), .016 * s, fill(const Color(0xFFFFD34E)));
+    canvas.drawCircle(p(.65, .91), .016 * s, fill(const Color(0xFFFFD34E)));
+
+    // 뒤 머리 (얼굴 양옆으로 내려온다)
+    final back = Path()
+      ..moveTo(.2 * s, .46 * s)
+      ..quadraticBezierTo(.14 * s, .8 * s, .26 * s, .86 * s)
+      ..lineTo(.74 * s, .86 * s)
+      ..quadraticBezierTo(.86 * s, .8 * s, .8 * s, .46 * s)
       ..close();
-    canvas.drawPath(bangs, fill(const Color(0xFF8A5530)));
-    // 볼터치
-    canvas.drawCircle(p(.375, .62), .045 * s, fill(const Color(0x66FF8F7A)));
-    canvas.drawCircle(p(.625, .62), .045 * s, fill(const Color(0x66FF8F7A)));
-    // 눈
-    for (final x in [.4, .6]) {
-      canvas.drawOval(Rect.fromCenter(center: p(x, .57), width: .05 * s, height: .07 * s), fill(const Color(0xFF3A2418)));
-      canvas.drawCircle(p(x + .008, .555), .01 * s, fill(Colors.white));
+    canvas.drawPath(back, fill(_hairDark));
+
+    // 목
+    canvas.drawRRect(RRect.fromRectAndRadius(r(.43, .7, .57, .84), Radius.circular(.03 * s)), fill(const Color(0xFFF6C79F)));
+
+    // 얼굴
+    final face = Rect.fromCenter(center: p(.5, .56), width: .5 * s, height: .5 * s);
+    canvas.drawOval(face, fill(_skin));
+    canvas.drawOval(face, edge(const Color(0x33B5764A), .008));
+
+    // 귀
+    canvas.drawCircle(p(.255, .58), .034 * s, fill(_skin));
+    canvas.drawCircle(p(.745, .58), .034 * s, fill(_skin));
+
+    // 앞머리 (이마를 덮고 양옆으로 갈라진다)
+    final bangs = Path()
+      ..moveTo(.25 * s, .55 * s)
+      ..quadraticBezierTo(.24 * s, .3 * s, .5 * s, .3 * s)
+      ..quadraticBezierTo(.76 * s, .3 * s, .75 * s, .55 * s)
+      ..quadraticBezierTo(.7 * s, .44 * s, .6 * s, .43 * s)
+      ..quadraticBezierTo(.52 * s, .5 * s, .46 * s, .43 * s)
+      ..quadraticBezierTo(.34 * s, .45 * s, .25 * s, .55 * s)
+      ..close();
+    canvas.drawPath(bangs, fill(_hair));
+
+    // 눈썹 · 눈 (크고 동그랗게, 반짝이는 하이라이트)
+    for (final x in [.39, .61]) {
+      canvas.drawLine(p(x - .045, .5), p(x + .04, .492), edge(_hairDark, .012));
+      canvas.drawOval(Rect.fromCenter(center: p(x, .585), width: .082 * s, height: .108 * s), fill(const Color(0xFF3A2216)));
+      canvas.drawCircle(p(x + .013, .56), .017 * s, fill(Colors.white));
+      canvas.drawCircle(p(x - .012, .61), .009 * s, fill(const Color(0xCCFFFFFF)));
     }
-    // 웃는 입
-    final smile = Path()
-      ..moveTo(.45 * s, .665 * s)
-      ..quadraticBezierTo(.5 * s, .715 * s, .55 * s, .665 * s);
-    canvas.drawPath(smile, edge(.014));
-    // 밀짚모자: 챙 → 윗부분 → 파란 띠
-    canvas.drawOval(Rect.fromCenter(center: p(.5, .33), width: .9 * s, height: .24 * s), fill(const Color(0xFFE8C078)));
-    canvas.drawOval(Rect.fromCenter(center: p(.5, .33), width: .9 * s, height: .24 * s), edge(.01));
-    final crown = RRect.fromRectAndCorners(r(.3, .1, .7, .33), topLeft: Radius.circular(.2 * s), topRight: Radius.circular(.2 * s));
-    canvas.drawRRect(crown, fill(const Color(0xFFF2D58E)));
-    canvas.drawRRect(crown, edge(.01));
-    canvas.drawRect(r(.3, .235, .7, .31), fill(const Color(0xFF3B70D2)));
-    // 모자에 꽂힌 작은 잎
+    // 볼 · 코 · 웃는 입
+    canvas.drawCircle(p(.335, .665), .05 * s, fill(const Color(0x66FF8A78)));
+    canvas.drawCircle(p(.665, .665), .05 * s, fill(const Color(0x66FF8A78)));
+    canvas.drawCircle(p(.5, .63), .008 * s, fill(const Color(0x66B5764A)));
+    canvas.drawPath(
+      Path()
+        ..moveTo(.44 * s, .685 * s)
+        ..quadraticBezierTo(.5 * s, .75 * s, .56 * s, .685 * s),
+      edge(const Color(0xFFB5503C), .014),
+    );
+
+    // 밀짚모자: 넓은 챙 → 둥근 윗부분 → 파란 띠 → 잎
+    final brim = Rect.fromCenter(center: p(.5, .335), width: .98 * s, height: .27 * s);
+    canvas.drawOval(brim, fill(_straw));
+    canvas.drawOval(brim, edge(_strawDark, .012));
+    final crown = Path()
+      ..moveTo(.27 * s, .34 * s)
+      ..quadraticBezierTo(.26 * s, .06 * s, .5 * s, .06 * s)
+      ..quadraticBezierTo(.74 * s, .06 * s, .73 * s, .34 * s)
+      ..close();
+    canvas.drawPath(crown, fill(const Color(0xFFF7DE9C)));
+    canvas.drawPath(crown, edge(_strawDark, .01));
+    // 띠
+    final band = Path()
+      ..moveTo(.268 * s, .3 * s)
+      ..lineTo(.732 * s, .3 * s)
+      ..lineTo(.737 * s, .35 * s)
+      ..quadraticBezierTo(.5 * s, .4 * s, .263 * s, .35 * s)
+      ..close();
+    canvas.drawPath(band, fill(const Color(0xFF3B70D2)));
+    // 밀짚 결
+    for (final x in [.38, .46, .54, .62]) {
+      canvas.drawLine(p(x, .12), p(x - (.5 - x) * .25, .27), edge(const Color(0x33C99A4B), .008));
+    }
+    // 띠에 꽂은 잎
     canvas.save();
-    canvas.translate(p(.63, .26).dx, p(.63, .26).dy);
-    canvas.rotate(-.6);
-    canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: .1 * s, height: .045 * s), fill(const Color(0xFF55B23A)));
+    canvas.translate(p(.66, .31).dx, p(.66, .31).dy);
+    canvas.rotate(-.7);
+    canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: .13 * s, height: .055 * s), fill(const Color(0xFF55B23A)));
     canvas.restore();
   }
 

@@ -27,7 +27,7 @@ class _EncyclopediaPageState extends ConsumerState<EncyclopediaPage> {
       builder: (sheet) => Consumer(builder: (_, ref2, __) {
         final user = ref2.watch(userDataProvider);
         final price = ref2.watch(marketViewModelProvider).valueOrNull?[c.code];
-        final dur = applyGreenhouse(growDuration(c, ref2.watch(speedProvider)), user.greenhouse);
+        final dur = applyGreenhouses(growDuration(c, ref2.watch(speedProvider)), user.greenhouses);
         final n = user.stat('crop_${c.code}');
         return SafeArea(
           child: Padding(
@@ -44,7 +44,7 @@ class _EncyclopediaPageState extends ConsumerState<EncyclopediaPage> {
                 ),
               ]),
               const SizedBox(height: 12),
-              Text(ka(c.desc), style: const TextStyle(fontSize: 13, height: 1.5)),
+              KoText(c.desc, style: const TextStyle(fontSize: 13, height: 1.5)),
               const SizedBox(height: 12),
               SoftCard(
                 child: Column(children: [

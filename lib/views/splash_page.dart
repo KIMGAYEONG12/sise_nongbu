@@ -302,7 +302,7 @@ class _Slogan extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: font * .9, vertical: font * .25),
               decoration: BoxDecoration(
                 // 구름 위에서도 글씨가 또렷하게 보이도록 아주 옅은 흰 바탕
-                color: Colors.white.withValues(alpha: .55),
+                color: Colors.white.withValues(alpha: .88),
                 borderRadius: BorderRadius.circular(font * 2),
               ),
               child: Stack(children: [

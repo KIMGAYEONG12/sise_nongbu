@@ -69,6 +69,7 @@ class FarmRepository {
   Future<void> expandPlots(int currentCount) => _db.expandPlots(currentCount);
   Future<void> expandWarehouse() => _db.expandWarehouse();
   Future<void> buyGreenhouse() => _db.buyGreenhouse();
+  Future<void> buySeedPack(int price) => _db.buySeedPack(price);
   Future<void> buyPointItem(String key, {String? cropCode}) => _db.buyPointItem(key, cropCode: cropCode);
   Future<void> claimMission(MissionDef def) => _db.claimMission(def);
   Future<void> claimAchievement(AchievementDef def, int plots) => _db.claimAchievement(def, plots);

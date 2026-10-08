@@ -29,14 +29,14 @@ Future<void> showPlantSheet(BuildContext context, WidgetRef ref, Plot plot) {
           const SizedBox(height: 14),
           const Text('무엇을 심을까요?', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
           const SizedBox(height: 4),
-          Text('보유 자금 ${won(user.money)}${user.greenhouse ? ' · 🏠 하우스로 성장 20% 단축' : ''}', style: const TextStyle(fontSize: 12, color: AppColors.sub)),
+          Text('보유 자금 ${won(user.money)}${user.greenhouses > 0 ? ' · 🏠 하우스 ${user.greenhouses}채로 성장 ${(100 - greenhouseFactor(user.greenhouses) * 100).round()}% 단축' : ''}', style: const TextStyle(fontSize: 12, color: AppColors.sub)),
           const SizedBox(height: 8),
           Flexible(
             child: ListView(shrinkWrap: true, padding: const EdgeInsets.fromLTRB(16, 4, 16, 16), children: [
               for (final c in crops)
                 Builder(builder: (_) {
                   final seeds = user.item(seedKey(c.code));
-                  final dur = applyGreenhouse(growDuration(c, speed), user.greenhouse);
+                  final dur = applyGreenhouses(growDuration(c, speed), user.greenhouses);
                   return SoftCard(
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

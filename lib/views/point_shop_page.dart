@@ -103,7 +103,7 @@ class PointShopBody extends ConsumerWidget {
                     Text('${item.cost}P', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: Color(0xFF3D4A40))),
                   ]),
                   const SizedBox(height: 3),
-                  Text(ka(item.desc), style: const TextStyle(fontSize: 11, color: Color(0xFF55655A), height: 1.3)),
+                  KoText(item.desc, style: const TextStyle(fontSize: 11, color: Color(0xFF55655A), height: 1.3)),
                   if (locked)
                     Padding(
                       padding: const EdgeInsets.only(top: 3),

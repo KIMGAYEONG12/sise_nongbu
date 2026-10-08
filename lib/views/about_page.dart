@@ -4,7 +4,7 @@ import '../core/game_rules.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
 
-/// 앱 정보: 데모 모드, 튜토리얼 설정, 자금 되돌리기, 가상 게임 안내, 시세·날씨 출처.
+/// 앱 정보: 데모 모드, 자금 되돌리기, 가상 게임 안내, 시세·날씨 출처.
 /// 설명 문구는 [ka]로 낱말이 글자 단위로 끊기지 않게 한다.
 class AboutPage extends ConsumerWidget {
   const AboutPage({super.key});
@@ -14,7 +14,7 @@ class AboutPage extends ConsumerWidget {
       context: context,
       builder: (d) => AlertDialog(
         title: const Text('자금을 되돌릴까요?'),
-        content: Text(ka('보유 자금이 ${won(startMoney)}가 돼요.')),
+        content: KoText('보유 자금이 ${won(startMoney)}가 돼요.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('취소')),
           TextButton(onPressed: () => Navigator.pop(d, true), child: const Text('되돌리기')),
@@ -32,10 +32,10 @@ class AboutPage extends ConsumerWidget {
   Widget _info(String title, List<String> lines) => SoftCard(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(ka(title), style: _titleStyle),
+          KoText(title, style: _titleStyle),
           for (final l in lines) ...[
             const SizedBox(height: 8),
-            Text(ka(l), style: _bodyStyle),
+            KoText(l, style: _bodyStyle),
           ],
         ]),
       );
@@ -62,10 +62,10 @@ class AboutPage extends ConsumerWidget {
                 SoftCard(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                   child: SwitchListTile(
-                    title: Text(ka('데모 모드 (1초 만에 성장)'), style: _titleStyle),
+                    title: KoText('데모 모드 (1초 만에 성장)', style: _titleStyle),
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 6),
-                      child: Text(ka('발표·시연용이에요. 켜면 어떤 작물이든 심고 1초 뒤에 바로 수확할 수 있어요.\n켠 뒤에 새로 심는 작물부터 적용되고, 이미 심은 작물은 원래 속도로 자라요.'), style: _bodyStyle),
+                      child: KoText('발표·시연용이에요. 켜면 어떤 작물이든 심고 1초 뒤에 바로 수확할 수 있어요.\n켠 뒤에 새로 심는 작물부터 적용되고, 이미 심은 작물은 원래 속도로 자라요.', style: _bodyStyle),
                     ),
                     isThreeLine: true,
                     value: demo,
@@ -75,28 +75,12 @@ class AboutPage extends ConsumerWidget {
                 const SizedBox(height: 8),
                 SoftCard(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: SwitchListTile(
-                    title: Text(ka('앱을 켤 때 튜토리얼 보기'), style: _titleStyle),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(ka('켜 두면 스플래시 다음에 튜토리얼이 나와요. 튜토리얼 화면의 \'건너뛰기\'로 바로 넘어갈 수 있어요.'), style: _bodyStyle),
-                    ),
-                    value: ref.watch(tutorialOnStartProvider),
-                    onChanged: (v) {
-                      ref.read(tutorialOnStartProvider.notifier).state = v;
-                      ref.read(prefsProvider).setBool(tutorialOnStartKey, v);
-                    },
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SoftCard(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                   child: ListTile(
                     leading: const CoinIcon(size: 28),
-                    title: Text(ka('자금을 ${won(startMoney)}로 되돌리기'), style: _titleStyle),
+                    title: KoText('자금을 ${won(startMoney)}로 되돌리기', style: _titleStyle),
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 6),
-                      child: Text(ka('테스트용: 보유 자금을 시작 자금으로 맞춰요 (작물·창고·아이템은 그대로)'), style: _bodyStyle),
+                      child: KoText('테스트용: 보유 자금을 시작 자금으로 맞춰요 (작물·창고·아이템은 그대로)', style: _bodyStyle),
                     ),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => _resetMoney(context, ref),

@@ -4,6 +4,7 @@ import '../core/progress_rules.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
 import 'farm_page.dart';
+import 'harvest_result_page.dart' show SunburstPainter;
 import 'inventory_page.dart';
 import 'market_page.dart';
 import 'my_page.dart';
@@ -77,29 +78,125 @@ class HomeShell extends ConsumerWidget {
   }
 }
 
-/// 레벨 업 축하 창
+/// 레벨 업 축하 창: 햇살이 퍼지는 큰 레벨 배지가 통통 튀며 나타나고, 색종이가 떨어지고, 경험치 막대가 차오른다.
 Future<void> showLevelUpDialog(BuildContext context, int from, int to, LevelInfo now) => showDialog<void>(
       context: context,
-      builder: (d) => AlertDialog(
-        backgroundColor: AppColors.bg,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        contentPadding: const EdgeInsets.fromLTRB(24, 28, 24, 8),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('🎉', style: TextStyle(fontSize: 56, height: 1)),
-          const SizedBox(height: 10),
-          const Text('레벨 업!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.greenDark)),
-          const SizedBox(height: 12),
-          Row(mainAxisSize: MainAxisSize.min, children: [
-            Text('Lv.$from', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.sub)),
-            const Padding(padding: EdgeInsets.symmetric(horizontal: 10), child: Icon(Icons.arrow_forward_rounded, color: AppColors.green)),
-            Text('Lv.$to', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: AppColors.ink)),
-          ]),
-          const SizedBox(height: 12),
-          Text('Lv.$from에서 Lv.$to로 올라갔어요!\n다음 레벨까지 경험치 ${now.need - now.exp} 남았어요.',
-              textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: AppColors.sub, height: 1.5)),
-        ]),
-        actionsAlignment: MainAxisAlignment.center,
-        actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
-        actions: [GreenButton(label: '확인', onPressed: () => Navigator.of(d).pop())],
+      builder: (d) => _LevelUpDialog(from: from, to: to, now: now),
+    );
+
+class _LevelUpDialog extends StatefulWidget {
+  const _LevelUpDialog({required this.from, required this.to, required this.now});
+  final int from, to;
+  final LevelInfo now;
+  @override
+  State<_LevelUpDialog> createState() => _LevelUpDialogState();
+}
+
+class _LevelUpDialogState extends State<_LevelUpDialog> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 2200))..forward();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  static double _seg(double t, double a, double b, [Curve curve = Curves.easeOutCubic]) => t <= a ? 0 : (t >= b ? 1 : curve.transform((t - a) / (b - a)));
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (_, __) {
+          final t = _c.value;
+          final pop = _seg(t, 0, .35, Curves.elasticOut);
+          final bar = _seg(t, .35, .85);
+          return Stack(clipBehavior: Clip.none, alignment: Alignment.topCenter, children: [
+            Container(
+              margin: const EdgeInsets.only(top: 70),
+              padding: const EdgeInsets.fromLTRB(22, 78, 22, 22),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(30),
+                gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFFF4C2), Color(0xFFFFFFFF), Color(0xFFEAF6DF)]),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .25), blurRadius: 24, offset: const Offset(0, 10))],
+              ),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Opacity(opacity: _seg(t, .15, .45), child: const Text('레벨 업!', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: AppColors.greenDark))),
+                const SizedBox(height: 10),
+                Opacity(
+                  opacity: _seg(t, .25, .55),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    _lvChip('Lv.${widget.from}', false),
+                    const Padding(padding: EdgeInsets.symmetric(horizontal: 10), child: Icon(Icons.arrow_forward_rounded, color: AppColors.green, size: 28)),
+                    _lvChip('Lv.${widget.to}', true),
+                  ]),
+                ),
+                const SizedBox(height: 18),
+                Row(children: [
+                  const Text('경험치', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF000000))),
+                  const Spacer(),
+                  Text('${(widget.now.exp * bar).round()} / ${widget.now.need}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF000000))),
+                ]),
+                const SizedBox(height: 6),
+                ThinBar(value: widget.now.ratio * bar, height: 14, color: const Color(0xFF34A34A), track: const Color(0xFFE4EAE6)),
+                const SizedBox(height: 14),
+                Text('다음 레벨까지 경험치 ${widget.now.need - widget.now.exp} 남았어요!', textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, height: 1.4, fontWeight: FontWeight.w600, color: Color(0xFF111111))),
+                const SizedBox(height: 18),
+                GreenButton(label: '계속하기', onPressed: () => Navigator.of(context).pop()),
+              ]),
+            ),
+            // 햇살 + 레벨 배지 (카드 위로 솟아오른다)
+            Positioned(
+              top: 0,
+              child: SizedBox(
+                width: 170,
+                height: 170,
+                child: Stack(alignment: Alignment.center, children: [
+                  Opacity(opacity: _seg(t, 0, .3), child: Transform.rotate(angle: t * 1.2, child: const CustomPaint(size: Size(170, 170), painter: SunburstPainter()))),
+                  Transform.scale(
+                    scale: pop,
+                    child: Container(
+                      width: 104,
+                      height: 104,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const RadialGradient(center: Alignment(-.3, -.4), colors: [Color(0xFF7ED957), Color(0xFF2F8F3E)]),
+                        border: Border.all(color: Colors.white, width: 5),
+                        boxShadow: [BoxShadow(color: const Color(0xFF1F6B2E).withValues(alpha: .45), blurRadius: 14, offset: const Offset(0, 5))],
+                      ),
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        const Text('LV', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.white, height: 1)),
+                        Text('${widget.to}', style: const TextStyle(fontSize: 44, fontWeight: FontWeight.w900, color: Colors.white, height: 1.05)),
+                      ]),
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+            // 떨어지는 색종이
+            for (var i = 0; i < 14; i++)
+              Builder(builder: (_) {
+                final v = ((t * 1.3 + i * .07) % 1.0);
+                final x = (i * 53 % 100) / 100;
+                return Positioned(
+                  left: 10 + x * 280,
+                  top: -10 + v * 420,
+                  child: IgnorePointer(child: Opacity(opacity: (1 - v).clamp(0.0, 1.0).toDouble() * _seg(t, 0, .1), child: Transform.rotate(angle: v * 9 + i, child: Text(const ['🎊', '✨', '🎉', '⭐'][i % 4], style: const TextStyle(fontSize: 18, height: 1))))),
+                );
+              }),
+          ]);
+        },
       ),
     );
+  }
+
+  Widget _lvChip(String text, bool big) => Container(
+        padding: EdgeInsets.symmetric(horizontal: big ? 18 : 14, vertical: big ? 8 : 6),
+        decoration: BoxDecoration(color: big ? AppColors.green : Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: big ? AppColors.greenDark : AppColors.line, width: 2)),
+        child: Text(text, style: TextStyle(fontSize: big ? 24 : 18, fontWeight: FontWeight.w900, color: big ? Colors.white : const Color(0xFF000000))),
+      );
+}

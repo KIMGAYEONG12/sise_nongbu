@@ -1,10 +1,13 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/progress_rules.dart';
 import '../services/weather_service.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
+import '../widgets/greenhouse_art.dart';
 import 'about_page.dart';
+import 'ai_assistant_page.dart';
 import 'achievement_page.dart';
 import 'crop_growth_page.dart';
 import 'encyclopedia_page.dart';
@@ -14,6 +17,8 @@ import 'mission_page.dart';
 import 'news_page.dart';
 import 'point_shop_page.dart';
 import 'trade_history_page.dart';
+
+export '../widgets/greenhouse_art.dart' show GreenhousePainter, greenhouseTier;
 
 /// 농장 탭 (홈): 프로필·자금·날씨, 밭이 있는 농장 풍경, 바로가기
 class FarmPage extends ConsumerWidget {
@@ -38,6 +43,7 @@ class FarmPage extends ConsumerWidget {
       ('🏆', '업적', () => _push(context, const AchievementPage()), null),
       ('⭐', '특별 상점', () => _push(context, const PointShopPage()), null),
       ('🧾', '거래 기록', () => _push(context, const TradeHistoryPage()), null),
+      ('🤖', 'AI 도우미', () => _push(context, const AiAssistantPage()), null),
     ];
 
     final topInset = MediaQuery.paddingOf(context).top;
@@ -76,6 +82,8 @@ class FarmPage extends ConsumerWidget {
             // 그림 속 밭을 누르면 작물 관리(심기·물주기·수확)로 간다
             onField: () => _push(context, const CropGrowthPage()),
             decor: user.decor,
+            greenhouses: user.greenhouses,
+            tier: greenhouseTier(lv.level),
           ),
         ),
         Padding(
@@ -116,11 +124,20 @@ class FarmPage extends ConsumerWidget {
 /// 시안의 농장 화면: 하늘 위 프로필·날씨 → 하단 탭 위까지 이어지는 농장 일러스트 전체(집·연못·밭).
 /// 그림은 시안처럼 아무것도 올리지 않고 그대로 보여 주고, 그림 속 밭을 누르면 작물 관리 화면으로 간다.
 class _FarmHero extends StatelessWidget {
-  const _FarmHero({required this.topInset, required this.header, required this.onField, required this.decor});
+  const _FarmHero({required this.topInset, required this.header, required this.onField, required this.decor, required this.greenhouses, required this.tier});
   final double topInset;
   final Widget header;
   final VoidCallback onField;
   final int decor;
+
+  /// 상점에서 하우스를 지었으면 농장에 유리 온실이 나타난다
+  final int greenhouses;
+
+  /// 하우스 모양 단계 (레벨이 오를 때마다 바뀐다)
+  final int tier;
+
+  /// 하우스를 올려 놓을 자리 (그림 원본 픽셀: 밭 왼쪽 풀밭)
+  static const _house = Rect.fromLTRB(14, 500, 274, 676);
 
   // 그림(farm_scene.jpg) 좌표 기준 크기 (실제 파일은 2배 고해상도 1872×1428)
   static const _srcW = 936.0, _srcH = 714.0;
@@ -190,6 +207,13 @@ class _FarmHero extends StatelessWidget {
             rect: field,
             child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: onField),
           ),
+          // 상점에서 지은 하우스: 코드로 그린 유리 온실 (그림이 아니라 확대해도 선명하다)
+          if (greenhouses > 0)
+            Positioned.fromRect(
+              // 그림 양옆이 잘려 나가도 화면 안에 온전히 보이도록 왼쪽 끝에서 12px 안쪽으로 맞춘다
+              rect: Rect.fromLTWH(math.max(12.0, imgLeft + _house.left * k), imgTop + _house.top * k, _house.width * k, _house.height * k),
+              child: IgnorePointer(child: CustomPaint(painter: GreenhousePainter(count: greenhouses, tier: tier))),
+            ),
           // 포인트 상점에서 산 농장 장식(해바라기)은 밭 왼쪽 위에 작게
           if (decor > 0)
             Positioned(

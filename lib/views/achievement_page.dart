@@ -4,6 +4,8 @@ import '../core/game_rules.dart';
 import '../core/progress_rules.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
+import 'fund_page.dart';
+import 'match_game_page.dart';
 
 /// 업적 현황: 전체 / 일반 / 도전 / 특별
 class AchievementPage extends ConsumerStatefulWidget {
@@ -15,6 +17,13 @@ class AchievementPage extends ConsumerStatefulWidget {
 class _AchievementPageState extends ConsumerState<AchievementPage> {
   static const _tabs = ['전체', '일반', '도전', '특별'];
   int _tab = 0;
+
+  /// 업적을 이루러 갈 화면 (없으면 null)
+  Widget? _goTo(String id) {
+    if (id == 'puzzle') return const MatchGamePage();
+    if (id == 'helper') return const FundPage();
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +41,7 @@ class _AchievementPageState extends ConsumerState<AchievementPage> {
             Padding(padding: const EdgeInsets.fromLTRB(16, 4, 16, 6), child: PillTabs(labels: _tabs, index: _tab, onChanged: (v) => setState(() => _tab = v))),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 2, 20, 6),
-              child: Align(alignment: Alignment.centerLeft, child: Text('달성한 업적 $doneCount/${achievements.length}', style: const TextStyle(fontSize: 12, color: AppColors.sub, fontWeight: FontWeight.w700))),
+              child: Align(alignment: Alignment.centerLeft, child: Text('달성한 업적 $doneCount/${achievements.length}', style: const TextStyle(fontSize: 15, color: Color(0xFF000000), fontWeight: FontWeight.w800))),
             ),
             Expanded(
               child: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
@@ -49,14 +58,28 @@ class _AchievementPageState extends ConsumerState<AchievementPage> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(a.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                            Text(ka(a.desc), style: const TextStyle(fontSize: 11, color: AppColors.sub)),
-                            const SizedBox(height: 6),
+                            Text(a.title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: Color(0xFF000000))),
+                            const SizedBox(height: 2),
+                            KoText(a.desc, style: const TextStyle(fontSize: 14, height: 1.35, color: Color(0xFF000000), fontWeight: FontWeight.w500)),
+                            const SizedBox(height: 8),
                             Row(children: [
-                              Expanded(child: ThinBar(value: shown / a.target, height: 6)),
-                              const SizedBox(width: 8),
-                              Text('${commaNum(shown)}/${commaNum(a.target)}', style: const TextStyle(fontSize: 11, color: AppColors.sub, fontWeight: FontWeight.w700)),
+                              Expanded(child: ThinBar(value: shown / a.target, height: 9)),
+                              const SizedBox(width: 10),
+                              Text('${commaNum(shown)}/${commaNum(a.target)}', style: const TextStyle(fontSize: 13, color: Color(0xFF000000), fontWeight: FontWeight.w800)),
                             ]),
+                            // 게임·기부처럼 직접 해야 하는 업적은 바로 가는 버튼을 둔다
+                            if (!reached && _goTo(a.id) != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: SizedBox(
+                                  height: 34,
+                                  child: OutlinedButton(
+                                    onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => _goTo(a.id)!)),
+                                    style: OutlinedButton.styleFrom(foregroundColor: AppColors.greenDark, side: const BorderSide(color: AppColors.green, width: 1.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17))),
+                                    child: Text(a.id == 'puzzle' ? '🧩 퍼즐 하러 가기' : '🏡 기부하러 가기', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900)),
+                                  ),
+                                ),
+                              ),
                           ]),
                         ),
                         const SizedBox(width: 10),
@@ -68,11 +91,11 @@ class _AchievementPageState extends ConsumerState<AchievementPage> {
                             child: ElevatedButton(
                               onPressed: () => runGuarded(context, () => ref.read(farmViewModelProvider).claimAchievement(a), ok: '+${a.points}P를 받았어요'),
                               style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17))),
-                              child: Text('받기 +${a.points}P', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900)),
+                              child: Text('받기 +${a.points}P', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
                             ),
                           )
                         else
-                          Text('+${a.points}P', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.coin)),
+                          Text('+${a.points}P', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFFE08A00))),
                       ]),
                     );
                   }),

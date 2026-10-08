@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/game_rules.dart';
+import '../core/progress_rules.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
 import '../widgets/crop_art.dart';
@@ -17,6 +18,9 @@ class HarvestResultPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = cropOf(cropCode);
     final price = ref.watch(marketViewModelProvider).valueOrNull?[cropCode];
+    final lv = ref.watch(userDataProvider).level;
+    // 작은 화면에서도 넘치지 않게 그림 크기를 화면 높이에 맞춘다
+    final art = (MediaQuery.sizeOf(context).height * .26).clamp(130.0, 260.0).toDouble();
     return Scaffold(
       body: GameBackground(
         child: SafeArea(
@@ -27,18 +31,42 @@ class HarvestResultPage extends ConsumerWidget {
               const Text('수확 완료!', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
               const Spacer(),
               SizedBox(
-                width: 260,
-                height: 260,
+                width: art,
+                height: art,
                 child: Stack(alignment: Alignment.center, children: [
                   const Positioned.fill(child: CustomPaint(painter: SunburstPainter())),
-                  CropArt(code: c.code, size: 170),
+                  CropArt(code: c.code, size: art * .65),
                 ]),
               ),
               const SizedBox(height: 8),
               Text('${withJosa(c.name, '을', '를')} 수확했습니다!', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              const Text('+20 경험치', style: TextStyle(fontSize: 12, color: AppColors.greenDark, fontWeight: FontWeight.w700)),
               const Spacer(),
+              // 경험치: 이번에 얻은 경험치와 현재 레벨 진행 막대
+              SoftCard(
+                color: Colors.white,
+                margin: const EdgeInsets.only(bottom: 12),
+                child: Column(children: [
+                  Row(children: [
+                    const Text('⭐', style: TextStyle(fontSize: 20, height: 1)),
+                    const SizedBox(width: 8),
+                    const Text('경험치', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF000000))),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(color: AppColors.greenLight, borderRadius: BorderRadius.circular(12)),
+                      child: const Text('+$harvestExp EXP', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: AppColors.greenDark)),
+                    ),
+                    const Spacer(),
+                    Text('Lv. ${lv.level}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF000000))),
+                  ]),
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    Expanded(child: ThinBar(value: lv.ratio, height: 12, color: const Color(0xFF34A34A), track: const Color(0xFFE4EAE6))),
+                    const SizedBox(width: 10),
+                    Text('${lv.exp} / ${lv.need}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF000000))),
+                  ]),
+                ]),
+              ),
               SoftCard(
                 color: Colors.white,
                 child: Column(children: [
