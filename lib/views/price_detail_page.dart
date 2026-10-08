@@ -38,7 +38,7 @@ class _PriceDetailPageState extends ConsumerState<PriceDetailPage> {
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text('${c.name} · ${c.kind}', style: const TextStyle(fontSize: 13, color: AppColors.sub, fontWeight: FontWeight.w700)),
                         const SizedBox(height: 2),
-                        Text(price == null ? '시세 없음' : '${won(price.pricePerKg)}/kg', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+                        Text(price == null ? '시세 없음' : '${krw(price.pricePerKg)}/kg', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
                         if (price != null) Text('${price.asOf.month}월 ${price.asOf.day}일 기준', style: const TextStyle(fontSize: 11, color: AppColors.sub)),
                       ]),
                     ),
@@ -209,7 +209,7 @@ class _OutlookTab extends ConsumerWidget {
               Expanded(child: Text(label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
             ]),
             const SizedBox(height: 12),
-            Text('최근 ${v.length}일 평균 ${won(avg)}/kg · 현재 ${won(last)}/kg (${diff >= 0 ? '+' : ''}${diff.toStringAsFixed(1)}%)', style: const TextStyle(fontSize: 13, height: 1.5)),
+            Text('최근 ${v.length}일 평균 ${krw(avg)}/kg · 현재 ${krw(last)}/kg (${diff >= 0 ? '+' : ''}${diff.toStringAsFixed(1)}%)', style: const TextStyle(fontSize: 13, height: 1.5)),
             Text('기간 처음 대비 ${first >= 0 ? '+' : ''}${first.toStringAsFixed(1)}%', style: const TextStyle(fontSize: 13, color: AppColors.sub)),
             const SizedBox(height: 10),
             const Text('※ 최근 시세 흐름을 단순 비교한 것으로, 앞으로의 가격을 예측하는 것이 아니에요.', style: TextStyle(fontSize: 11, color: AppColors.sub, height: 1.4)),

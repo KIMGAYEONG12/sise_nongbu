@@ -6,6 +6,7 @@ import '../core/progress_rules.dart';
 import '../models/models.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
+import '../widgets/crop_art.dart';
 
 /// 5장짜리 튜토리얼 (시세 확인 → 파종 → 성장 → 판매 → 시작). 장마다 움직이는 연출이 있고,
 /// 2~4장은 누구나 직접 눌러 체험할 수 있다 (연습용이라 로그인 전에도 되고 실제 게임 데이터는 바뀌지 않는다).
@@ -108,10 +109,11 @@ class _TutorialPageState extends ConsumerState<TutorialPage> with SingleTickerPr
                         child: Text(_titles[i], style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20))),
                       ),
                       const SizedBox(height: 10),
-                      Text(_subs[i], textAlign: TextAlign.center, style: const TextStyle(fontSize: 13.5, color: Color(0xFF5B6B5F), height: 1.55, fontWeight: FontWeight.w500)),
-                      const SizedBox(height: 18),
+                      Text(ka(_subs[i]), textAlign: TextAlign.center, style: const TextStyle(fontSize: 14.5, color: Color(0xFF1C2B20), height: 1.55, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 8),
                       // 지금 보고 있는 장(active)일 때만 움직이고, 다시 들어오면 처음부터 다시 움직인다
-                      Expanded(child: _Visual(index: i, active: i == _i)),
+                      // 그림은 글 바로 아래(위쪽)에 붙여서 글과 그림 사이가 비지 않게 한다
+                      Expanded(child: Align(alignment: Alignment.topCenter, child: _Visual(index: i, active: i == _i))),
                     ]),
                   ),
                 ),
@@ -149,7 +151,7 @@ class _Visual extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     switch (index) {
       case 0:
-        return Center(child: _PriceCard(prices: ref.watch(marketViewModelProvider).valueOrNull, active: active));
+        return _PriceCard(prices: ref.watch(marketViewModelProvider).valueOrNull, active: active);
       case 1:
         return _PlantVisual(active: active);
       case 2:
@@ -350,11 +352,47 @@ class _PlantVisualState extends _AnimState<_PlantVisual> {
     Rect.fromLTRB(550, 572, 770, 692),
   ];
 
-  /// 사용자가 직접 심은 칸
-  final _planted = <int>{};
+  /// 사용자가 직접 심은 칸 (칸 번호 → 고른 작물)
+  final _planted = <int, CropSpec>{};
 
-  void _plant(int i) {
-    setState(() => _planted.add(i));
+  /// 칸을 누르면 심을 작물을 고르는 시트가 열린다 (실제 게임의 "무엇을 심을까요?"와 같은 흐름, 연습이라 비용·저장 없음)
+  Future<void> _plant(int i) async {
+    final picked = await showModalBottomSheet<CropSpec>(
+      context: context,
+      backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (sheet) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const SizedBox(height: 14),
+          const Text('무엇을 심을까요?', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 4),
+          const Text('연습이라 비용이 들지 않아요', style: TextStyle(fontSize: 12, color: AppColors.sub)),
+          const SizedBox(height: 8),
+          Flexible(
+            child: ListView(shrinkWrap: true, padding: const EdgeInsets.fromLTRB(16, 4, 16, 16), children: [
+              for (final c in crops)
+                SoftCard(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  onTap: () => Navigator.pop(sheet, c),
+                  child: Row(children: [
+                    EmojiBadge(c.emoji),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(c.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                        Text('수확 ${c.yieldKg.toStringAsFixed(0)}kg · 성장 ${c.growMinutes >= 60 ? '${c.growMinutes ~/ 60}시간${c.growMinutes % 60 == 0 ? '' : ' ${c.growMinutes % 60}분'}' : '${c.growMinutes}분'}',
+                            style: const TextStyle(fontSize: 12, color: AppColors.sub)),
+                      ]),
+                    ),
+                  ]),
+                ),
+            ]),
+          ),
+        ]),
+      ),
+    );
+    if (picked != null && mounted) setState(() => _planted[i] = picked);
   }
   static const _tip = Offset(8, 6); // 손가락 그림 안에서 손끝 위치
 
@@ -378,7 +416,7 @@ class _PlantVisualState extends _AnimState<_PlantVisual> {
               final glow = t < .35 ? .35 : (t < .7 ? 1 - _seg(t, .45, .7) * .5 : .5);
               final ripple = _seg(t, .4, .75);
               final demo = _planted.isEmpty; // 아직 직접 안 눌러 봤으면 손가락이 시범을 보인다
-              final sprout = !demo ? (_planted.contains(4) ? 1.0 : 0.0) : (t < .5 ? 0.0 : _seg(t, .5, .75, Curves.elasticOut) * (1 - _seg(t, .9, 1)));
+              final sprout = !demo ? (_planted.containsKey(4) ? 1.0 : 0.0) : (t < .5 ? 0.0 : _seg(t, .5, .75, Curves.elasticOut) * (1 - _seg(t, .9, 1)));
 
               final tile = Rect.fromLTRB(_tile.left * k, _tile.top * k, _tile.right * k, _tile.bottom * k);
               final tap = _tap * k;
@@ -387,7 +425,7 @@ class _PlantVisualState extends _AnimState<_PlantVisual> {
                 // + 칸 (그림 속 칸 자리에 코드로 다시 그려서 반짝이게)
                 Positioned.fromRect(rect: tile, child: _PlusTile(glow: glow, sprout: sprout)),
                 // 직접 심은 칸: 새싹이 퐁 돋아난다
-                for (final i in _planted)
+                for (final i in _planted.keys)
                   if (i != 4)
                     Positioned.fromRect(
                       rect: Rect.fromLTRB(_plots[i].left * k, _plots[i].top * k, _plots[i].right * k, _plots[i].bottom * k),
@@ -397,7 +435,15 @@ class _PlantVisualState extends _AnimState<_PlantVisual> {
                           tween: Tween(begin: 0, end: 1),
                           duration: const Duration(milliseconds: 500),
                           curve: Curves.elasticOut,
-                          builder: (_, v, __) => Transform.scale(scale: v, child: Center(child: Text('🌱', style: TextStyle(fontSize: _plots[i].height * k * .6, height: 1)))),
+                          builder: (_, v, __) => Transform.scale(
+                            scale: v,
+                            child: Center(
+                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                Text('🌱', style: TextStyle(fontSize: _plots[i].height * k * .55, height: 1)),
+                                Text(_planted[i]!.emoji, style: TextStyle(fontSize: _plots[i].height * k * .32, height: 1)),
+                              ]),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -417,7 +463,7 @@ class _PlantVisualState extends _AnimState<_PlantVisual> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                         decoration: BoxDecoration(color: Colors.white.withValues(alpha: .92), borderRadius: BorderRadius.circular(14)),
-                        child: Text(_planted.isEmpty ? '👆 밭을 눌러 직접 심어보세요' : '🌱 ${_planted.length}칸 심었어요! 더 눌러봐도 좋아요',
+                        child: Text(_planted.isEmpty ? '👆 밭을 눌러 직접 심어보세요' : '🌱 ${_planted.length}칸 심었어요! 다른 칸도 눌러보세요',
                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.greenDark)),
                       ),
                     ),
@@ -488,6 +534,8 @@ class _PlusTile extends StatelessWidget {
 // ───────────────────────── 3. 성장하기 ─────────────────────────
 
 /// 파종 → 성장 → 수확 카드가 차례로 커지며 강조되고, 사이 화살표가 깜빡이며 이어진다.
+/// 카드·글자·화살표는 모두 코드로 그려서(그림 파일 속 글자를 쓰지 않아) 어떤 화면 크기에서도 또렷하다.
+/// 카드를 직접 누르면 그 단계 설명이 나온다.
 class _GrowVisual extends StatefulWidget {
   const _GrowVisual({required this.active});
   final bool active;
@@ -509,11 +557,8 @@ class _GrowVisualState extends _AnimState<_GrowVisual> {
     syncActive(old.active);
   }
 
-  // 그림(813×771) 속 카드·화살표 자리 (원본 픽셀)
-  static const _imgW = 813.0, _imgH = 771.0;
-  static const _cards = [Rect.fromLTRB(6, 300, 235, 614), Rect.fromLTRB(266, 298, 517, 614), Rect.fromLTRB(545, 296, 797, 614)];
-  static const _arrows = [Rect.fromLTRB(218, 408, 288, 474), Rect.fromLTRB(494, 408, 563, 474)];
-
+  static const _labels = ['파종', '성장', '수확'];
+  static const _stages = [0.1, 0.5, 1.0];
   static const _captions = ['🌱 파종: 밭에 씨앗을 심어요', '🌿 성장: 시간이 지나면 쑥쑥 자라요', '🧺 수확: 다 자라면 거둬서 창고에 넣어요'];
 
   /// 사용자가 눌러 본 단계 (0 파종 · 1 성장 · 2 수확). 눌러 보기 전에는 차례로 반짝인다.
@@ -521,10 +566,10 @@ class _GrowVisualState extends _AnimState<_GrowVisual> {
 
   @override
   Widget build(BuildContext context) => IllustCard(
-        asset: AppImages.tutGrow,
-        aspect: _imgW / _imgH,
+        asset: AppImages.farmScene,
+        aspect: 813 / 771,
         overlay: LayoutBuilder(builder: (context, box) {
-          final k = box.maxWidth / _imgW;
+          final w = box.maxWidth, h = box.maxHeight;
           return AnimatedBuilder(
             animation: loop,
             builder: (_, __) {
@@ -532,47 +577,71 @@ class _GrowVisualState extends _AnimState<_GrowVisual> {
               // 카드 i는 [i*.28, i*.28+.3] 동안 커졌다 돌아온다. 화살표는 그 사이에 반짝.
               double cardPulse(int i) {
                 if (_picked != null) return _picked == i ? 1.0 : 0.0;
-                final v = _seg(t, i * .28, i * .28 + .3, Curves.linear);
-                return math.sin(v * math.pi);
+                return math.sin(_seg(t, i * .28, i * .28 + .3, Curves.linear) * math.pi);
               }
 
               double arrowPulse(int i) {
                 if (_picked != null) return (_picked! > i) ? 1.0 : 0.0; // 지나온 단계의 화살표는 켜 둔다
-                final v = _seg(t, i * .28 + .18, i * .28 + .38, Curves.linear);
-                return math.sin(v * math.pi);
+                return math.sin(_seg(t, i * .28 + .18, i * .28 + .38, Curves.linear) * math.pi);
               }
 
-              return Stack(clipBehavior: Clip.none, children: [
-                for (var i = 0; i < _arrows.length; i++)
-                  _Crop(
-                    asset: AppImages.tutGrow,
-                    imageSize: const Size(_imgW, _imgH),
-                    src: _arrows[i],
-                    k: k,
-                    scale: 1 + .3 * arrowPulse(i),
-                    glow: arrowPulse(i),
-                    radius: 10,
+              Widget card(int i) {
+                final p = cardPulse(i);
+                return Expanded(
+                  flex: 10,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => setState(() => _picked = i),
+                    child: Transform.scale(
+                      scale: 1 + .08 * p,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: .96),
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(color: const Color(0xFFFFF3A6).withValues(alpha: .8 * p), blurRadius: 16 * p, spreadRadius: 2 * p),
+                            BoxShadow(color: Colors.black.withValues(alpha: .1), blurRadius: 6, offset: const Offset(0, 2)),
+                          ],
+                        ),
+                        child: Column(mainAxisSize: MainAxisSize.min, children: [
+                          LayoutBuilder(builder: (_, c) => CropArt(code: 'CABBAGE', size: math.min(c.maxWidth, h * .17), stage: _stages[i])),
+                          const SizedBox(height: 4),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(_labels[i], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF1C2B20))),
+                          ),
+                        ]),
+                      ),
+                    ),
                   ),
-                for (var i = 0; i < _cards.length; i++)
-                  _Crop(
-                    asset: AppImages.tutGrow,
-                    imageSize: const Size(_imgW, _imgH),
-                    src: _cards[i],
-                    k: k,
-                    scale: 1 + .08 * cardPulse(i),
-                    glow: cardPulse(i),
-                    radius: 18,
+                );
+              }
+
+              Widget arrow(int i) {
+                final p = arrowPulse(i);
+                return Expanded(
+                  flex: 3,
+                  child: Center(
+                    child: Transform.scale(
+                      scale: 1 + .3 * p,
+                      child: Icon(Icons.play_arrow_rounded, size: w * .075, color: Color.lerp(Colors.white, const Color(0xFFF2A81D), p)),
+                    ),
                   ),
-                // 카드를 눌러서 단계를 직접 확인
-                for (var i = 0; i < _cards.length; i++)
-                  Positioned.fromRect(
-                    rect: Rect.fromLTRB(_cards[i].left * k, _cards[i].top * k, _cards[i].right * k, _cards[i].bottom * k),
-                    child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => setState(() => _picked = i)),
-                  ),
+                );
+              }
+
+              return Stack(children: [
+                Positioned(
+                  left: w * .035,
+                  right: w * .035,
+                  top: h * .46,
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [card(0), arrow(0), card(1), arrow(1), card(2)]),
+                ),
                 Positioned(
                   left: 0,
                   right: 0,
-                  bottom: 24 * k,
+                  bottom: h * .06,
                   child: IgnorePointer(
                     child: Center(
                       child: Container(
@@ -588,49 +657,6 @@ class _GrowVisualState extends _AnimState<_GrowVisual> {
           );
         }),
       );
-}
-
-/// 같은 그림의 일부([src])만 잘라서 그 자리에 다시 올리고 키우거나 빛나게 한다 (원래 그림을 덮으므로 겹쳐 보이지 않는다).
-class _Crop extends StatelessWidget {
-  const _Crop({required this.asset, required this.imageSize, required this.src, required this.k, required this.scale, required this.glow, required this.radius});
-  final String asset;
-  final Size imageSize;
-  final Rect src;
-  final double k, scale, glow, radius;
-
-  @override
-  Widget build(BuildContext context) {
-    if (scale <= 1.001 && glow <= .001) return const SizedBox.shrink();
-    final r = Rect.fromLTRB(src.left * k, src.top * k, src.right * k, src.bottom * k);
-    return Positioned.fromRect(
-      rect: r,
-      child: IgnorePointer(
-        child: Transform.scale(
-          scale: scale,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(radius * k),
-              boxShadow: [BoxShadow(color: const Color(0xFFFFF3A6).withValues(alpha: .75 * glow), blurRadius: 16 * glow, spreadRadius: 2 * glow)],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(radius * k),
-              child: OverflowBox(
-                alignment: Alignment.topLeft,
-                minWidth: 0,
-                minHeight: 0,
-                maxWidth: imageSize.width * k,
-                maxHeight: imageSize.height * k,
-                child: Transform.translate(
-                  offset: Offset(-r.left, -r.top),
-                  child: Image.asset(asset, width: imageSize.width * k, height: imageSize.height * k, fit: BoxFit.fill, filterQuality: FilterQuality.medium),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 // ───────────────────────── 4. 판매하기 ─────────────────────────
@@ -755,7 +781,7 @@ class _SellOverlay extends StatelessWidget {
                             height: 44,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(color: sold ? AppColors.greenDark : AppColors.green, borderRadius: BorderRadius.circular(22)),
-                            child: Text(sold ? '판매 완료 ✓  +${commaNum((p?.pricePerKg ?? 0) * 20)}원 · +${sellPointReward}P' : '판매하기',
+                            child: Text(sold ? '판매 완료 ✓  +${commaNum((p?.pricePerKg ?? 0) * 20)}P · +${sellPointReward}P' : '판매하기',
                                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
                           ),
                         ),

@@ -42,9 +42,9 @@ class _ShopPageState extends ConsumerState<ShopPage> {
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+              Text(ka(title), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
               const SizedBox(height: 2),
-              Text(sub, style: const TextStyle(fontSize: 12, color: AppColors.sub, height: 1.3)),
+              Text(ka(sub), style: const TextStyle(fontSize: 12, color: AppColors.sub, height: 1.3)),
             ]),
           ),
           const SizedBox(width: 8),
@@ -60,16 +60,12 @@ class _ShopPageState extends ConsumerState<ShopPage> {
     final expandCost = plotExpandCost(plots.length);
 
     return Column(children: [
-      PageHeader(title: '상점', trailing: PointPill(points: user.points)),
+      PageHeader(title: '상점', trailing: MoneyPill(money: user.money)),
       Padding(padding: const EdgeInsets.fromLTRB(16, 4, 16, 8), child: PillTabs(labels: const ['포인트 상점', '특별 상점'], index: _tab, onChanged: (v) => setState(() => _tab = v))),
       Expanded(
         child: _tab == 1
             ? const PointShopBody()
             : ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
-                  child: Text('보유 자금 ${won(user.money)}', style: const TextStyle(fontSize: 12, color: AppColors.sub, fontWeight: FontWeight.w700)),
-                ),
                 const SectionTitle('씨앗'),
                 for (final c in crops)
                   _row(c.emoji, '${c.name} 씨앗', '보유 ${user.item(seedKey(c.code))}개 · 파종비(${won(c.seedCost)})보다 15% 저렴',

@@ -50,7 +50,7 @@ class _AchievementPageState extends ConsumerState<AchievementPage> {
                         Expanded(
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Text(a.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                            Text(a.desc, style: const TextStyle(fontSize: 11, color: AppColors.sub)),
+                            Text(ka(a.desc), style: const TextStyle(fontSize: 11, color: AppColors.sub)),
                             const SizedBox(height: 6),
                             Row(children: [
                               Expanded(child: ThinBar(value: shown / a.target, height: 6)),

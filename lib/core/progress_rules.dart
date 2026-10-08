@@ -206,10 +206,10 @@ const achievements = [
   AchievementDef('harvest10', '행복한 농부', '작물을 10번 수확해요', '😊', '일반', 50, 'stats.harvest', 10),
   AchievementDef('good_sell', '좋은 가격에 팔았다', '시세가 오른 날 작물을 판매해요', '📈', '도전', 50, 'stats.goodSell', 1),
   AchievementDef('sell10', '단골 출하', '작물을 10번 판매해요', '🚚', '도전', 60, 'stats.sell', 10),
-  AchievementDef('rich', '부자 농부', '보유 자금 200,000원을 달성해요', '💰', '도전', 50, 'money', 200000),
+  AchievementDef('rich', '부자 농부', '보유 자금 200,000P를 달성해요', '💰', '도전', 50, 'money', 200000),
   AchievementDef('big_farm', '대규모 농장', '밭을 9칸 이상으로 넓혀요', '🌾', '도전', 50, 'plots', 9),
   AchievementDef('puzzle', '퍼즐 마스터', '작물 매칭을 1번 완료해요', '🧩', '특별', 20, 'stats.game', 1),
-  AchievementDef('helper', '마을의 은인', '마을 공동기금에 합계 10,000원을 기부해요', '🏡', '특별', 40, 'stats.donate', 10000),
+  AchievementDef('helper', '마을의 은인', '마을 공동기금에 합계 10,000P를 기부해요', '🏡', '특별', 40, 'stats.donate', 10000),
 ];
 
 AchievementDef? achievementById(String id) {

@@ -61,7 +61,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
                           title: Text(f.$1, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
                           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
                           expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                          children: [Text(f.$2, style: const TextStyle(fontSize: 13.5, height: 1.5, color: _gray, fontWeight: FontWeight.w500))],
+                          children: [Text(ka(f.$2), style: const TextStyle(fontSize: 13.5, height: 1.5, color: _gray, fontWeight: FontWeight.w500))],
                         ),
                       ),
                     ),

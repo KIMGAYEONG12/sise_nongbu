@@ -37,7 +37,7 @@ class TradeHistoryPage extends ConsumerWidget {
                             Expanded(
                               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Text('${cropOf(t.cropCode).name} ${t.kg.toStringAsFixed(0)}kg → ${won(t.amount)}', style: const TextStyle(fontWeight: FontWeight.w800)),
-                                Text('${won(t.unitPrice)}/kg × 신선도 ${(t.freshness * 100).round()}%${t.priceAsOf == null ? '' : ' · ${t.priceAsOf!.month}/${t.priceAsOf!.day} 시세'}',
+                                Text('${krw(t.unitPrice)}/kg × 신선도 ${(t.freshness * 100).round()}%${t.priceAsOf == null ? '' : ' · ${t.priceAsOf!.month}/${t.priceAsOf!.day} 시세'}',
                                     style: const TextStyle(fontSize: 12, color: AppColors.sub)),
                               ]),
                             ),

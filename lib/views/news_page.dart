@@ -31,13 +31,13 @@ class _NewsPageState extends ConsumerState<NewsPage> {
       if (p == null) continue;
       final pct = changePercent(p.pricePerKg, p.prevPerKg);
       if (pct == null) {
-        news.add(_News('시세', c.emoji, '${c.name} 시세 ${won(p.pricePerKg)}/kg', '${p.asOf.month}월 ${p.asOf.day}일 경매 기준 시세예요.', p.asOf));
+        news.add(_News('시세', c.emoji, '${c.name} 시세 ${krw(p.pricePerKg)}/kg', '${p.asOf.month}월 ${p.asOf.day}일 경매 기준 시세예요.', p.asOf));
       } else if (pct.abs() < 0.05) {
-        news.add(_News('시세', c.emoji, '${c.name} 시세 보합', '전일과 거의 같은 ${won(p.pricePerKg)}/kg이에요.', p.asOf));
+        news.add(_News('시세', c.emoji, '${c.name} 시세 보합', '전일과 거의 같은 ${krw(p.pricePerKg)}/kg이에요.', p.asOf));
       } else {
         final up = pct > 0;
         news.add(_News('시세', c.emoji, '${c.name} 시세 ${up ? '상승' : '하락'} ${pct.abs().toStringAsFixed(1)}%',
-            '${won(p.pricePerKg)}/kg으로 전일보다 ${up ? '올랐어요' : '내렸어요'}. ${up ? '지금 출하하면 좋은 값을 받을 수 있어요.' : '값이 오를 때까지 창고에 보관해 볼까요?'}', p.asOf));
+            '${krw(p.pricePerKg)}/kg으로 전일보다 ${up ? '올랐어요' : '내렸어요'}. ${up ? '지금 출하하면 좋은 값을 받을 수 있어요.' : '값이 오를 때까지 창고에 보관해 볼까요?'}', p.asOf));
       }
     }
     news.sort((a, b) {
@@ -87,9 +87,9 @@ class _NewsPageState extends ConsumerState<NewsPage> {
                                   ],
                                 ]),
                                 const SizedBox(height: 4),
-                                Text(n.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                                Text(ka(n.title), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
                                 const SizedBox(height: 2),
-                                Text(n.body, style: const TextStyle(fontSize: 12, color: AppColors.sub, height: 1.4)),
+                                Text(ka(n.body), style: const TextStyle(fontSize: 12, color: AppColors.sub, height: 1.4)),
                               ]),
                             ),
                           ]),

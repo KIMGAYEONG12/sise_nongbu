@@ -47,7 +47,16 @@ class AppImages {
 }
 
 String commaNum(num v) => v.round().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
-String won(num v) => '${commaNum(v)}원';
+
+/// 게임 안의 돈(Point). 심사·발표에서 실제 돈으로 오해되지 않도록 '원' 대신 'P'로 보여준다.
+String won(num v) => '${commaNum(v)}P';
+
+/// 실제 도매시장 시세(kg당 가격)는 현실 가격이라 '원'으로 보여준다.
+String krw(num v) => '${commaNum(v)}원';
+
+/// 한글 낱말이 줄 끝에서 글자 단위로 끊기지 않게(예: "자/라요") 낱말 안 글자 사이에 '붙이기 기호'(U+2060)를 넣는다.
+/// 줄바꿈은 띄어쓰기에서만 일어난다. 길게 줄바꿈되는 설명 문구에 쓴다.
+String ka(String s) => s.replaceAll(RegExp(r'(?<=[가-힣·])(?=[가-힣·a-zA-Z0-9(])|(?<=[a-zA-Z0-9)])(?=[가-힣])'), '\u2060');
 
 /// 남은 시간 문구
 String leftText(DateTime ready, DateTime now) {
@@ -141,10 +150,7 @@ class PageHeader extends StatelessWidget {
       child: SizedBox(
         height: 44,
         child: Row(children: [
-          if (onBack != null)
-            IconButton(onPressed: onBack, icon: const Icon(Icons.chevron_left_rounded, size: 30, color: AppColors.ink))
-          else
-            const SizedBox(width: 8),
+          if (onBack != null) IconButton(onPressed: onBack, icon: const Icon(Icons.chevron_left_rounded, size: 30, color: AppColors.ink)) else const SizedBox(width: 8),
           if (leading != null) ...[leading!, const SizedBox(width: 6)],
           Expanded(child: center && onBack != null ? Center(child: titleText) : titleText),
           if (trailing != null) trailing! else if (center && onBack != null) const SizedBox(width: 48),
@@ -262,8 +268,7 @@ class PillTabs extends StatelessWidget {
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: i == index ? AppColors.green : AppColors.line),
                   ),
-                  child: Text(labels[i],
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: i == index ? Colors.white : AppColors.sub)),
+                  child: Text(labels[i], style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: i == index ? Colors.white : AppColors.sub)),
                 ),
               ),
             ),
@@ -289,12 +294,18 @@ class MoneyPill extends StatelessWidget {
   final int money;
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(color: Colors.white.withValues(alpha: .9), borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.line)),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        // 하늘·구름 위에서도 잘 보이도록 불투명한 흰 바탕 + 진한 큰 글씨
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE0A800), width: 1.4),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .12), blurRadius: 6, offset: const Offset(0, 2))],
+        ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const CoinIcon(size: 22),
-          const SizedBox(width: 6),
-          Text('${commaNum(money)} 원', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+          const CoinIcon(size: 24),
+          const SizedBox(width: 7),
+          Text('${commaNum(money)} P', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF111111))),
         ]),
       );
 }
@@ -347,22 +358,20 @@ class IllustCard extends StatelessWidget {
   final Widget? overlay;
   final double radius;
   @override
-  Widget build(BuildContext context) => Center(
-        child: AspectRatio(
-          aspectRatio: aspect,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(radius),
-              border: Border.all(color: Colors.white, width: 3),
-              boxShadow: [BoxShadow(color: AppColors.green.withValues(alpha: .15), blurRadius: 12, offset: const Offset(0, 4))],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(radius - 3),
-              child: Stack(fit: StackFit.expand, children: [
-                Image.asset(asset, fit: BoxFit.cover, filterQuality: FilterQuality.medium),
-                if (overlay != null) overlay!,
-              ]),
-            ),
+  Widget build(BuildContext context) => AspectRatio(
+        aspectRatio: aspect,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: [BoxShadow(color: AppColors.green.withValues(alpha: .15), blurRadius: 12, offset: const Offset(0, 4))],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(radius - 3),
+            child: Stack(fit: StackFit.expand, children: [
+              Image.asset(asset, fit: BoxFit.cover, filterQuality: FilterQuality.medium),
+              if (overlay != null) overlay!,
+            ]),
           ),
         ),
       );
@@ -419,7 +428,7 @@ class ChangeChip extends StatelessWidget {
     }
     final up = v > 0;
     final color = up ? AppColors.up : AppColors.down;
-    final label = percent != null ? '${up ? '+' : ''}${percent!.toStringAsFixed(1)}%' : won(amount!.abs());
+    final label = percent != null ? '${up ? '+' : ''}${percent!.toStringAsFixed(1)}%' : krw(amount!.abs());
     return Row(mainAxisSize: MainAxisSize.min, children: [
       Text(up ? '▲' : '▼', style: TextStyle(color: color, fontSize: 10, height: 1)),
       const SizedBox(width: 4),
@@ -443,7 +452,8 @@ class SectionTitle extends StatelessWidget {
       );
 }
 
-/// 시안의 프로필 아바타: 노란 원 + 흰 테두리 안의 농부
+/// 프로필 아바타: 스플래시에 나오는 밀짚모자 쓴 여자 아이를 코드(벡터)로 그렸다.
+/// 그림 파일이 아니라서 아무리 키워도 도트처럼 깨지지 않고 선명하다.
 class FarmerAvatar extends StatelessWidget {
   const FarmerAvatar({super.key, this.size = 56});
   final double size;
@@ -451,15 +461,85 @@ class FarmerAvatar extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         width: size,
         height: size,
-        alignment: Alignment.center,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: const RadialGradient(colors: [Color(0xFFFFF0A8), Color(0xFFFFD34E)]),
           border: Border.all(color: Colors.white, width: size * .06),
           boxShadow: [BoxShadow(color: const Color(0xFFE0A800).withValues(alpha: .3), blurRadius: 8, offset: const Offset(0, 2))],
         ),
-        child: Text('👩‍🌾', style: TextStyle(fontSize: size * .56, height: 1)),
+        child: ClipOval(child: CustomPaint(size: Size.square(size), painter: const GirlAvatarPainter())),
       );
+}
+
+/// 밀짚모자(파란 띠)를 쓴 갈색 머리 여자 아이 (스플래시 그림의 농부)
+class GirlAvatarPainter extends CustomPainter {
+  const GirlAvatarPainter();
+
+  static const _line = Color(0xFF5A3A22);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.width;
+    Offset p(double x, double y) => Offset(x * s, y * s);
+    Rect r(double l, double t, double rr, double b) => Rect.fromLTRB(l * s, t * s, rr * s, b * s);
+    Paint fill(Color c) => Paint()..color = c;
+    Paint edge([double w = .012]) => Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * s
+      ..strokeJoin = StrokeJoin.round
+      ..color = _line;
+
+    // 몸: 흰 셔츠 + 파란 멜빵바지
+    canvas.drawOval(Rect.fromCenter(center: p(.5, 1.02), width: .84 * s, height: .56 * s), fill(const Color(0xFFFAF7EE)));
+    canvas.drawRRect(RRect.fromRectAndCorners(r(.31, .82, .69, 1.1), topLeft: Radius.circular(.08 * s), topRight: Radius.circular(.08 * s)), fill(const Color(0xFF3E72C9)));
+    canvas.drawRect(r(.33, .74, .41, .9), fill(const Color(0xFF3E72C9)));
+    canvas.drawRect(r(.59, .74, .67, .9), fill(const Color(0xFF3E72C9)));
+    // 머리카락(뒤)
+    canvas.drawRRect(RRect.fromRectAndRadius(r(.2, .42, .8, .88), Radius.circular(.2 * s)), fill(const Color(0xFF7B4B2A)));
+    // 목
+    canvas.drawRect(r(.44, .68, .56, .8), fill(const Color(0xFFF7C9A0)));
+    // 얼굴
+    final face = Rect.fromCenter(center: p(.5, .55), width: .46 * s, height: .46 * s);
+    canvas.drawOval(face, fill(const Color(0xFFFFDCBC)));
+    // 앞머리
+    final bangs = Path()
+      ..moveTo(.27 * s, .52 * s)
+      ..quadraticBezierTo(.28 * s, .3 * s, .5 * s, .3 * s)
+      ..quadraticBezierTo(.72 * s, .3 * s, .73 * s, .52 * s)
+      ..quadraticBezierTo(.64 * s, .4 * s, .52 * s, .44 * s)
+      ..quadraticBezierTo(.4 * s, .4 * s, .27 * s, .52 * s)
+      ..close();
+    canvas.drawPath(bangs, fill(const Color(0xFF8A5530)));
+    // 볼터치
+    canvas.drawCircle(p(.375, .62), .045 * s, fill(const Color(0x66FF8F7A)));
+    canvas.drawCircle(p(.625, .62), .045 * s, fill(const Color(0x66FF8F7A)));
+    // 눈
+    for (final x in [.4, .6]) {
+      canvas.drawOval(Rect.fromCenter(center: p(x, .57), width: .05 * s, height: .07 * s), fill(const Color(0xFF3A2418)));
+      canvas.drawCircle(p(x + .008, .555), .01 * s, fill(Colors.white));
+    }
+    // 웃는 입
+    final smile = Path()
+      ..moveTo(.45 * s, .665 * s)
+      ..quadraticBezierTo(.5 * s, .715 * s, .55 * s, .665 * s);
+    canvas.drawPath(smile, edge(.014));
+    // 밀짚모자: 챙 → 윗부분 → 파란 띠
+    canvas.drawOval(Rect.fromCenter(center: p(.5, .33), width: .9 * s, height: .24 * s), fill(const Color(0xFFE8C078)));
+    canvas.drawOval(Rect.fromCenter(center: p(.5, .33), width: .9 * s, height: .24 * s), edge(.01));
+    final crown = RRect.fromRectAndCorners(r(.3, .1, .7, .33), topLeft: Radius.circular(.2 * s), topRight: Radius.circular(.2 * s));
+    canvas.drawRRect(crown, fill(const Color(0xFFF2D58E)));
+    canvas.drawRRect(crown, edge(.01));
+    canvas.drawRect(r(.3, .235, .7, .31), fill(const Color(0xFF3B70D2)));
+    // 모자에 꽂힌 작은 잎
+    canvas.save();
+    canvas.translate(p(.63, .26).dx, p(.63, .26).dy);
+    canvas.rotate(-.6);
+    canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: .1 * s, height: .045 * s), fill(const Color(0xFF55B23A)));
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(GirlAvatarPainter old) => false;
 }
 
 /// 글자를 한 줄 입력받는 대화상자. 취소하면 null.

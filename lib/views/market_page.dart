@@ -74,7 +74,7 @@ class MarketPage extends ConsumerWidget {
                         ]),
                       ),
                       Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                        Text('${won(p.pricePerKg)}/kg', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                        Text('${krw(p.pricePerKg)}/kg', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
                         if (p.change != null) ChangeChip(percent: changePercent(p.pricePerKg, p.prevPerKg)),
                       ]),
                       const Icon(Icons.chevron_right_rounded, color: AppColors.sub),

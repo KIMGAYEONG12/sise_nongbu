@@ -44,7 +44,7 @@ class _EncyclopediaPageState extends ConsumerState<EncyclopediaPage> {
                 ),
               ]),
               const SizedBox(height: 12),
-              Text(c.desc, style: const TextStyle(fontSize: 13, height: 1.5)),
+              Text(ka(c.desc), style: const TextStyle(fontSize: 13, height: 1.5)),
               const SizedBox(height: 12),
               SoftCard(
                 child: Column(children: [

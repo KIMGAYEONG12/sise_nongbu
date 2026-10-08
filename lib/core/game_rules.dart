@@ -40,8 +40,14 @@ const lockedCrops = [
 
 CropSpec cropOf(String code) => crops.firstWhere((c) => c.code == code);
 
+/// 데모 모드(발표·시연용) 배속 값. 이 값이면 작물 종류와 상관없이 파종 1초 뒤에 수확할 수 있다.
+const demoSpeed = 1000000;
+
+/// 데모 모드에서 작물이 다 자라는 시간
+const demoGrowTime = Duration(seconds: 1);
+
 Duration growDuration(CropSpec c, int speed) =>
-    Duration(milliseconds: (c.growMinutes * 60 * 1000 / max(1, speed)).round());
+    speed >= demoSpeed ? demoGrowTime : Duration(milliseconds: (c.growMinutes * 60 * 1000 / max(1, speed)).round());
 
 double freshnessOf(DateTime harvestedAt, DateTime now) =>
     max(minFreshness, 1 - dailyFreshnessLoss * now.difference(harvestedAt).inDays);

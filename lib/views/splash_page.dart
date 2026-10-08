@@ -177,25 +177,12 @@ class _Scene extends StatelessWidget {
           child: Image.asset(AppImages.splash, fit: BoxFit.cover, alignment: Alignment.bottomCenter, filterQuality: FilterQuality.medium),
         ),
       ),
-      // 하늘을 천천히 지나가는 구름
+      // 하늘을 천천히 지나가는 구름 (둥근 덩어리 세 개를 겹쳐 그린다)
       for (final c in _clouds)
         Positioned(
           left: -c.$3 + ((loop + c.$2) % 1.0) * (w + c.$3 * 2),
           top: h * c.$1,
-          child: IgnorePointer(
-            child: Opacity(
-              opacity: .55 * fadeIn,
-              child: Container(
-                width: c.$3,
-                height: c.$3 * .32,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(c.$3),
-                  boxShadow: [BoxShadow(color: Colors.white.withValues(alpha: .8), blurRadius: 18, spreadRadius: 4)],
-                ),
-              ),
-            ),
-          ),
+          child: IgnorePointer(child: Opacity(opacity: .7 * fadeIn, child: _Puff(width: c.$3))),
         ),
       // 간판 위를 지나가는 빛
       if (shineP > -.2 && shineP < 1.2)
@@ -258,6 +245,27 @@ class _Scene extends StatelessWidget {
         ),
       ),
     ]);
+  }
+}
+
+/// 하늘을 떠가는 작은 구름: 둥근 덩어리 세 개 + 납작한 바닥
+class _Puff extends StatelessWidget {
+  const _Puff({required this.width});
+  final double width;
+  @override
+  Widget build(BuildContext context) {
+    final h = width * .45;
+    Widget ball(double l, double t, double d) => Positioned(left: l, top: t, child: Container(width: d, height: d, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)));
+    return SizedBox(
+      width: width,
+      height: h,
+      child: Stack(children: [
+        ball(width * .06, h * .38, h * .6),
+        ball(width * .26, h * .02, h * .9),
+        ball(width * .55, h * .24, h * .7),
+        Positioned(left: width * .05, right: width * .04, bottom: 0, height: h * .38, child: DecoratedBox(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(h)))),
+      ]),
+    );
   }
 }
 

@@ -38,9 +38,18 @@ void main() {
     final art = find.ancestor(of: find.textContaining('직접 심어보세요'), matching: find.byType(AspectRatio)).first;
     final r = tester.getRect(art);
     await tester.tapAt(Offset(r.left + r.width * .506, r.top + r.height * .618));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('무엇을 심을까요?'), findsOneWidget); // 작물 고르는 시트
+    await tester.tap(find.text('배추'));
+    await tester.pump(const Duration(milliseconds: 600));
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.textContaining('1칸 심었어요'), findsOneWidget);
     await tester.tapAt(Offset(r.left + r.width * .2, r.top + r.height * .45)); // 왼쪽 가운데 칸
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.tap(find.text('무'));
+    await tester.pump(const Duration(milliseconds: 600));
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.textContaining('2칸 심었어요'), findsOneWidget);
 

@@ -176,7 +176,7 @@ class FirestoreGameService {
             final paid = pm['paid'] is num ? (pm['paid'] as num).toInt() : c.seedCost;
             upd['money'] = _int(u['money']) + paid;
             upd['totalProfit'] = _int(u['totalProfit']) + paid;
-            msg = '${withJosa(c.name, '을', '를')} 뽑고 파종비 ${_comma(paid)}원을 돌려받았어요';
+            msg = '${withJosa(c.name, '을', '를')} 뽑고 파종비 ${_comma(paid)}P를 돌려받았어요';
           }
         }
         tx.set(plotRef, _emptyPlot());

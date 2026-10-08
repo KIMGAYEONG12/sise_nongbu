@@ -6,6 +6,7 @@ import '../core/progress_rules.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
 import '../core/korean.dart';
+import 'about_page.dart';
 
 /// 특별 상점 목록 (상점 탭과 독립 화면에서 같이 쓴다)
 class PointShopBody extends ConsumerWidget {
@@ -102,7 +103,7 @@ class PointShopBody extends ConsumerWidget {
                     Text('${item.cost}P', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: Color(0xFF3D4A40))),
                   ]),
                   const SizedBox(height: 3),
-                  Text(item.desc, style: const TextStyle(fontSize: 11, color: Color(0xFF55655A), height: 1.3)),
+                  Text(ka(item.desc), style: const TextStyle(fontSize: 11, color: Color(0xFF55655A), height: 1.3)),
                   if (locked)
                     Padding(
                       padding: const EdgeInsets.only(top: 3),
@@ -148,7 +149,14 @@ class PointShopPage extends ConsumerWidget {
       body: GameBackground(
         child: SafeArea(
           child: Column(children: [
-            PageHeader(title: '특별 상점', onBack: () => Navigator.of(context).pop(), trailing: PointPill(points: user.points)),
+            PageHeader(
+              title: '특별 상점',
+              onBack: () => Navigator.of(context).pop(),
+              trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                MoneyPill(money: user.money),
+                IconButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const AboutPage())), icon: const Icon(Icons.settings_outlined, color: AppColors.ink)),
+              ]),
+            ),
             const Expanded(child: PointShopBody()),
           ]),
         ),

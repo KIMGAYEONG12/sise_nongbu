@@ -73,7 +73,7 @@ final tradesProvider =
     StreamProvider((ref) => ref.watch(farmRepoProvider).trades());
 final fundProvider =
     StreamProvider((ref) => ref.watch(farmRepoProvider).fund());
-final speedProvider = StateProvider<int>((_) => 1); // 데모 모드: 600배속
+final speedProvider = StateProvider<int>((_) => 1); // 데모 모드: demoSpeed(1초 만에 성장)
 final tickProvider = StreamProvider(
     (_) => Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now()));
 
