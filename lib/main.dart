@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,6 +9,7 @@ import 'services/notification_service.dart';
 import 'viewmodels/view_models.dart';
 import 'views/app_root.dart';
 import 'widgets/common.dart';
+import 'widgets/phone_frame.dart';
 
 @pragma('vm:entry-point')
 Future<void> _onBackground(RemoteMessage m) async => Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -27,6 +29,7 @@ Future<void> main() async {
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       scrollBehavior: const NoStretchScrollBehavior(), // 끝까지 스크롤했을 때 화면이 고무줄처럼 늘어나지 않게
+      builder: (context, child) => kIsWeb ? PhoneFrame(child: child!) : child!, // 웹(PC)에서는 휴대폰 테두리 안에 표시
       home: const AppRoot(),
     ),
   ));
