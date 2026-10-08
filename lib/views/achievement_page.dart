@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/game_rules.dart';
 import '../core/progress_rules.dart';
-import '../models/models.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
 

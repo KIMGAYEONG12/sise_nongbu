@@ -96,7 +96,8 @@ Android(에뮬레이터·실기기)만 실행·배포한다.
 | 창고 (탭 3)      | 입고 목록, 신선도, 현재 시세 기준 예상 대금, 출하          | `ListView`, `ListTile`, `ElevatedButton`, `AlertDialog`, `SnackBar`             |
 | 거래 기록 (탭 4) | 출하 내역, 누적 수익, 품목별 손익                          | `ListView`, `ListTile`, `Chip`                                                  |
 | 품목 상세 (선택) | 시세 추이 차트, 목표 가격 설정                             | `CustomPaint` 또는 차트 패키지, `Slider`, `TextFormField`                       |
-| 앱 정보          | 출처 표기, 데모 모드 스위치(설명 포함), 가상 게임 안내     | `ListView`, `SwitchListTile`, `AboutListTile`                                   |
+| 앱 정보          | 출처 표기, 데모 모드·튜토리얼 시작 스위치, 가상 게임 안내 | `ListView`, `SwitchListTile`, `AboutListTile`                                   |
+| 튜토리얼 (5장)   | 시세 확인·파종·성장·판매·시작, 장마다 움직이는 연출          | `PageView`, `AnimationController`, `AnimatedBuilder`, `Transform`              |
 
 공통으로 데이터 로딩 중에는 `CircularProgressIndicator`, 실패 시 오류 문구와 재시도 버튼을 보여준다. 시세 조회가 실패해도 마지막 시세로 게임은 계속된다.
 
@@ -251,9 +252,21 @@ flutter run --dart-define=AUCTION_API_KEY=<공공데이터포털_인증키>
 
 ```dart
 const auctionApiKey = String.fromEnvironment('AUCTION_API_KEY');
+const openWeatherApiKey = String.fromEnvironment('OPENWEATHER_API_KEY'); // 날씨 (없으면 Open-Meteo 사용)
 ```
 
-키가 들어 있는 파일은 커밋하지 않는다.
+키는 `env.json`에 모아 두고 `flutter run --dart-define-from-file=env.json`으로 실행한다.
+
+```json
+{
+  "AUCTION_API_KEY": "<공공데이터포털_인증키>",
+  "OPENWEATHER_API_KEY": "<OpenWeather_API_키>"
+}
+```
+
+- 날씨는 OpenWeather 키가 있으면 OpenWeather 현재 날씨 API를 쓰고, 키가 없거나 실패하면 Open-Meteo(키 없음)로 가져온다. 30분마다 다시 불러온다.
+
+키가 들어 있는 파일(`env.json`)은 커밋하지 않는다. (`.gitignore`에 포함)
 
 ### Firestore Rules
 

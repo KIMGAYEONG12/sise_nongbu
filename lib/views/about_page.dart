@@ -44,6 +44,19 @@ class AboutPage extends ConsumerWidget {
                 const SizedBox(height: 8),
                 SoftCard(
                   padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: SwitchListTile(
+                    title: const Text('앱을 켤 때 튜토리얼 보기'),
+                    subtitle: const Text('켜 두면 스플래시 다음에 튜토리얼이 나와요. 튜토리얼 화면의 \'건너뛰기\'로 바로 넘어갈 수 있어요.'),
+                    value: ref.watch(tutorialOnStartProvider),
+                    onChanged: (v) {
+                      ref.read(tutorialOnStartProvider.notifier).state = v;
+                      ref.read(prefsProvider).setBool(tutorialOnStartKey, v);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SoftCard(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
                   child: ListTile(
                     leading: const CoinIcon(size: 28),
                     title: const Text('자금을 100,000원으로 되돌리기'),

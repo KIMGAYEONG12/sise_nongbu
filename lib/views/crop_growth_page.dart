@@ -8,6 +8,7 @@ import '../widgets/common.dart';
 import 'farm_actions.dart';
 import 'mission_page.dart';
 import '../core/korean.dart';
+import '../widgets/crop_art.dart';
 
 /// 작물 성장 화면 (시안 '작물 성장 화면'): 선택한 밭의 진행률, 잔디 위 밭 6칸, 물주기·영양제·성장촉진제·미션, 오늘의 미션
 class CropGrowthPage extends ConsumerStatefulWidget {
@@ -98,7 +99,7 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
     }
   }
 
-  /// '작물 심기' 버튼: 선택한 빈 밭(없으면 첫 빈 밭)에 심는다.
+  /// 바로 심기 (작물이 없을 때 위 카드를 누르면): 선택한 빈 밭(없으면 첫 빈 밭)에 심는다.
   /// 빈 밭이 없으면 다 자란 작물을 수확하고 그 자리에 심을지 묻는다.
   Future<void> _plantNow(List<Plot> list, DateTime now) async {
     Plot? target;
@@ -161,22 +162,24 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
             PageHeader(
               title: '작물 성장',
               center: false,
-              leading: Text(spec?.emoji ?? '🌿', style: const TextStyle(fontSize: 24, height: 1)),
+              leading: spec == null ? const Text('🌿', style: TextStyle(fontSize: 24, height: 1)) : CropArt(code: spec.code, size: 30),
               onBack: () => Navigator.of(context).pop(),
             ),
             Expanded(
               child: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
                 SoftCard(
+                  // 작물이 없을 때는 카드를 눌러 바로 심을 수 있다
+                  onTap: spec == null ? () => _plantNow(list, now) : null,
                   child: spec == null
                       ? const Padding(
                           padding: EdgeInsets.symmetric(vertical: 10),
                           child: Row(children: [
                             Text('🌱', style: TextStyle(fontSize: 30)),
                             SizedBox(width: 10),
-                            Expanded(child: Text('심어진 작물이 없어요.\n아래 빈 밭을 눌러 작물을 심어보세요!', style: TextStyle(height: 1.4))),
+                            Expanded(child: Text('심어진 작물이 없어요.\n여기나 아래 빈 밭(+)을 눌러 작물을 심어보세요!', style: TextStyle(height: 1.4))),
                           ]),
                         )
-                      : _GrowthHeader(spec: spec, plot: sel!, now: now, onReplant: () => _replant(sel!)),
+                      : _GrowthHeader(spec: spec, plot: sel!, now: now, onReplant: () => _replant(sel)),
                 ),
                 const SizedBox(height: 12),
                 plots.when(
@@ -198,24 +201,18 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                // 직접 심기: 빈 밭에 바로 심거나, 빈 밭이 없으면 다 자란 작물을 수확하고 심는다
-                GreenButton(
-                  label: list.any((p) => p.isEmpty) ? '작물 심기' : '수확하고 심기',
-                  icon: const Text('🌱', style: TextStyle(fontSize: 18)),
-                  onPressed: () => _plantNow(list, now),
-                ),
-                const SizedBox(height: 12),
+                // 시안: 물주기(파랑) · 영양제(초록) · 성장촉진제(연베이지) · 미션(노랑). 보유 수는 오른쪽 위 작은 숫자
                 Row(children: [
-                  _ActionButton(emoji: '💧', label: '물주기', tint: const Color(0xFFE2F1FC), count: user.item(itemWater), onTap: () => _use(sel, itemWater)),
+                  _ActionButton(emoji: '💧', label: '물주기', tint: const Color(0xFFE3F1FB), count: user.item(itemWater), onTap: () => _use(sel, itemWater)),
                   const SizedBox(width: 8),
-                  _ActionButton(emoji: '🌿', label: '영양제', tint: const Color(0xFFE6F4DD), count: user.item(itemFertilizer), onTap: () => _use(sel, itemFertilizer)),
+                  _ActionButton(emoji: '🌿', label: '영양제', tint: const Color(0xFFE7F4E0), count: user.item(itemFertilizer), onTap: () => _use(sel, itemFertilizer)),
                   const SizedBox(width: 8),
-                  _ActionButton(emoji: '🧴', label: '성장촉진제', tint: const Color(0xFFFFEEDD), count: user.item(itemBooster), onTap: () => _use(sel, itemBooster)),
+                  _ActionButton(emoji: '🧴', label: '성장촉진제', tint: const Color(0xFFF4EEE8), count: user.item(itemBooster), onTap: () => _use(sel, itemBooster)),
                   const SizedBox(width: 8),
                   _ActionButton(
                     emoji: '📋',
                     label: '미션',
-                    tint: const Color(0xFFFFF4D2),
+                    tint: const Color(0xFFFFF1CC),
                     badge: '$dailyDone/${dailyMissions.length}',
                     onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const MissionPage())),
                   ),
@@ -260,48 +257,44 @@ class _GrowthHeader extends StatelessWidget {
     final ready = plot.isReady(now);
     final p = plot.progress(now);
     return Row(children: [
-      // 시안처럼 동그라미 없이 큰 작물 그림 (이모지는 벡터라 확대해도 선명하다)
-      SizedBox(
-        width: 64,
-        height: 64,
-        child: Stack(alignment: Alignment.center, children: [
-          Positioned(bottom: 4, child: Container(width: 44, height: 9, decoration: BoxDecoration(color: Colors.black.withValues(alpha: .10), borderRadius: BorderRadius.circular(10)))),
-          Text(spec.emoji, style: const TextStyle(fontSize: 50, height: 1)),
-        ]),
-      ),
+      // 시안처럼 동그라미 없이 큰 작물 그림
+      CropArt(code: spec.code, size: 66),
       const SizedBox(width: 12),
       Expanded(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(spec.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+          Row(children: [
+            Expanded(child: Text(spec.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.ink))),
+            // 다시 심기: 작게 이름 오른쪽에 (다 자라면 숨김)
+            if (!ready && onReplant != null)
+              InkWell(
+                onTap: onReplant,
+                borderRadius: BorderRadius.circular(12),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.restart_alt_rounded, size: 16, color: AppColors.greenDark),
+                    SizedBox(width: 2),
+                    Text('다시 심기', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: AppColors.greenDark)),
+                  ]),
+                ),
+              ),
+          ]),
           const SizedBox(height: 6),
           Row(children: [
-            Expanded(child: ThinBar(value: p, height: 14, color: const Color(0xFF3F9E3A), track: const Color(0xFFE3EBDD))),
+            Expanded(child: ThinBar(value: p, height: 14, color: const Color(0xFF34A34A), track: const Color(0xFFE4EAE6))),
             const SizedBox(width: 10),
             Text('${(p * 100).round()}%', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: AppColors.ink)),
           ]),
-          const SizedBox(height: 4),
-          Text('수확 예상 : ${plot.readyAt == null ? '-' : leftText(plot.readyAt!, now)}${plot.bonus > 0 ? ' · 수확량 +${(plot.bonus * 100).round()}%' : ''}',
+          const SizedBox(height: 5),
+          Text('수확 예상일 : ${plot.readyAt == null ? '-' : leftText(plot.readyAt!, now)}${plot.bonus > 0 ? ' · 수확량 +${(plot.bonus * 100).round()}%' : ''}',
               style: TextStyle(fontSize: 12, color: ready ? AppColors.greenDark : const Color(0xFF55655A), fontWeight: ready ? FontWeight.w800 : FontWeight.w600)),
-          if (!ready && onReplant != null)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: onReplant,
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.greenDark,
-                  visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                ),
-                icon: const Icon(Icons.restart_alt_rounded, size: 18),
-                label: const Text('다시 심기', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-              ),
-            ),
         ]),
       ),
     ]);
   }
 }
 
+/// 시안의 아이템 버튼: 연한 색 카드에 큰 아이콘과 이름. 보유 수는 오른쪽 위 작은 동그라미.
 class _ActionButton extends StatelessWidget {
   const _ActionButton({required this.emoji, required this.label, required this.onTap, this.count, this.badge, this.tint = Colors.white});
   final String emoji, label;
@@ -313,22 +306,38 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final empty = count != null && count == 0;
+    final mark = count != null ? '$count' : badge;
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: tint.withValues(alpha: empty ? .6 : 1),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white, width: 2),
-            boxShadow: [BoxShadow(color: AppColors.green.withValues(alpha: .08), blurRadius: 8, offset: const Offset(0, 2))],
-          ),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Opacity(opacity: empty ? .55 : 1, child: Text(emoji, style: const TextStyle(fontSize: 32, height: 1.1))),
-            const SizedBox(height: 6),
-            Text(label, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.ink)),
-            Text(count != null ? '보유 $count' : (badge ?? ''), style: TextStyle(fontSize: 10, color: empty ? AppColors.sub : AppColors.greenDark, fontWeight: FontWeight.w800)),
+        child: AspectRatio(
+          aspectRatio: .9,
+          child: Stack(clipBehavior: Clip.none, children: [
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: tint,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [BoxShadow(color: AppColors.green.withValues(alpha: .08), blurRadius: 8, offset: const Offset(0, 2))],
+                ),
+                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Opacity(opacity: empty ? .6 : 1, child: Text(emoji, style: const TextStyle(fontSize: 34, height: 1.1))),
+                  const SizedBox(height: 8),
+                  Text(label, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppColors.ink)),
+                ]),
+              ),
+            ),
+            if (mark != null)
+              Positioned(
+                top: 5,
+                right: 5,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: empty ? const Color(0xFFB9C2BC) : AppColors.greenDark, borderRadius: BorderRadius.circular(10)),
+                  child: Text(mark, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white, height: 1.2)),
+                ),
+              ),
           ]),
         ),
       ),
@@ -336,9 +345,9 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-/// 시안의 작물 성장 화면 밭: 잔디 판 위에 흙 칸 3열, 칸마다 큰 작물.
-/// 빈 칸은 +(누르면 심기), 자라는 칸은 성장 단계 그림과 얇은 진행 막대, 다 자란 칸은 ✨(누르면 수확).
-/// 모두 코드(벡터)로 그려서 어떤 화면에서도 깨지지 않는다.
+/// 시안의 작물 성장 밭: 꽃이 핀 잔디 테두리 → 밝은 흙길 → 진한 흙 칸 3열, 칸마다 큰 작물.
+/// 빈 칸은 흐린 +(누르면 심기), 자라는 칸은 성장 단계 그림, 다 자란 칸은 ✨(누르면 수확 후 바로 심기).
+/// 그림 파일 없이 모두 코드(벡터)로 그려서 어떤 화면에서도 깨지지 않는다.
 class _GrowthBoard extends StatelessWidget {
   const _GrowthBoard({required this.plots, required this.now, required this.onTap, this.selected});
   final List<Plot> plots;
@@ -347,65 +356,122 @@ class _GrowthBoard extends StatelessWidget {
   final int? selected;
 
   static const _cols = 3;
-  static const _gap = 10.0;
+  static const _gap = 12.0;
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFA9DB6E), Color(0xFF78BC4A)]),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: Colors.white, width: 2),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [BoxShadow(color: AppColors.green.withValues(alpha: .18), blurRadius: 10, offset: const Offset(0, 3))],
         ),
-        child: CustomPaint(
-          painter: const _GrassPainter(),
-          child: LayoutBuilder(builder: (context, box) {
-            final tile = ((box.maxWidth - _gap * (_cols - 1)) / _cols).floorToDouble();
-            final tileH = (tile * .92).floorToDouble();
-            final rows = <Widget>[];
-            for (var r = 0; r * _cols < plots.length; r++) {
-              final cells = <Widget>[];
-              for (var c = 0; c < _cols; c++) {
-                final i = r * _cols + c;
-                if (c > 0) cells.add(const SizedBox(width: _gap));
-                cells.add(SizedBox(
-                  width: tile,
-                  height: tileH,
-                  child: i < plots.length ? _SoilTile(plot: plots[i], now: now, selected: selected == plots[i].index, onTap: () => onTap(plots[i])) : null,
-                ));
-              }
-              if (r > 0) rows.add(const SizedBox(height: _gap));
-              rows.add(Row(mainAxisSize: MainAxisSize.min, children: cells));
-            }
-            return Center(child: Column(mainAxisSize: MainAxisSize.min, children: rows));
-          }),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: CustomPaint(
+            painter: const _MeadowPainter(),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              // 밝은 흙길(밭 사이 길)
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFE2A866), Color(0xFFD69552)]),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFC07E3E), width: 1.5),
+                ),
+                child: CustomPaint(
+                  painter: const _PathDotsPainter(),
+                  child: LayoutBuilder(builder: (context, box) {
+                    final tile = ((box.maxWidth - _gap * (_cols - 1)) / _cols).floorToDouble();
+                    final tileH = (tile * .9).floorToDouble();
+                    final rows = <Widget>[];
+                    for (var r = 0; r * _cols < plots.length; r++) {
+                      final cells = <Widget>[];
+                      for (var c = 0; c < _cols; c++) {
+                        final i = r * _cols + c;
+                        if (c > 0) cells.add(const SizedBox(width: _gap));
+                        cells.add(SizedBox(
+                          width: tile,
+                          height: tileH,
+                          child: i < plots.length ? _SoilTile(plot: plots[i], now: now, selected: selected == plots[i].index, onTap: () => onTap(plots[i])) : null,
+                        ));
+                      }
+                      if (r > 0) rows.add(const SizedBox(height: _gap));
+                      rows.add(Row(mainAxisSize: MainAxisSize.min, children: cells));
+                    }
+                    return Center(child: Column(mainAxisSize: MainAxisSize.min, children: rows));
+                  }),
+                ),
+              ),
+            ),
+          ),
         ),
       );
 }
 
-/// 잔디 판 위의 작은 풀잎 무늬
-class _GrassPainter extends CustomPainter {
-  const _GrassPainter();
+/// 밭 둘레의 잔디: 초록 바탕에 풀잎과 작은 꽃
+class _MeadowPainter extends CustomPainter {
+  const _MeadowPainter();
   @override
   void paint(Canvas canvas, Size size) {
-    final p = Paint()
-      ..color = const Color(0x334C8F2C)
+    final rect = Offset.zero & size;
+    canvas.drawRect(rect, Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF8FCB5A), Color(0xFF6DB143)]).createShader(rect));
+    final blade = Paint()
+      ..color = const Color(0x553C7F25)
       ..strokeWidth = 1.6
       ..strokeCap = StrokeCap.round;
-    for (var y = 4.0; y < size.height; y += 14) {
-      for (var x = ((y ~/ 14).isEven ? 3.0 : 10.0); x < size.width; x += 15) {
-        canvas.drawLine(Offset(x, y + 4), Offset(x - 2, y), p);
-        canvas.drawLine(Offset(x + 2, y + 4), Offset(x + 4, y + 1), p);
+    final light = Paint()
+      ..color = const Color(0x55D8F5A8)
+      ..strokeWidth = 1.4
+      ..strokeCap = StrokeCap.round;
+    var k = 0;
+    for (var y = 3.0; y < size.height; y += 9) {
+      for (var x = (k.isEven ? 2.0 : 7.0); x < size.width; x += 11) {
+        canvas.drawLine(Offset(x, y + 4), Offset(x - 2, y - 1), blade);
+        canvas.drawLine(Offset(x + 3, y + 4), Offset(x + 5, y), light);
+      }
+      k++;
+    }
+    // 작은 꽃 (테두리 쪽에만)
+    final colors = [const Color(0xFFFFF3B0), Colors.white, const Color(0xFFFFC8D8)];
+    var n = 0;
+    for (var x = 10.0; x < size.width; x += 37) {
+      for (final y in [6.0, size.height - 7]) {
+        canvas.drawCircle(Offset(x + (n % 3) * 4, y), 2.2, Paint()..color = colors[n % colors.length]);
+        n++;
+      }
+    }
+    for (var y = 24.0; y < size.height - 20; y += 41) {
+      for (final x in [6.0, size.width - 7]) {
+        canvas.drawCircle(Offset(x, y + (n % 3) * 3), 2.2, Paint()..color = colors[n % colors.length]);
+        n++;
       }
     }
   }
 
   @override
-  bool shouldRepaint(_GrassPainter old) => false;
+  bool shouldRepaint(_MeadowPainter old) => false;
 }
 
-/// 흙 칸 하나 (밭고랑 무늬가 있는 갈색 흙 + 큰 작물)
+/// 밭 사이 흙길의 하얀 점 무늬
+class _PathDotsPainter extends CustomPainter {
+  const _PathDotsPainter();
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()..color = const Color(0x66FFF6E6);
+    var k = 0;
+    for (var y = 4.0; y < size.height; y += 13) {
+      for (var x = (k.isEven ? 4.0 : 10.0); x < size.width; x += 13) {
+        canvas.drawCircle(Offset(x, y), 1.2, p);
+      }
+      k++;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PathDotsPainter old) => false;
+}
+
+/// 진한 흙 칸 하나 + 큰 작물
 class _SoilTile extends StatelessWidget {
   const _SoilTile({required this.plot, required this.now, required this.selected, required this.onTap});
   final Plot plot;
@@ -421,72 +487,50 @@ class _SoilTile extends StatelessWidget {
         final progress = plot.progress(now);
         final Widget crop;
         if (spec == null) {
-          crop = Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.add_rounded, color: Colors.white.withValues(alpha: .85), size: size * .36),
-            Text('심기', style: TextStyle(color: Colors.white.withValues(alpha: .9), fontSize: 12, fontWeight: FontWeight.w800)),
-          ]);
+          crop = Icon(Icons.add_rounded, color: Colors.white.withValues(alpha: .55), size: size * .4);
         } else {
-          final emoji = ready || progress >= .67 ? spec.emoji : (progress < .34 ? '🌱' : '🌿');
-          final scale = ready ? .66 : (progress < .34 ? .42 : (progress < .67 ? .52 : .6));
-          crop = Stack(alignment: Alignment.center, clipBehavior: Clip.none, children: [
-            // 작물 아래 그림자
-            Positioned(
-              bottom: size * .14,
-              child: Container(width: size * scale * .8, height: size * .1, decoration: BoxDecoration(color: Colors.black.withValues(alpha: .18), borderRadius: BorderRadius.circular(size))),
-            ),
-            Padding(padding: EdgeInsets.only(bottom: size * .06), child: Text(emoji, style: TextStyle(fontSize: size * scale, height: 1))),
-          ]);
+          // 성장 단계: 새싹 → 어린 작물 → 다 자란 작물
+          crop = CropArt(code: spec.code, size: size * .86, stage: ready ? 1.0 : progress);
         }
         return GestureDetector(
           onTap: onTap,
           child: Container(
             decoration: BoxDecoration(
-              gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFB27744), Color(0xFF8D5A31)]),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: selected ? Colors.white : (ready ? const Color(0xFFFFE08A) : const Color(0xFF6E4524)),
-                width: selected || ready ? 2.5 : 1.5,
-              ),
+              gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF8E5631), Color(0xFF6F3F1F)]),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: selected ? Colors.white : const Color(0xFF5E3519), width: selected ? 2.5 : 1.2),
               boxShadow: [
-                if (ready) const BoxShadow(color: Color(0x88FFD54F), blurRadius: 10),
-                const BoxShadow(color: Color(0x33000000), blurRadius: 3, offset: Offset(0, 2)),
+                if (ready) const BoxShadow(color: Color(0x99FFE07A), blurRadius: 10),
+                const BoxShadow(color: Color(0x33000000), blurRadius: 2, offset: Offset(0, 1.5)),
               ],
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Stack(alignment: Alignment.center, children: [
-                const Positioned.fill(child: CustomPaint(painter: _FurrowPainter())),
-                crop,
-                if (ready) Positioned(top: 4, right: 5, child: Text('✨', style: TextStyle(fontSize: size * .2, height: 1))),
-                if (spec != null && !ready)
-                  Positioned(left: 10, right: 10, bottom: 6, child: ThinBar(value: progress, height: 4, color: const Color(0xFFB5E36B), track: Colors.black26)),
-              ]),
-            ),
+            child: Stack(alignment: Alignment.center, clipBehavior: Clip.none, children: [
+              const Positioned.fill(child: CustomPaint(painter: _SoilPainter())),
+              crop,
+              if (ready) Positioned(top: -4, right: -2, child: Text('✨', style: TextStyle(fontSize: size * .22, height: 1))),
+            ]),
           ),
         );
       });
 }
 
-/// 흙 칸의 밭고랑(가로 줄) 무늬
-class _FurrowPainter extends CustomPainter {
-  const _FurrowPainter();
+/// 흙 칸 안쪽의 부드러운 흙 알갱이 무늬
+class _SoilPainter extends CustomPainter {
+  const _SoilPainter();
   @override
   void paint(Canvas canvas, Size size) {
-    final dark = Paint()
-      ..color = const Color(0x22000000)
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    final light = Paint()
-      ..color = const Color(0x1FFFFFFF)
-      ..strokeWidth = 1.5
-      ..strokeCap = StrokeCap.round;
-    for (var i = 1; i <= 3; i++) {
-      final y = size.height * i / 4;
-      canvas.drawLine(Offset(size.width * .12, y), Offset(size.width * .88, y), dark);
-      canvas.drawLine(Offset(size.width * .14, y - 2.5), Offset(size.width * .86, y - 2.5), light);
+    final dark = Paint()..color = const Color(0x22000000);
+    final light = Paint()..color = const Color(0x18FFE2C0);
+    var k = 0;
+    for (var y = 6.0; y < size.height - 3; y += 9) {
+      for (var x = (k.isEven ? 6.0 : 11.0); x < size.width - 3; x += 10) {
+        canvas.drawCircle(Offset(x, y), 1.3, dark);
+        canvas.drawCircle(Offset(x + 2, y - 2), 1.0, light);
+      }
+      k++;
     }
   }
 
   @override
-  bool shouldRepaint(_FurrowPainter old) => false;
+  bool shouldRepaint(_SoilPainter old) => false;
 }

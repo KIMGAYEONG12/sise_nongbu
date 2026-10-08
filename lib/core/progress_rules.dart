@@ -261,3 +261,8 @@ double? changePercent(double current, double? prev) {
   if (prev == null || prev <= 0) return null;
   return (current - prev) / prev * 100;
 }
+
+// ───────────────────────── 판매 보상 ─────────────────────────
+
+/// 작물 1건을 판매할 때마다 받는 포인트 (판매 화면의 "Point +nP"에 쓴다)
+const sellPointReward = 5;

@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sise_nongbu/models/models.dart';
 import 'package:sise_nongbu/widgets/common.dart';
 import 'package:sise_nongbu/widgets/farm_scene.dart';
+import 'package:sise_nongbu/widgets/crop_art.dart';
+import 'package:sise_nongbu/core/game_rules.dart';
 
 Widget _wrap(Widget child) => MaterialApp(home: Scaffold(body: Center(child: SizedBox(width: 360, child: child))));
 
@@ -43,5 +45,14 @@ void main() {
     expect(tester.getTopLeft(tiles.at(3)).dy, greaterThan(y0));
     await tester.tap(tiles.at(4));
     expect(tappedPlot?.index, 4);
+  });
+
+  testWidgets('작물 그림은 모든 작물·성장 단계에서 에러 없이 그려진다', (tester) async {
+    await tester.pumpWidget(_wrap(Wrap(children: [
+      for (final c in crops)
+        for (final stage in const [0.1, 0.5, 1.0]) CropArt(code: c.code, size: 48, stage: stage),
+    ])));
+    expect(find.byType(CropArt), findsNWidgets(crops.length * 3));
+    expect(tester.takeException(), isNull);
   });
 }

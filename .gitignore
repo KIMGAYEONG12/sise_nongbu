@@ -51,3 +51,7 @@ app.*.map.json
 node_modules/
 *service-account*.json
 *firebase-adminsdk*.json
+
+# API 키가 들어 있는 파일은 올리지 않는다
+env.json
+.env.local

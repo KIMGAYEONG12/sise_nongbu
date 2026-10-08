@@ -24,6 +24,9 @@ class AppImages {
   static const tutGrow = 'assets/images/tut_grow.jpg';
   static const tutSell = 'assets/images/tut_sell.jpg';
   static const tutReady = 'assets/images/tut_ready.jpg';
+
+  /// 튜토리얼 2장에서 움직이는 손가락 (tut_plant.jpg에서 오려 낸 그림)
+  static const tutHand = 'assets/images/tut_hand.png';
   static const farmScene = 'assets/images/farm_scene.jpg';
   static const loginLand = 'assets/images/login_land.png';
   static const signupLand = 'assets/images/signup_land.png';
@@ -32,7 +35,7 @@ class AppImages {
 
   /// 스플래시가 떠 있는 동안 미리 읽어 두면 다음 화면에서 그림이 늦게 뜨지 않는다.
   static Future<void> precacheAll(BuildContext context) async {
-    for (final a in const [splash, tutPlant, tutGrow, tutSell, tutReady, farmScene, loginLand, signupLand, leafTopRight, leafTopLeft]) {
+    for (final a in const [splash, tutPlant, tutHand, tutGrow, tutSell, tutReady, farmScene, loginLand, signupLand, leafTopRight, leafTopLeft]) {
       if (!context.mounted) return;
       try {
         await precacheImage(AssetImage(a), context);

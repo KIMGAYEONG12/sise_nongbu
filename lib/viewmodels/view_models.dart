@@ -36,6 +36,12 @@ final loginAfterTutorialProvider = StateProvider<bool>((_) => false);
 /// 튜토리얼을 다 봤는지 저장하는 키 (shared_preferences). 로그아웃하면 지워서 다음 실행 때 다시 보여준다.
 const tutorialDoneKey = 'tutorialDone';
 
+/// 앱을 켤 때마다(스플래시 다음) 튜토리얼을 보여줄지 저장하는 키. 기본값은 보여주기(true).
+const tutorialOnStartKey = 'tutorialOnStart';
+
+/// 앱 정보의 '앱을 켤 때 튜토리얼 보기' 스위치 상태
+final tutorialOnStartProvider = StateProvider<bool>((ref) => ref.read(prefsProvider).getBool(tutorialOnStartKey) ?? true);
+
 /// 회원가입 직후 닉네임을 Firestore 문서에 넣기 위해 잠깐 들고 있는 값
 final pendingNicknameProvider = StateProvider<String?>((_) => null);
 
@@ -78,8 +84,12 @@ final userDataProvider = Provider<UserData>((ref) =>
 /// 하단 탭 번호 (0 시세판, 1 농장, 2 창고, 3 상점, 4 MY). 다른 화면에서 탭을 바꿀 때 쓴다.
 final shellIndexProvider = StateProvider<int>((_) => 1);
 
-final weatherProvider =
-    FutureProvider<Weather?>((_) => WeatherService(http.Client()).current());
+final weatherProvider = FutureProvider<Weather?>((ref) {
+  // 30분마다 다시 불러와서 날씨가 바뀌면 카드도 바뀐다
+  final t = Timer(const Duration(minutes: 30), ref.invalidateSelf);
+  ref.onDispose(t.cancel);
+  return WeatherService(http.Client()).current();
+});
 
 /// 품목 상세 화면용: 최근 7일 시세와 거래량
 /// 서버가 저장해 둔 값이 있으면 그것을, 없으면 앱이 API로 직접 받는다.

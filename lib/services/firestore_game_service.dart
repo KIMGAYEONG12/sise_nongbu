@@ -214,7 +214,7 @@ class FirestoreGameService {
         tx.update(_user, {
           'money': _int(u['money']) + amount,
           'totalProfit': _int(u['totalProfit']) + amount,
-          'points': FieldValue.increment(5),
+          'points': FieldValue.increment(sellPointReward),
           'exp': _int(u['exp']) + (amount ~/ 2000 < 1 ? 1 : amount ~/ 2000),
           'stats.sell': FieldValue.increment(1),
           if (good) 'stats.goodSell': FieldValue.increment(1),

@@ -18,15 +18,22 @@ class AppRoot extends ConsumerStatefulWidget {
 class _AppRootState extends ConsumerState<AppRoot> {
   int _stage = 0; // 0 스플래시, 1 튜토리얼, 2 앱
 
+  /// 이번 실행이 튜토리얼을 처음 보는 것인지 (처음이면 튜토리얼 다음에 로그인 화면을 꼭 보여준다)
+  bool _firstTime = false;
+
   void _afterSplash() {
-    final seen = ref.read(prefsProvider).getBool(tutorialDoneKey) ?? false;
-    setState(() => _stage = seen ? 2 : 1);
+    final prefs = ref.read(prefsProvider);
+    _firstTime = !(prefs.getBool(tutorialDoneKey) ?? false);
+    // 시안 순서: 스플래시 → 튜토리얼 → (로그인) → 농장.
+    // 처음 실행이거나 '앱을 켤 때 튜토리얼 보기'가 켜져 있으면(기본) 매번 튜토리얼을 보여준다. 건너뛰기로 바로 넘어갈 수 있다.
+    final show = _firstTime || ref.read(tutorialOnStartProvider);
+    setState(() => _stage = show ? 1 : 2);
   }
 
   void _afterTutorial() {
     ref.read(prefsProvider).setBool(tutorialDoneKey, true);
-    // 튜토리얼이 끝나면 로그인·회원가입 화면으로 간다 (게스트 세션이 남아 있어도 한 번은 보여준다)
-    ref.read(loginAfterTutorialProvider.notifier).state = true;
+    // 처음 본 튜토리얼이 끝나면 로그인·회원가입 화면으로 간다 (게스트 세션이 남아 있어도 한 번은 보여준다)
+    if (_firstTime) ref.read(loginAfterTutorialProvider.notifier).state = true;
     setState(() => _stage = 2);
   }
 

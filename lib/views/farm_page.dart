@@ -36,7 +36,7 @@ class FarmPage extends ConsumerWidget {
       ('📰', '농부 뉴스', () => _push(context, const NewsPage()), null),
       ('🏡', '마을 기금', () => _push(context, const FundPage()), null),
       ('🏆', '업적', () => _push(context, const AchievementPage()), null),
-      ('⭐', '포인트 상점', () => _push(context, const PointShopPage()), null),
+      ('⭐', '특별 상점', () => _push(context, const PointShopPage()), null),
       ('🧾', '거래 기록', () => _push(context, const TradeHistoryPage()), null),
     ];
 
@@ -46,7 +46,11 @@ class FarmPage extends ConsumerWidget {
       // 시안처럼 첫 화면에는 농장 화면(프로필·날씨 → 농장 그림)만 하단 탭 위까지 꽉 차게 보이고,
       // 작물 관리·바로가기는 아래로 스크롤해야 나온다.
       final heroH = box.maxHeight.isFinite && box.maxHeight > 560 ? box.maxHeight : 560.0;
-      return ListView(padding: EdgeInsets.zero, children: [
+      // 안드로이드 12+의 '늘어나는' 당김 효과 때문에 맨 위에서 당기면 농장 그림이 늘어나 보여서 끈다.
+      // (스크롤은 그대로 되고, 아래로 내리면 작물 관리·바로가기가 나온다)
+      return ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(overscroll: false),
+        child: ListView(padding: EdgeInsets.zero, physics: const ClampingScrollPhysics(), children: [
         SizedBox(
           height: heroH,
           child: _FarmHero(
@@ -103,7 +107,8 @@ class FarmPage extends ConsumerWidget {
       ),
           ]),
         ),
-      ]);
+      ]),
+      );
     });
   }
 }

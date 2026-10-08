@@ -8,7 +8,7 @@ import '../widgets/common.dart';
 import 'point_shop_page.dart';
 import '../core/korean.dart';
 
-/// 상점 탭: 일반 상점(씨앗·소모품·시설)과 포인트 상점
+/// 상점 탭: 포인트 상점(씨앗·소모품·시설)과 특별 상점
 class ShopPage extends ConsumerStatefulWidget {
   const ShopPage({super.key});
   @override
@@ -60,12 +60,16 @@ class _ShopPageState extends ConsumerState<ShopPage> {
     final expandCost = plotExpandCost(plots.length);
 
     return Column(children: [
-      PageHeader(title: '상점', trailing: _tab == 0 ? MoneyPill(money: user.money) : PointPill(points: user.points)),
-      Padding(padding: const EdgeInsets.fromLTRB(16, 4, 16, 8), child: PillTabs(labels: const ['일반 상점', '포인트 상점'], index: _tab, onChanged: (v) => setState(() => _tab = v))),
+      PageHeader(title: '상점', trailing: PointPill(points: user.points)),
+      Padding(padding: const EdgeInsets.fromLTRB(16, 4, 16, 8), child: PillTabs(labels: const ['포인트 상점', '특별 상점'], index: _tab, onChanged: (v) => setState(() => _tab = v))),
       Expanded(
         child: _tab == 1
             ? const PointShopBody()
             : ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+                  child: Text('보유 자금 ${won(user.money)}', style: const TextStyle(fontSize: 12, color: AppColors.sub, fontWeight: FontWeight.w700)),
+                ),
                 const SectionTitle('씨앗'),
                 for (final c in crops)
                   _row(c.emoji, '${c.name} 씨앗', '보유 ${user.item(seedKey(c.code))}개 · 파종비(${won(c.seedCost)})보다 15% 저렴',
