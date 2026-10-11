@@ -28,15 +28,38 @@ void main() {
     expect(plotExpandCost(24), isNull);
   });
 
-  test('하우스는 성장 시간을 20% 줄인다', () {
+  test('하우스는 몇 채든 지을 수 있고 성장 시간을 줄인다', () {
     expect(applyGreenhouses(const Duration(hours: 10), 1), const Duration(hours: 9));
     expect(applyGreenhouses(const Duration(hours: 10), 5), const Duration(hours: 5));
-    expect(applyGreenhouses(const Duration(hours: 10), 9), const Duration(hours: 5)); // 최소 50%
     expect(applyGreenhouses(const Duration(hours: 10), 0), const Duration(hours: 10));
-    expect(greenhouseCostFor(0), 100000);
-    expect(greenhouseCostFor(4), 300000);
-    expect(greenhouseCostFor(5), isNull);
+    // 5채를 넘겨도 계속 지을 수 있고, 한 채마다 4%씩 더 줄어서 10채에서 최대 70% 단축
+    expect(greenhouseFactor(6), closeTo(0.46, 1e-9));
+    expect(greenhouseFactor(6), lessThan(greenhouseFactor(5)));
+    expect(greenhouseFactor(9), closeTo(0.34, 1e-9));
+    expect(greenhouseFactor(10), closeTo(0.3, 1e-9));
+    expect(greenhouseFactor(11), closeTo(0.3, 1e-9));
+    expect(greenhouseFactor(1000), closeTo(0.3, 1e-9));
+    expect(greenhouseFactor(-3), 1.0);
+    expect(greenhouseCostFor(0), 20000);
+    expect(greenhouseCostFor(4), 60000);
+    expect(greenhouseCostFor(5), 70000); // 5채 뒤에도 더 지을 수 있다
+    expect(greenhouseCostFor(20), 220000);
     expect(fertilizerMaxBonus, closeTo(2.0, 1e-9));
+  });
+
+  test('레벨 업 보상은 레벨이 높을수록 커진다', () {
+    expect(levelUpPointsFor(2), 500);
+    expect(levelUpPointsFor(3), 600);
+    expect(levelUpPointsFor(10), 1300);
+    for (var l = 2; l < 40; l++) {
+      expect(levelUpPointsFor(l + 1), greaterThan(levelUpPointsFor(l)));
+      expect(levelUpSeedsFor(l + 1), greaterThanOrEqualTo(levelUpSeedsFor(l)));
+    }
+    expect([for (final l in [2, 5, 6, 10, 11, 16]) levelUpSeedsFor(l)], [1, 1, 2, 2, 3, 4]);
+    // 여러 레벨을 한 번에 올라도 레벨마다 계산해서 더한다
+    expect(levelUpTotals(1, 2), (500, 1));
+    expect(levelUpTotals(2, 4), (600 + 700, 2));
+    expect(levelUpTotals(4, 4), (0, 0));
   });
 
   test('씨앗은 파종비의 85%', () {

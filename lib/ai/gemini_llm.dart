@@ -14,14 +14,15 @@ class GeminiLlm implements Llm {
   final List<String> models;
 
   static const _system = '너는 실제 도매시장 경매 시세로 움직이는 농장 게임의 친절한 농사 도우미야. '
-      '아래 [현재 상황]만 근거로 짧고 쉬운 한국어(3문장 이내)로 답해. 모르면 모른다고 말해.';
+      '아래 [현재 상황]만 근거로 짧고 쉬운 한국어(3문장 이내)로 답해. 모르면 모른다고 말해. '
+      '사진이 함께 오면 사진 속 작물·잎·열매의 상태나 병해충을 보고 농사에 도움이 되게 설명해 줘.';
 
   @override
-  Future<String> complete(String question, AiContext ctx) async {
+  Future<String> complete(String question, AiContext ctx, {AiImage? image}) async {
     Object? lastError;
     for (final m in models) {
       try {
-        return await _ask(m, question, ctx);
+        return await _ask(m, question, ctx, image);
       } catch (e) {
         lastError = e;
       }
@@ -29,7 +30,7 @@ class GeminiLlm implements Llm {
     throw lastError ?? StateError('Gemini 응답 없음');
   }
 
-  Future<String> _ask(String model, String question, AiContext ctx) async {
+  Future<String> _ask(String model, String question, AiContext ctx, AiImage? image) async {
     final res = await _client
         .post(
           Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent'),
@@ -44,14 +45,16 @@ class GeminiLlm implements Llm {
               {
                 'role': 'user',
                 'parts': [
-                  {'text': '[현재 상황]\n${ctx.toText()}\n[질문] $question'}
+                  {'text': '[현재 상황]\n${ctx.toText()}\n[질문] $question'},
+                  // 사진이 있으면 함께 보낸다 (base64)
+                  if (image != null) {'inline_data': {'mime_type': image.mime, 'data': base64Encode(image.bytes)}},
                 ]
               }
             ],
             'generationConfig': {'maxOutputTokens': 500},
           }),
         )
-        .timeout(const Duration(seconds: 25));
+        .timeout(Duration(seconds: image == null ? 25 : 45));
     if (res.statusCode != 200) throw StateError('Gemini ${res.statusCode}');
     final body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     final cands = body['candidates'];

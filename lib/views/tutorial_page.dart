@@ -31,8 +31,8 @@ class _TutorialPageState extends ConsumerState<TutorialPage>
   /// 튜토리얼 그림 틀의 가로÷세로 비율 (1~5장 모두 같다)
   static const _frameAspect = 0.86;
 
-  /// 제목+설명 영역의 고정 높이 (제목 1줄 + 설명 최대 3줄)
-  static const _headerH = 112.0;
+  /// 제목+설명 영역의 기본 높이 (제목 1줄 + 설명 최대 3줄). 글씨 배율이 커지면 같이 커진다.
+  static const _headerBase = 112.0;
 
   /// 마지막 장의 '시작하기' 버튼이 숨쉬듯 커졌다 작아지는 연출
   late final AnimationController _breath = AnimationController(
@@ -82,9 +82,10 @@ class _TutorialPageState extends ConsumerState<TutorialPage>
   }
 
   void _back() {
-    if (_i > 0)
+    if (_i > 0) {
       _ctrl.previousPage(
           duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+    }
   }
 
   @override
@@ -131,13 +132,16 @@ class _TutorialPageState extends ConsumerState<TutorialPage>
                   itemBuilder: (_, i) => Padding(
                     padding: const EdgeInsets.fromLTRB(22, 4, 22, 0),
                     child: LayoutBuilder(builder: (context, box) {
+                      final headerH = _headerBase *
+                          math.max(1.0, MediaQuery.textScalerOf(context).scale(1.0)) *
+                          1.08; // 여유 8%: 글씨가 커져도 노란 줄무늬(넘침)가 안 생기게
                       final frameH = math.max(
                           0.0,
-                          math.min(box.maxHeight - _headerH,
+                          math.min(box.maxHeight - headerH,
                               box.maxWidth / _frameAspect));
                       // 화면이 세로로 길면 남는 공간은 위아래로 나눠서 글+그림 덩어리가 위쪽 가까이에 놓이게 한다
                       final top = math.max(
-                          0.0, (box.maxHeight - _headerH - frameH) * .3);
+                          0.0, (box.maxHeight - headerH - frameH) * .3);
                       return Align(
                         alignment: Alignment.topCenter,
                         child: Padding(
@@ -145,7 +149,7 @@ class _TutorialPageState extends ConsumerState<TutorialPage>
                           child:
                               Column(mainAxisSize: MainAxisSize.min, children: [
                             SizedBox(
-                              height: _headerH,
+                              height: headerH,
                               child: Column(children: [
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
@@ -304,8 +308,9 @@ class _PriceCardState extends _AnimState<_PriceCard> {
     final pr = widget.prices?[c.code];
     final pct = pr == null ? null : changePercent(pr.pricePerKg, pr.prevPerKg);
     if (pct == null) return '${c.emoji} ${c.name}: 시세를 불러오는 중이에요';
-    if (pct.abs() < 0.05)
+    if (pct.abs() < 0.05) {
       return '${c.emoji} ${c.name}: 어제와 같아요 – 급하지 않으면 기다려 봐요';
+    }
     return pct > 0
         ? '${c.emoji} ${c.name}: 어제보다 ${pct.toStringAsFixed(1)}% 올랐어요 ▲ 지금 팔면 이득이에요'
         : '${c.emoji} ${c.name}: 어제보다 ${pct.abs().toStringAsFixed(1)}% 내렸어요 ▼ 오를 때까지 보관해 봐요';
@@ -911,8 +916,9 @@ class _GrowVisualState extends _AnimState<_GrowVisual> {
               }
 
               double arrowPulse(int i) {
-                if (_picked != null)
+                if (_picked != null) {
                   return (_picked! > i) ? 1.0 : 0.0; // 지나온 단계의 화살표는 켜 둔다
+                }
                 return math.sin(
                     _seg(t, i * .28 + .18, i * .28 + .38, Curves.linear) *
                         math.pi);

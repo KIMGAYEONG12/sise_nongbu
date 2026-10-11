@@ -63,15 +63,24 @@ int? plotExpandCost(int currentPlots) {
 /// 잘못 심은 작물을 뽑을 때, 심은 지 이 시간 안이면 파종비(또는 씨앗)를 돌려준다.
 const uprootRefundWindow = Duration(minutes: 10);
 
-/// 하우스는 여러 채 지을 수 있고, 한 채마다 성장 시간이 10%씩 줄어든다 (최대 5채 = 50% 단축).
-const maxGreenhouses = 5;
+/// 하우스는 몇 채든 계속 지을 수 있다.
+/// 처음 [greenhouseFullEffect]채까지는 한 채마다 성장 시간이 10%씩 줄고(5채 = 50% 단축),
+/// 그 뒤로는 한 채마다 4%씩 더 줄어서 10채에서 최대 70% 단축이 된다.
+const greenhouseFullEffect = 5;
 const greenhouseStep = 0.1;
+const greenhouseLateStep = 0.04;
+const greenhouseMaxCut = 0.7;
 
-/// [owned]채를 가진 상태에서 다음 하우스를 짓는 비용. 100,000P부터 50,000P씩 늘어난다. 최대치면 null.
-int? greenhouseCostFor(int owned) => owned >= maxGreenhouses ? null : 100000 + 50000 * owned;
+/// [owned]채를 가진 상태에서 다음 하우스를 짓는 비용. 20,000원부터 10,000원씩 늘어난다 (채 수 제한 없음).
+int greenhouseCostFor(int owned) => 20000 + 10000 * (owned < 0 ? 0 : owned);
 
-/// 하우스 [count]채가 있을 때 성장 시간 배율 (1.0 → 0.9 → … 최소 0.5)
-double greenhouseFactor(int count) => (1 - greenhouseStep * count.clamp(0, maxGreenhouses)).clamp(0.5, 1.0).toDouble();
+/// 하우스 [count]채가 있을 때 성장 시간 배율 (1.0 → 0.9 → … 5채 0.5 → 6채 0.46 … 10채 0.3, 그 뒤로는 0.3 그대로)
+double greenhouseFactor(int count) {
+  final n = count < 0 ? 0 : count;
+  if (n <= greenhouseFullEffect) return 1 - greenhouseStep * n;
+  final f = (1 - greenhouseStep * greenhouseFullEffect) - greenhouseLateStep * (n - greenhouseFullEffect);
+  return f < 1 - greenhouseMaxCut ? 1 - greenhouseMaxCut : f;
+}
 
 Duration applyGreenhouses(Duration d, int count) => count <= 0 ? d : Duration(milliseconds: (d.inMilliseconds * greenhouseFactor(count)).round());
 
@@ -301,3 +310,65 @@ double? changePercent(double current, double? prev) {
 
 /// 작물 1건을 판매할 때마다 받는 포인트 (판매 화면의 "Point +nP"에 쓴다)
 const sellPointReward = 5;
+
+// ───────────────────────── 레벨 업 보상 ─────────────────────────
+
+/// 레벨 업 보상: 레벨이 높아질수록 더 많이 받는다.
+/// 포인트: Lv.2는 500P에서 시작해 레벨이 한 번 오를 때마다 100P씩 늘어난다 (Lv.10 = 1,300P).
+/// 희귀 씨앗: Lv.2~5는 1개, Lv.6~10은 2개, Lv.11~15는 3개 … 5레벨마다 1개씩 늘어난다.
+const levelUpPointsBase = 500;
+const levelUpPointsStep = 100;
+
+int levelUpPointsFor(int level) => levelUpPointsBase + levelUpPointsStep * (level < 2 ? 0 : level - 2);
+
+int levelUpSeedsFor(int level) => 1 + (level < 2 ? 0 : (level - 1) ~/ 5);
+
+/// [from]에서 [to]로 올랐을 때 받는 보상의 합 (여러 레벨을 한 번에 올랐으면 레벨마다 계산해서 더한다)
+(int points, int seeds) levelUpTotals(int from, int to) {
+  var pts = 0, seeds = 0;
+  for (var l = from + 1; l <= to; l++) {
+    pts += levelUpPointsFor(l);
+    seeds += levelUpSeedsFor(l);
+  }
+  return (pts, seeds);
+}
+
+String levelUpSeedCrop(int level) => crops[level % crops.length].code;
+
+/// 레벨 업으로 실제 받은 보상 (여러 레벨을 한 번에 올랐으면 그만큼 합쳐서)
+class LevelUpReward {
+  const LevelUpReward({required this.points, required this.seedCode, required this.seedCount});
+  final int points, seedCount;
+  final String seedCode;
+}
+
+// ───────────────────────── 나의 칭호 ─────────────────────────
+
+/// 농부 칭호: 레벨이 오르면 더 멋진 칭호로 바뀐다.
+class FarmerTitle {
+  const FarmerTitle(this.minLevel, this.name, this.emoji);
+  final int minLevel;
+  final String name, emoji;
+}
+
+const farmerTitles = [
+  FarmerTitle(1, '새싹 농부', '🌱'),
+  FarmerTitle(3, '초보 농부', '🌿'),
+  FarmerTitle(5, '성실한 농부', '🌾'),
+  FarmerTitle(7, '베테랑 농부', '🥬'),
+  FarmerTitle(10, '농장 이장님', '🏡'),
+  FarmerTitle(13, '농업 명인', '🏆'),
+  FarmerTitle(17, '전설의 농부', '👑'),
+];
+
+/// [level]에 맞는 칭호의 번호 (farmerTitles의 위치)
+int farmerTitleIndex(int level) {
+  var idx = 0;
+  for (var i = 0; i < farmerTitles.length; i++) {
+    if (level >= farmerTitles[i].minLevel) idx = i;
+  }
+  return idx;
+}
+
+/// 칭호 안에서의 단계 (1부터). 레벨이 한 번 오를 때마다 1씩 올라가고, 칭호 이름이 바뀌면 다시 1단계부터 시작한다.
+int farmerTitleRank(int level) => (level < 1 ? 1 : level) - farmerTitles[farmerTitleIndex(level)].minLevel + 1;

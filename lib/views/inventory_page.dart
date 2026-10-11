@@ -95,12 +95,17 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
               SizedBox(
                 height: 30,
                 child: ElevatedButton(
-                  onPressed: lots.isEmpty ? null : () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SellPage())),
+                  // 창고가 비어 있어도 눌러지고, 이유를 알려 준다 (예전엔 비활성이라 "안 눌린다"처럼 보였다)
+                  onPressed: () {
+                    if (lots.isEmpty) {
+                      showMsg(context, '판매할 작물이 없어요. 밭에서 작물을 수확하면 여기에 쌓여요');
+                      return;
+                    }
+                    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SellPage()));
+                  },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.green,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppColors.line,
-                    disabledForegroundColor: AppColors.sub,
+                    backgroundColor: lots.isEmpty ? AppColors.greenLight : AppColors.green,
+                    foregroundColor: lots.isEmpty ? AppColors.greenDark : Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),

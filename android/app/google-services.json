@@ -12,7 +12,20 @@
           "package_name": "com.sise_nongbu"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "641118692037-d88tamtamnr35075kc07asunlp7en6tj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sise_nongbu",
+            "certificate_hash": "5f62f8888beb7336a4425fa92efa8dad76419b9b"
+          }
+        },
+        {
+          "client_id": "641118692037-0nk84mc3sd42dr1rpo6meqkepl75kel7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCJeWN8AKVQvF0POP5SfHhrVBdcpPnPpw8"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "641118692037-0nk84mc3sd42dr1rpo6meqkepl75kel7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

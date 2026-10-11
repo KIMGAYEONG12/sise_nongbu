@@ -68,9 +68,16 @@ class FarmRepository {
   Future<void> buyItem(String key, int price, {int qty = 1}) => _db.buyItem(key, price, qty: qty);
   Future<void> expandPlots(int currentCount) => _db.expandPlots(currentCount);
   Future<void> expandWarehouse() => _db.expandWarehouse();
-  Future<void> buyGreenhouse() => _db.buyGreenhouse();
+  /// 하우스를 짓고, 빨라진 밭의 수확 알림을 새 시각으로 다시 예약한다.
+  Future<void> buyGreenhouse() async {
+    final changed = await _db.buyGreenhouse();
+    for (final (idx, c, at) in changed) {
+      await _noti.scheduleHarvest(idx, c.name, at);
+    }
+  }
   Future<void> buySeedPack(int price) => _db.buySeedPack(price);
   Future<void> buyPointItem(String key, {String? cropCode}) => _db.buyPointItem(key, cropCode: cropCode);
+  Future<LevelUpReward?> claimLevelUpReward(int from, int to) => _db.claimLevelUpReward(from, to);
   Future<void> claimMission(MissionDef def) => _db.claimMission(def);
   Future<void> claimAchievement(AchievementDef def, int plots) => _db.claimAchievement(def, plots);
   Future<void> donateToFund(int amount) => _db.donateToFund(amount);

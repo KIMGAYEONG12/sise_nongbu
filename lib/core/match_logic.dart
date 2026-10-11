@@ -193,3 +193,76 @@ class MatchBoard {
     } while (!hasMove());
   }
 }
+
+/// 짝 맞추기 판: 같은 작물 두 칸을 차례로 누르면 둘 다 사라지고, 판이 모두 비면 다음 판으로 넘어간다.
+/// (양배추는 양배추끼리, 토마토는 토마토끼리, 감자는 감자끼리)
+/// 칸 수가 홀수(예: 5×5)면 가운데 한 칸은 비워 두어서 항상 모든 칸을 짝지을 수 있다.
+class PairBoard {
+  PairBoard(this.rows, this.cols, this.kinds, [Random? rng])
+      : _rng = rng ?? Random(),
+        cells = List<int>.filled(rows * cols, -1) {
+    _fill();
+  }
+
+  /// 저장해 둔 판을 되살린다. [cells] 길이가 맞지 않거나 값이 범위를 벗어나면 null.
+  static PairBoard? restore(int rows, int cols, int kinds, List<int> cells) {
+    if (cells.length != rows * cols) return null;
+    if (cells.any((v) => v < -1 || v >= kinds)) return null;
+    final b = PairBoard(rows, cols, kinds);
+    for (var i = 0; i < cells.length; i++) {
+      b.cells[i] = cells[i];
+    }
+    return b;
+  }
+
+  final int rows, cols, kinds;
+  final Random _rng;
+
+  /// 칸마다 작물 번호 (비어 있으면 -1). 위치는 r * cols + c.
+  final List<int> cells;
+
+  int at(int r, int c) => cells[r * cols + c];
+
+  /// 남은 칸 수
+  int get remaining => cells.where((v) => v >= 0).length;
+
+  bool get cleared => remaining == 0;
+
+  void _fill() {
+    final total = rows * cols;
+    final slots = <int>[for (var i = 0; i < total; i++) i];
+    if (total.isOdd) slots.remove(total ~/ 2); // 가운데 칸은 비운다
+    slots.shuffle(_rng);
+    // 모든 작물이 고르게 나오도록 짝을 돌아가며 나눠 준다
+    final start = _rng.nextInt(kinds);
+    for (var p = 0; p < slots.length ~/ 2; p++) {
+      final kind = (start + p) % kinds;
+      cells[slots[p * 2]] = kind;
+      cells[slots[p * 2 + 1]] = kind;
+    }
+  }
+
+  /// 두 칸이 서로 다른 칸이고, 둘 다 차 있고, 같은 작물이면 짝이 맞는다.
+  bool canMatch(int a, int b) => a != b && a >= 0 && b >= 0 && a < cells.length && b < cells.length && cells[a] >= 0 && cells[a] == cells[b];
+
+  /// 짝이 맞으면 두 칸을 비우고 true, 아니면 false.
+  bool match(int a, int b) {
+    if (!canMatch(a, b)) return false;
+    cells[a] = -1;
+    cells[b] = -1;
+    return true;
+  }
+
+  /// 맞출 수 있는 짝 하나를 (칸 번호 a, 칸 번호 b)로 알려준다. 없으면 null. (힌트용)
+  (int, int)? findHint() {
+    final first = <int, int>{};
+    for (var i = 0; i < cells.length; i++) {
+      final k = cells[i];
+      if (k < 0) continue;
+      final j = first[k];
+      if (j != null) return (j, i);
+      first[k] = i;
+    }
+    return null;
+  }
+}

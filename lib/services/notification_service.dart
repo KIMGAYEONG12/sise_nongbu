@@ -27,11 +27,29 @@ class NotificationService {
 
   Future<String?> fcmToken() => FirebaseMessaging.instance.getToken();
 
-  Future<void> scheduleHarvest(int plotIdx, String cropName, DateTime at) => _local.zonedSchedule(
+  /// 수확 알림 예약. 이미 수확할 시간이 지났으면(물주기·성장촉진제·하우스로 시간이 줄어든 경우 등) 예약하지 않는다.
+  /// 알림은 부가 기능이라 예약에 실패해도 게임 동작을 막지 않고 오류 문구를 화면에 띄우지도 않는다.
+  Future<void> scheduleHarvest(int plotIdx, String cropName, DateTime at) async {
+    if (!at.isAfter(DateTime.now().add(const Duration(seconds: 2)))) {
+      try {
+        await _local.cancel(plotIdx);
+      } catch (_) {}
+      return;
+    }
+    try {
+      await _local.zonedSchedule(
         plotIdx, '수확 시간이에요!', '${withJosa(cropName, '을', '를')} 수확할 수 있어요', tz.TZDateTime.from(at, tz.local), _details,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       );
+    } catch (e) {
+      if (kDebugMode) debugPrint('수확 알림 예약 실패: $e');
+    }
+  }
 
-  Future<void> cancel(int plotIdx) => _local.cancel(plotIdx);
+  Future<void> cancel(int plotIdx) async {
+    try {
+      await _local.cancel(plotIdx);
+    } catch (_) {}
+  }
 }

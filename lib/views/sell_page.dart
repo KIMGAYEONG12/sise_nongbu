@@ -19,6 +19,39 @@ String soldMessage(List<String> cropNames) {
   return '${names.first} 외 ${names.length - 1}종이 판매되었습니다!';
 }
 
+/// 판매 완료 창: 판 작물 그림(여러 종이면 나란히)과 "토마토가 판매되었습니다!" 문구, 받은 금액·포인트를 보여 준다.
+Future<void> showSoldDialog(BuildContext context, List<String> cropCodes, List<String> cropNames, int total, int points) => showDialog<void>(
+      context: context,
+      builder: (d) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFFF4C2), Color(0xFFFFFFFF), Color(0xFFEAF6DF)]),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .25), blurRadius: 24, offset: const Offset(0, 10))],
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [for (final code in cropCodes.take(6)) CropArt(code: code, size: cropCodes.length == 1 ? 110 : (cropCodes.length <= 3 ? 80 : 60))],
+            ),
+            const SizedBox(height: 14),
+            Text(soldMessage(cropNames), textAlign: TextAlign.center, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.greenDark, height: 1.3)),
+            const SizedBox(height: 10),
+            Text('+${won(total)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.ink)),
+            const SizedBox(height: 2),
+            Text('Point +${points}P', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.greenDark)),
+            const SizedBox(height: 18),
+            GreenButton(label: '확인', onPressed: () => Navigator.of(d).pop()),
+          ]),
+        ),
+      ),
+    );
+
 /// 판매할 작물 선택 (시안): 창고의 수확물을 골라 현재 시세로 한꺼번에 출하한다.
 /// 아래 "예상 수익" 카드에 총 판매금액 · 게임머니 · Point 가 나온다.
 class SellPage extends ConsumerStatefulWidget {
@@ -31,15 +64,17 @@ class _SellPageState extends ConsumerState<SellPage> {
   final _picked = <String>{};
   bool _busy = false;
 
-  Future<void> _sell(List<Lot> chosen) async {
+  Future<void> _sell(List<Lot> chosen, int total) async {
     setState(() => _busy = true);
     final vm = ref.read(farmViewModelProvider);
     final soldNames = <String>[];
+    final soldCodes = <String>[];
     String? error;
     for (final l in chosen) {
       try {
         await vm.sell(l);
         soldNames.add(cropOf(l.cropCode).name);
+        if (!soldCodes.contains(l.cropCode)) soldCodes.add(l.cropCode);
         _picked.remove(l.id);
       } catch (e) {
         error = errMsg(e);
@@ -51,8 +86,9 @@ class _SellPageState extends ConsumerState<SellPage> {
     if (error != null) {
       showMsg(context, soldNames.isNotEmpty ? '${soldMessage(soldNames)} 이후 중단: $error' : error);
     } else {
-      showMsg(context, soldMessage(soldNames));
-      Navigator.of(context).pop();
+      // 작물 그림과 함께 "토마토가 판매되었습니다!" 창을 보여 준 뒤 창고로 돌아간다
+      await showSoldDialog(context, soldCodes, soldNames, total, chosen.length * sellPointReward);
+      if (mounted) Navigator.of(context).pop();
     }
   }
 
@@ -133,7 +169,7 @@ class _SellPageState extends ConsumerState<SellPage> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
-              child: GreenButton(label: '판매하기', loading: _busy, onPressed: chosen.isEmpty ? null : () => _sell(chosen)),
+              child: GreenButton(label: '판매하기', loading: _busy, onPressed: chosen.isEmpty ? null : () => _sell(chosen, total)),
             ),
           ]),
         ),

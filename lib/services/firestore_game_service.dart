@@ -335,15 +335,48 @@ class FirestoreGameService {
         tx.update(_user, {'money': money - cost, 'warehouseLevel': lv + 1, 'updatedAt': FieldValue.serverTimestamp()});
       });
 
-  /// 하우스를 한 채 더 짓는다 (최대 [maxGreenhouses]채, 지을수록 비용이 늘어난다).
-  Future<void> buyGreenhouse() => _tx((tx) async {
+  /// 하우스를 한 채 더 짓는다 (몇 채든 가능하고, 지을수록 비용이 늘어난다).
+  /// 지금 자라고 있는 작물도 바로 빨라진다: 남은 성장 시간이 새 하우스 배율만큼 줄어든다.
+  /// 시간이 바뀐 밭의 (칸 번호, 작물, 새 수확 시각)을 돌려준다 (알림을 다시 예약하는 데 쓴다).
+  Future<List<(int, CropSpec, DateTime)>> buyGreenhouse({DateTime? now}) => _tx<List<(int, CropSpec, DateTime)>>((tx) async {
+        final t = now ?? DateTime.now();
         final u = (await tx.get(_user)).data()!;
         final owned = UserData(u).greenhouses;
         final cost = greenhouseCostFor(owned);
-        if (cost == null) throw StateError('하우스는 최대 $maxGreenhouses채까지 지을 수 있어요');
         final money = _int(u['money']);
         if (money < cost) throw StateError('자금이 부족해요');
+        // 트랜잭션은 읽기를 모두 끝낸 뒤에 쓴다
+        final plotSnaps = [for (var i = 0; i < maxPlots; i++) await tx.get(_col('plots').doc('$i'))];
         tx.update(_user, {'money': money - cost, 'greenhouse': true, 'greenhouses': owned + 1, 'updatedAt': FieldValue.serverTimestamp()});
+        final ratio = greenhouseFactor(owned + 1) / greenhouseFactor(owned);
+        final changed = <(int, CropSpec, DateTime)>[];
+        for (final s in plotSnaps) {
+          if (!s.exists) continue;
+          final m = s.data()!;
+          final code = m['cropCode'];
+          final idx = int.tryParse(s.id);
+          final ready = (m['readyAt'] as Timestamp?)?.toDate();
+          if (code is! String || idx == null || ready == null || !ready.isAfter(t)) continue;
+          CropSpec c;
+          try {
+            c = cropOf(code);
+          } catch (_) {
+            continue;
+          }
+          final remaining = ready.difference(t).inMilliseconds;
+          final newRemain = (remaining * ratio).round();
+          if (newRemain >= remaining) continue;
+          final r = t.add(Duration(milliseconds: newRemain));
+          final upd = <String, dynamic>{'readyAt': Timestamp.fromDate(r)};
+          final growMs = _int(m['growMs']);
+          if (growMs > 0) {
+            final g = growMs - (remaining - newRemain);
+            upd['growMs'] = g < newRemain ? newRemain : g; // 지나간 시간은 그대로, 남은 시간만 줄어든다
+          }
+          tx.update(s.reference, upd);
+          changed.add((idx, c, r));
+        }
+        return changed;
       });
 
   /// 씨앗 꾸러미: 여섯 작물의 씨앗을 1개씩 한 번에 받는다.
@@ -400,6 +433,25 @@ class FirestoreGameService {
             break;
         }
         tx.update(_user, upd);
+      });
+
+  /// 레벨이 [from]에서 [to]로 올랐을 때 보상(포인트·희귀 씨앗)을 한 번만 준다.
+  /// 받은 레벨을 `levelRewarded`에 적어 두어서, 같은 레벨 업 보상이 두 번 들어가지 않는다. 이미 받았으면 null.
+  Future<LevelUpReward?> claimLevelUpReward(int from, int to) => _tx<LevelUpReward?>((tx) async {
+        final u = (await tx.get(_user)).data()!;
+        final done = u['levelRewarded'] is num ? (u['levelRewarded'] as num).toInt() : from;
+        if (to <= done) return null;
+        final code = levelUpSeedCrop(to);
+        final k = seedKey(code);
+        final items = _asMap(u['items']) ?? {};
+        final (pts, seeds) = levelUpTotals(done, to); // 레벨이 높을수록 보상이 커진다
+        tx.update(_user, {
+          'points': _int(u['points']) + pts,
+          'items.$k': _int(items[k]) + seeds,
+          'levelRewarded': to,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        return LevelUpReward(points: pts, seedCode: code, seedCount: seeds);
       });
 
   Future<void> claimMission(MissionDef def, {DateTime? now}) => _tx((tx) async {

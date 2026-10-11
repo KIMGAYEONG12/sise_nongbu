@@ -6,7 +6,6 @@ import '../models/models.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
 import 'harvest_result_page.dart';
-import '../core/korean.dart';
 
 /// 성장 시간 문구 (예: 4시간, 6분, 24초)
 String durText(Duration d) {
@@ -42,7 +41,7 @@ Future<void> showPlantSheet(BuildContext context, WidgetRef ref, Plot plot) {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     onTap: () {
                       Navigator.pop(sheetContext);
-                      runGuarded(context, () => ref.read(farmViewModelProvider).plant(plot.index, c), ok: '${withJosa(c.name, '을', '를')} 심었어요 🌱');
+                      runGuarded(context, () => ref.read(farmViewModelProvider).plant(plot.index, c), ok: '${c.emoji} 심었어요!');
                     },
                     child: Row(children: [
                       EmojiBadge(c.emoji),
@@ -76,6 +75,7 @@ Future<void> harvestPlot(BuildContext context, WidgetRef ref, Plot plot) async {
   try {
     final kg = await ref.read(farmViewModelProvider).harvest(plot);
     if (!context.mounted) return;
+    showMsg(context, '${cropOf(cropCode).emoji} 수확했어요!');
     await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => HarvestResultPage(cropCode: cropCode, kg: kg)));
   } catch (e) {
     showMsg(context, errMsg(e));

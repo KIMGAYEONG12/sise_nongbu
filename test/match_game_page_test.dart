@@ -24,11 +24,14 @@ void main() {
         final level = matchLevels[lv];
         await tester.tap(find.text(level.name));
         await tester.pump();
+        await tester.ensureVisible(find.text('시작하기'));
+        await tester.pump();
         await tester.tap(find.text('시작하기'));
         await tester.pump(const Duration(milliseconds: 300));
         expect(find.text('시작하기'), findsNothing);
-        // 판 size×size 칸 + 위쪽 시세 배율 안내(작물 종류마다 1개)
-        expect(find.byType(CropArt), findsNWidgets(level.size * level.size + level.kinds));
+        // 짝 맞추기 판: size×size 칸 (칸 수가 홀수면 가운데 한 칸은 비어 있다) + 위쪽 시세 배율 안내(작물 종류마다 1개)
+        final tiles = level.size * level.size - (level.size.isOdd ? 1 : 0);
+        expect(find.byType(CropArt), findsNWidgets(tiles + level.kinds));
         await tester.tap(find.byType(CropArt).last);
         await tester.pump();
         expect(tester.takeException(), isNull);
@@ -39,4 +42,43 @@ void main() {
       });
     }
   }
+
+  testWidgets('시작 전에 플레이할 작물을 직접 고를 수 있다 (3~6종)', (tester) async {
+    tester.view.physicalSize = const Size(411, 891) * 3;
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [userDataProvider.overrideWithValue(const UserData({}))],
+      child: const MaterialApp(home: MatchGamePage()),
+    ));
+    await tester.pump();
+    expect(find.text('플레이할 작물 고르기 (4종 · 3~6종)'), findsOneWidget);
+    // 쉬움 기본은 배추·감자·토마토·사과. 사과를 끄고 양파를 켜면 여전히 4종이다.
+    await tester.ensureVisible(find.text('사과'));
+    await tester.pump();
+    await tester.tap(find.text('사과'));
+    await tester.pump();
+    expect(find.text('플레이할 작물 고르기 (3종 · 3~6종)'), findsOneWidget);
+    await tester.ensureVisible(find.text('배추'));
+    await tester.pump();
+    await tester.tap(find.text('배추')); // 3종 아래로는 못 줄인다
+    await tester.pump();
+    expect(find.text('플레이할 작물 고르기 (3종 · 3~6종)'), findsOneWidget);
+    await tester.ensureVisible(find.text('양파'));
+    await tester.pump();
+    await tester.tap(find.text('양파'));
+    await tester.ensureVisible(find.text('무'));
+    await tester.pump();
+    await tester.tap(find.text('무'));
+    await tester.pump();
+    expect(find.text('플레이할 작물 고르기 (5종 · 3~6종)'), findsOneWidget);
+    await tester.ensureVisible(find.text('시작하기'));
+    await tester.pump();
+    await tester.tap(find.text('시작하기'));
+    await tester.pump(const Duration(milliseconds: 300));
+    // 5×5 판은 24칸 + 위쪽 시세 배율 안내 5개
+    expect(find.byType(CropArt), findsNWidgets(24 + 5));
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
 }

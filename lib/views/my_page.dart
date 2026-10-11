@@ -5,7 +5,11 @@ import '../services/auth_service.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
 import 'about_page.dart';
+import '../core/progress_rules.dart';
 import 'achievement_page.dart';
+import 'encyclopedia_page.dart';
+import 'news_page.dart';
+import 'point_shop_page.dart';
 import 'support_page.dart';
 import 'trade_history_page.dart';
 
@@ -44,6 +48,78 @@ class MyPage extends ConsumerWidget {
     await ref.read(prefsProvider).remove(tutorialDoneKey);
     if (!context.mounted) return;
     await runGuarded(context, ref.read(authServiceProvider).signOut);
+  }
+
+  /// 보유 포인트 / 보유 금액 카드
+  Widget _walletCard({required Widget icon, required String label, required String value, required VoidCallback onTap}) => SoftCard(
+        color: Colors.white,
+        onTap: onTap,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        child: Row(children: [
+          SizedBox(width: 38, child: Center(child: icon)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF4A5A4E), fontWeight: FontWeight.w600)),
+              const SizedBox(height: 2),
+              FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20)))),
+            ]),
+          ),
+        ]),
+      );
+
+  /// 나의 칭호 카드: 지금 칭호 + 다음 칭호까지 레벨 진행
+  /// 나의 칭호 카드: 레벨이 한 번 오를 때마다 칭호 "단계"가 하나씩 오르고, 정해진 레벨마다 칭호 이름이 더 멋진 것으로 바뀐다.
+  Widget _titleCard(LevelInfo lv) {
+    final level = lv.level;
+    final i = farmerTitleIndex(level);
+    final cur = farmerTitles[i];
+    final next = i + 1 < farmerTitles.length ? farmerTitles[i + 1] : null;
+    final rank = farmerTitleRank(level);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFE3F4D2), Color(0xFFF4FAEA)]),
+        border: Border.all(color: const Color(0xFFCFE6B8)),
+      ),
+      child: Row(children: [
+        Container(
+          width: 62,
+          height: 62,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const RadialGradient(center: Alignment(-.3, -.4), colors: [Color(0xFFFFE9A0), Color(0xFFF0B63C)]),
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: [BoxShadow(color: const Color(0xFFE0A800).withValues(alpha: .35), blurRadius: 8, offset: const Offset(0, 3))],
+          ),
+          child: Text(cur.emoji, style: const TextStyle(fontSize: 32, height: 1)),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Flexible(child: Text(cur.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.greenDark))),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(color: AppColors.green, borderRadius: BorderRadius.circular(10)),
+                child: Text('$rank단계', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.white)),
+              ),
+            ]),
+            const SizedBox(height: 4),
+            Text(next == null ? '레벨이 오를 때마다 단계가 올라가요' : '다음 칭호 "${next.name}"까지 Lv.${next.minLevel}', style: const TextStyle(fontSize: 12.5, color: Color(0xFF3D4A40), fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Row(children: [
+              Expanded(child: ThinBar(value: lv.ratio, height: 9)),
+              const SizedBox(width: 8),
+              Text('다음 ${rank + 1}단계', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF3D4A40))),
+            ]),
+          ]),
+        ),
+      ]),
+    );
   }
 
   @override
@@ -107,32 +183,20 @@ class MyPage extends ConsumerWidget {
         ),
       ]),
       const SizedBox(height: 18),
-      SoftCard(
-        color: Colors.white,
-        onTap: () => showCropStats(context),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Row(children: [
-          const SizedBox(
-            width: 52,
-            height: 40,
-            child: Stack(children: [
-              Positioned(left: 0, bottom: 0, child: CoinIcon(size: 30)),
-              Positioned(left: 18, bottom: 6, child: CoinIcon(size: 30)),
-              Positioned(left: 8, top: 0, child: CoinIcon(size: 24)),
-            ]),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('보유 금액', style: TextStyle(fontSize: 12, color: Color(0xFF4A5A4E), fontWeight: FontWeight.w600)),
-              const SizedBox(height: 2),
-              Text(won(user.money), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20))),
-            ]),
-          ),
-          const Icon(Icons.chevron_right_rounded, color: Color(0xFF2B3A30)),
+      // 시안: 보유 포인트 · 보유 금액 두 장
+      // (ListView 안에서는 높이가 정해져 있지 않아서 IntrinsicHeight 로 두 카드 높이를 맞춘다)
+      IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Expanded(child: _walletCard(icon: const Icon(Icons.star_rounded, color: AppColors.coin, size: 34), label: '보유 포인트', value: '${commaNum(user.points)}P', onTap: () => _push(context, const PointShopPage()))),
+        const SizedBox(width: 12),
+        Expanded(child: _walletCard(icon: const CoinIcon(size: 32), label: '보유 금액', value: won(user.money), onTap: () => showCropStats(context))),
         ]),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 18),
+      // 시안: 나의 칭호 (레벨에 따라 바뀐다)
+      const Padding(padding: EdgeInsets.only(left: 4, bottom: 8), child: Text('나의 칭호', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20)))),
+      _titleCard(lv),
+      const SizedBox(height: 14),
       SoftCard(
         color: Colors.white,
         padding: EdgeInsets.zero,
@@ -140,6 +204,8 @@ class MyPage extends ConsumerWidget {
           menu(Icons.home_work_outlined, '내 농장', () => ref.read(shellIndexProvider.notifier).state = 1),
           menu(Icons.bar_chart_rounded, '농작물 통계', () => showCropStats(context)),
           menu(Icons.emoji_events_outlined, '업적', () => _push(context, const AchievementPage())),
+          menu(Icons.menu_book_outlined, '작물 도감', () => _push(context, const EncyclopediaPage())),
+          menu(Icons.newspaper_rounded, '전국 농부 뉴스', () => _push(context, const NewsPage())),
           menu(Icons.receipt_long_outlined, '거래 기록', () => _push(context, const TradeHistoryPage())),
           menu(Icons.support_agent_rounded, '고객센터', () => _push(context, const SupportPage())),
           menu(Icons.info_outline_rounded, '앱 정보', () => _push(context, const AboutPage())),

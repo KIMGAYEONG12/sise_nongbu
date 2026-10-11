@@ -90,11 +90,12 @@ final userDataProvider = Provider<UserData>((ref) =>
 /// 하단 탭 번호 (0 시세판, 1 농장, 2 창고, 3 상점, 4 MY). 다른 화면에서 탭을 바꿀 때 쓴다.
 final shellIndexProvider = StateProvider<int>((_) => 1);
 
-final weatherProvider = FutureProvider<Weather?>((ref) {
-  // 30분마다 다시 불러와서 날씨가 바뀌면 카드도 바뀐다
-  final t = Timer(const Duration(minutes: 30), ref.invalidateSelf);
+final weatherProvider = FutureProvider<Weather?>((ref) async {
+  final w = await WeatherService(http.Client()).current();
+  // 30분마다 다시 불러와서 날씨가 바뀌면 카드도 바뀐다. 실패했으면(켠 직후 네트워크가 느린 경우 등) 20초 뒤에 다시 시도한다.
+  final t = Timer(w == null ? const Duration(seconds: 20) : const Duration(minutes: 30), ref.invalidateSelf);
   ref.onDispose(t.cancel);
-  return WeatherService(http.Client()).current();
+  return w;
 });
 
 /// 품목 상세 화면용: 최근 7일 시세와 거래량
@@ -259,6 +260,7 @@ class FarmViewModel {
       _repo.buyPointItem(i.key, cropCode: cropCode);
 
   // 미션·업적·기금·기타
+  Future<LevelUpReward?> claimLevelUp(int from, int to) => _repo.claimLevelUpReward(from, to);
   Future<void> claimMission(MissionDef d) => _repo.claimMission(d);
   Future<void> claimAchievement(AchievementDef d) => _repo.claimAchievement(
       d, (_ref.read(plotsProvider).valueOrNull ?? const <Plot>[]).length);

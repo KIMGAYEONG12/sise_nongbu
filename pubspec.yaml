@@ -16,6 +16,8 @@ dependencies:
   timezone: ^0.9.4
   shared_preferences: ^2.3.2
   http: ^1.2.2
+  image_picker: ^1.2.4
+  speech_to_text: ^7.5.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

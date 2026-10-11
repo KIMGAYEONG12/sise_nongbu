@@ -18,6 +18,22 @@ class _AchievementPageState extends ConsumerState<AchievementPage> {
   static const _tabs = ['전체', '일반', '도전', '특별'];
   int _tab = 0;
 
+  /// 받을 수 있는 업적을 한 번에 모두 받는다. 하나가 실패하면 거기서 멈추고, 그때까지 받은 만큼은 안내한다.
+  Future<void> _claimAll(List<AchievementDef> list) async {
+    final vm = ref.read(farmViewModelProvider);
+    var got = 0, pts = 0;
+    try {
+      for (final a in list) {
+        await vm.claimAchievement(a);
+        got++;
+        pts += a.points;
+      }
+      if (mounted) showMsg(context, '업적 $got개를 한 번에 받았어요 (+${pts}P)');
+    } catch (e) {
+      if (mounted) showMsg(context, got > 0 ? '$got개(+${pts}P)를 받고 멈췄어요: ${errMsg(e)}' : errMsg(e));
+    }
+  }
+
   /// 업적을 이루러 갈 화면 (없으면 null)
   Widget? _goTo(String id) {
     if (id == 'puzzle') return const MatchGamePage();
@@ -32,6 +48,9 @@ class _AchievementPageState extends ConsumerState<AchievementPage> {
     final claimed = user.achClaimed;
     final list = achievements.where((a) => _tab == 0 || a.category == _tabs[_tab]).toList();
     final doneCount = achievements.where((a) => claimed.contains(a.id)).length;
+    // 달성했지만 아직 안 받은 업적 (탭과 상관없이 전체)
+    final claimable = [for (final a in achievements) if (!claimed.contains(a.id) && achievementProgress(a, user.raw, plots) >= a.target) a];
+    final claimablePts = claimable.fold<int>(0, (s, a) => s + a.points);
 
     return Scaffold(
       body: GameBackground(
@@ -100,6 +119,14 @@ class _AchievementPageState extends ConsumerState<AchievementPage> {
                     );
                   }),
               ]),
+            ),
+            // 받을 수 있는 보상을 한 번에 받는 버튼
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+              child: GreenButton(
+                label: claimable.isEmpty ? '받을 보상이 없어요' : '전체 받기 +${claimablePts}P (${claimable.length}개)',
+                onPressed: claimable.isEmpty ? null : () => _claimAll(claimable),
+              ),
             ),
           ]),
         ),

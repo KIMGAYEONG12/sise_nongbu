@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import '../core/game_rules.dart';
 import '../models/models.dart';
 
@@ -50,9 +51,21 @@ class AiContext {
   }
 }
 
-/// 질문에 답을 만들어 주는 두뇌 (Gemini 또는 오프라인 규칙)
+/// 질문과 함께 보내는 사진 (카메라·앨범에서 고른 것)
+class AiImage {
+  const AiImage(this.bytes, this.mime);
+  final Uint8List bytes;
+
+  /// 예) image/jpeg
+  final String mime;
+}
+
+/// 사진만 보내고 글을 안 적었을 때 대신 쓰는 질문
+const aiDefaultPhotoQuestion = '이 사진 속 작물이나 상태를 보고 알려줘';
+
+/// 질문에 답을 만들어 주는 두뇌 (Gemini 또는 오프라인 규칙). 사진([image])이 있으면 함께 보고 답한다.
 abstract class Llm {
-  Future<String> complete(String question, AiContext ctx);
+  Future<String> complete(String question, AiContext ctx, {AiImage? image});
 }
 
 /// 도우미 화면에 보여줄 추천 질문 (눌러서 바로 물어볼 수 있다)
@@ -76,11 +89,14 @@ class AiAgent {
   AiAgent(this._llm);
   final Llm _llm;
 
-  Future<String> ask(String question, AiContext ctx) async {
-    final q = question.trim();
-    if (q.isEmpty) return '궁금한 걸 입력해 주세요!';
+  Future<String> ask(String question, AiContext ctx, {AiImage? image}) async {
+    var q = question.trim();
+    if (q.isEmpty) {
+      if (image == null) return '궁금한 걸 입력해 주세요!';
+      q = aiDefaultPhotoQuestion; // 사진만 보냈으면 사진 속 내용을 물어본 것으로 본다
+    }
     try {
-      return await _llm.complete(q, ctx);
+      return await _llm.complete(q, ctx, image: image);
     } catch (_) {
       return '지금은 답을 가져오지 못했어요. 잠시 후 다시 물어봐 주세요.';
     }

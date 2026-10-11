@@ -29,7 +29,16 @@ Future<void> main() async {
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       scrollBehavior: const NoStretchScrollBehavior(), // 끝까지 스크롤했을 때 화면이 고무줄처럼 늘어나지 않게
-      builder: (context, child) => kIsWeb ? PhoneFrame(child: child!) : child!, // 웹(PC)에서는 휴대폰 테두리 안에 표시
+      builder: (context, child) {
+        // 앱 전체 글씨를 10% 키움 (폰 설정의 글꼴 크기에 곱해진다)
+        final scaled = MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(MediaQuery.textScalerOf(context).scale(1.0) * 1.1),
+          ),
+          child: child!,
+        );
+        return kIsWeb ? PhoneFrame(child: scaled) : scaled; // 웹(PC)에서는 휴대폰 테두리 안에 표시
+      },
       home: const AppRoot(),
     ),
   ));

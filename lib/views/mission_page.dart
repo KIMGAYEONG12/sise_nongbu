@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/progress_rules.dart';
+import '../models/models.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
 
@@ -14,6 +15,37 @@ class MissionPage extends ConsumerStatefulWidget {
 class _MissionPageState extends ConsumerState<MissionPage> {
   int _tab = 0;
 
+  /// 지금 바로 받을 수 있는 미션 (일일·주간 모두): 목표를 채웠고 아직 안 받은 것
+  List<MissionDef> _claimable(UserData user, DateTime now) {
+    final out = <MissionDef>[];
+    for (final weekly in [false, true]) {
+      final list = weekly ? weeklyMissions : dailyMissions;
+      final tag = weekly ? weekTag(now) : dayTag(now);
+      final map = weekly ? user.weekly : user.daily;
+      final claimed = periodClaimed(map, tag);
+      for (final m in list) {
+        if (periodCount(map, tag, m.key) >= m.target && !claimed.contains(m.id)) out.add(m);
+      }
+    }
+    return out;
+  }
+
+  /// 받을 수 있는 미션 보상을 한 번에 모두 받는다. 하나가 실패하면 거기서 멈추고, 그때까지 받은 만큼은 안내한다.
+  Future<void> _claimAll(List<MissionDef> list) async {
+    final vm = ref.read(farmViewModelProvider);
+    var got = 0, pts = 0;
+    try {
+      for (final m in list) {
+        await vm.claimMission(m);
+        got++;
+        pts += m.points;
+      }
+      if (mounted) showMsg(context, '미션 $got개를 한 번에 받았어요 (+${pts}P)');
+    } catch (e) {
+      if (mounted) showMsg(context, got > 0 ? '$got개(+${pts}P)를 받고 멈췄어요: ${errMsg(e)}' : errMsg(e));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(userDataProvider);
@@ -23,6 +55,8 @@ class _MissionPageState extends ConsumerState<MissionPage> {
     final tag = weekly ? weekTag(now) : dayTag(now);
     final map = weekly ? user.weekly : user.daily;
     final claimed = periodClaimed(map, tag);
+    final claimable = _claimable(user, now);
+    final claimablePts = claimable.fold<int>(0, (a, m) => a + m.points);
 
     return Scaffold(
       body: GameBackground(
@@ -74,6 +108,14 @@ class _MissionPageState extends ConsumerState<MissionPage> {
                 const SizedBox(height: 6),
                 Center(child: Text(weekly ? '주간 미션은 매주 월요일에 초기화돼요.' : '일일 미션은 매일 자정에 초기화돼요.', style: const TextStyle(fontSize: 12, color: AppColors.sub))),
               ]),
+            ),
+            // 받을 수 있는 보상을 한 번에 받는 버튼
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+              child: GreenButton(
+                label: claimable.isEmpty ? '받을 보상이 없어요' : '전체 받기 +${claimablePts}P (${claimable.length}개)',
+                onPressed: claimable.isEmpty ? null : () => _claimAll(claimable),
+              ),
             ),
           ]),
         ),

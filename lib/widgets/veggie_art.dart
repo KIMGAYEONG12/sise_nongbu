@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../core/game_rules.dart' show cropOf;
 
 /// 배추 말고 다른 작물(무·양파·사과·토마토·감자)을 코드로 그린 벡터 그림.
 /// 이모지가 아니라서 어떤 크기에서도 선명하고, 작물마다 모양이 확실히 다르다.
@@ -27,9 +28,49 @@ class VeggiePainter extends CustomPainter {
         _tomato(canvas, c, r);
       case 'POTATO':
         _potato(canvas, c, r);
+      case 'FIG':
+        _fig(canvas, c, r);
       default:
-        canvas.drawCircle(c, r * .6, Paint()..color = const Color(0xFF6DAA3F));
+        _emoji(canvas, c, r);
     }
+  }
+
+  /// 직접 그린 그림이 없는 작물은 그 작물의 이모지를 크게 그린다 (이모지를 모르면 초록 동그라미)
+  void _emoji(Canvas canvas, Offset c, double r) {
+    String? emoji;
+    try {
+      emoji = cropOf(code).emoji;
+    } catch (_) {}
+    if (emoji == null) {
+      canvas.drawCircle(c, r * .6, Paint()..color = const Color(0xFF6DAA3F));
+      return;
+    }
+    final tp = TextPainter(text: TextSpan(text: emoji, style: TextStyle(fontSize: r * 1.75, height: 1)), textDirection: TextDirection.ltr)..layout();
+    tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
+  }
+
+  /// 무화과: 보랏빛 물방울 모양 열매 + 줄기 + 작은 잎 + 아래쪽 꽃눈
+  void _fig(Canvas canvas, Offset c, double r) {
+    final body = Path()
+      ..moveTo(c.dx, c.dy - r * .78)
+      ..cubicTo(c.dx + r * .22, c.dy - r * .62, c.dx + r * .98, c.dy - r * .1, c.dx + r * .78, c.dy + r * .5)
+      ..cubicTo(c.dx + r * .62, c.dy + r * .98, c.dx - r * .62, c.dy + r * .98, c.dx - r * .78, c.dy + r * .5)
+      ..cubicTo(c.dx - r * .98, c.dy - r * .1, c.dx - r * .22, c.dy - r * .62, c.dx, c.dy - r * .78)
+      ..close();
+    final rect = Rect.fromCircle(center: c, radius: r);
+    canvas.drawPath(body, _grad(rect, const [Color(0xFFB77CCB), Color(0xFF6B3A86), Color(0xFF3F1F58)]));
+    canvas.drawPath(body, _line(const Color(0xFF2E1642), math.max(1, r * .05)));
+    // 빛 반사
+    canvas.drawOval(Rect.fromCenter(center: c.translate(-r * .32, -r * .12), width: r * .28, height: r * .5), Paint()..color = const Color(0x55FFFFFF));
+    // 세로 결
+    for (final dx in const [-.3, 0.0, .3]) {
+      canvas.drawLine(Offset(c.dx + r * dx, c.dy - r * .3), Offset(c.dx + r * dx * 1.2, c.dy + r * .62), _line(const Color(0x33FFFFFF), math.max(.8, r * .03)));
+    }
+    // 꽃눈
+    canvas.drawCircle(c.translate(0, r * .9), r * .07, Paint()..color = const Color(0xFFE9B8D8));
+    // 줄기와 잎
+    canvas.drawLine(Offset(c.dx, c.dy - r * .78), Offset(c.dx + r * .06, c.dy - r * 1.02), _line(const Color(0xFF5A8F2E), math.max(2, r * .09)));
+    _leafBlade(canvas, Offset(c.dx + r * .06, c.dy - r * .98), -.7, r * .5, r * .22, const [Color(0xFF7FC450), Color(0xFF3F8F2E)]);
   }
 
   Paint _grad(Rect rect, List<Color> colors, {Alignment begin = Alignment.topLeft, Alignment end = Alignment.bottomRight}) =>

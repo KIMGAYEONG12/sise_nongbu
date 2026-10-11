@@ -2,7 +2,13 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "시세 농부 (실제 시세 API)",
+      "name": "시세 농부 (기본 · flutter run)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "시세 농부 (실제 시세 API · .env.local 필요)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",

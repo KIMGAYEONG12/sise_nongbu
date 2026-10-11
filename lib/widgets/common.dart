@@ -29,6 +29,12 @@ class AppImages {
   static const tutHand = 'assets/images/tut_hand.png';
   static const farmScene = 'assets/images/farm_scene.jpg';
 
+  /// 레벨 업 창 위쪽 일러스트 (시안에서 오려 낸 그림)
+  static const levelupHero = 'assets/images/levelup_hero.png';
+
+  /// 레벨 업 창 전체 일러스트 (시안에서 오려 낸 그림: 농부·간판·풀숲)
+  static const levelupCard = 'assets/images/levelup_card.png';
+
   /// 프로필 아바타: 튜토리얼 마지막 그림(밀짚모자 쓴 농부)에서 오려 낸 그림
   static const avatarGirl = 'assets/images/avatar_girl.png';
   static const loginLand = 'assets/images/login_land.png';
