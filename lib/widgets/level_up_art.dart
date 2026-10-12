@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'common.dart' show GirlAvatarPainter;
 
 /// 레벨 업 창의 배경 그림이 어느 층인지.
 /// back: 하늘·햇살·풀숲·소·농부 (색종이 뒤에 깔린다)
@@ -207,6 +206,13 @@ class LevelUpCardPainter extends CustomPainter {
         ..close();
       canvas.drawPath(star, Paint()..color = const Color(0xEEFFF6C2));
     }
+    // 금빛 가루와 꽃잎 (시안처럼 하늘 가득 흩날린다)
+    for (var i = 0; i < 46; i++) {
+      final x = (i * 61 % 330) + 12.0, y = (i * 37 % 170) + 8.0;
+      final r = 1.2 + (i % 4) * .7;
+      canvas.drawCircle(Offset(x, y), r + 1.5, Paint()..color = const Color(0x33FFE27A));
+      canvas.drawCircle(Offset(x, y), r, Paint()..color = i % 5 == 0 ? const Color(0xCCFFB6C8) : const Color(0xDDFFE27A));
+    }
     // 반짝이는 큰 잎 (왼쪽 초록, 오른쪽 주황)
     void leaf(Offset at, double angle, double len, Color a, Color b) {
       canvas.save();
@@ -285,6 +291,25 @@ class LevelUpCardPainter extends CustomPainter {
       _bush(canvas, Offset(b.$1, b.$2), b.$3, b.$4);
       _bush(canvas, Offset(artW - b.$1, b.$2), b.$3, b.$4 + 1);
     }
+    // 풀잎과 클로버 (안쪽 가장자리를 채운다)
+    for (var i = 0; i < 30; i++) {
+      final left = i.isEven;
+      final x = left ? 6.0 + (i * 7 % 50) : artW - 6.0 - (i * 7 % 50);
+      final y = 250.0 + (i * 23 % 236);
+      final lean = (left ? 1 : -1) * (.2 + (i % 4) * .12);
+      canvas.save();
+      canvas.translate(x, y);
+      canvas.rotate(lean);
+      final blade = Path()..moveTo(-2.5, 0)..quadraticBezierTo(0, -22.0 - (i % 3) * 6, 0, -30.0 - (i % 4) * 5)..quadraticBezierTo(3, -16, 2.5, 0)..close();
+      canvas.drawPath(blade, Paint()..color = i % 3 == 0 ? const Color(0xFF3FA33A) : const Color(0xFF6BCB4A));
+      canvas.restore();
+    }
+    for (final c in const [Offset(20, 342), Offset(28, 438), Offset(334, 336), Offset(326, 430)]) {
+      for (var k = 0; k < 3; k++) {
+        final a = -math.pi / 2 + k * 2 * math.pi / 3;
+        canvas.drawCircle(c + Offset(math.cos(a), math.sin(a)) * 5, 5, Paint()..color = const Color(0xFF2FA04A));
+      }
+    }
     // 꽃
     const blooms = <(double, double, double, int)>[
       (22, 304, 7, 0), (40, 352, 6, 1), (14, 392, 7, 2), (36, 428, 6, 0), (20, 466, 7, 1),
@@ -306,6 +331,14 @@ class LevelUpCardPainter extends CustomPainter {
     canvas.scale(1.18);
     canvas.translate(-46, -136);
     const c = Offset(46, 136);
+    // 몸통 (얼굴 아래로 둥글게, 얼룩무늬)
+    final bodyR = Rect.fromCenter(center: c.translate(8, 46), width: 74, height: 56);
+    canvas.drawOval(bodyR, Paint()..color = const Color(0xFFF3F3F3));
+    canvas.drawOval(bodyR, Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4
+      ..color = const Color(0xFF8A8A8A));
+    canvas.drawOval(Rect.fromCenter(center: c.translate(22, 40), width: 26, height: 20), Paint()..color = const Color(0xFF3A3A3A));
     // 귀
     for (final dx in const [-27.0, 27.0]) {
       canvas.drawOval(Rect.fromCenter(center: c.translate(dx, -10), width: 20, height: 12), Paint()..color = const Color(0xFFF3F3F3));
@@ -349,38 +382,119 @@ class LevelUpCardPainter extends CustomPainter {
   // ───────────────────────── 농부 ─────────────────────────
 
   void _girl(Canvas canvas) {
-    // 큰 밀짚모자 농부 아이 (간판 위로 얼굴과 모자만 보인다)
-    const s = 184.0;
-    canvas.save();
-    canvas.translate(177 - s / 2, 6);
-    canvas.clipRect(const Rect.fromLTWH(-30, 0, s + 60, 170));
+    Paint fill(Color c) => Paint()..color = c;
+    Paint stroke(Color c, double w) => Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..color = c;
+    const cx = 177.0;
     // 뒤에서 비치는 따뜻한 빛
-    canvas.drawCircle(const Offset(s / 2, 92), 86, Paint()..shader = const RadialGradient(colors: [Color(0xAAFFF8D0), Color(0x00FFF8D0)]).createShader(Rect.fromCircle(center: const Offset(s / 2, 92), radius: 86)));
-    // 시안처럼 어깨 아래로 길게 내려오는 갈색 머리 (얼굴 뒤에 깔린다)
-    final hair = Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF9A5A2E), Color(0xFF6E3C1A)]).createShader(const Rect.fromLTWH(0, 40, s, 140));
+    canvas.drawCircle(const Offset(cx, 100), 96, Paint()..shader = const RadialGradient(colors: [Color(0xCCFFF8D0), Color(0x00FFF8D0)]).createShader(Rect.fromCircle(center: const Offset(cx, 100), radius: 96)));
+
+    // 어깨 아래로 길게 내려오는 웨이브 갈색 머리 (얼굴 뒤)
+    final hairPaint = Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFA85F33), Color(0xFF7A3F1D)]).createShader(const Rect.fromLTWH(100, 60, 154, 130));
     for (final side in const [-1.0, 1.0]) {
-      final x0 = s / 2 + side * 46; // 얼굴 옆
+      final x0 = cx + side * 44;
       final lock = Path()
         ..moveTo(x0, 70)
-        ..cubicTo(x0 + side * 26, 96, x0 + side * 22, 134, x0 + side * 34, 172)
-        ..lineTo(x0 - side * 18, 172)
-        ..cubicTo(x0 - side * 4, 130, x0 - side * 8, 100, x0 - side * 6, 78)
+        ..cubicTo(x0 + side * 30, 92, x0 + side * 10, 112, x0 + side * 32, 134)
+        ..cubicTo(x0 + side * 50, 152, x0 + side * 22, 168, x0 + side * 38, 186)
+        ..lineTo(x0 - side * 22, 186)
+        ..cubicTo(x0 - side * 10, 150, x0 - side * 18, 110, x0 - side * 8, 80)
         ..close();
-      canvas.drawPath(lock, hair);
-      canvas.drawPath(lock, Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2
-        ..color = const Color(0x554A260F));
-      // 머리결 하이라이트
-      canvas.drawPath(Path()..moveTo(x0 + side * 8, 92)..quadraticBezierTo(x0 + side * 14, 120, x0 + side * 12, 150), Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..strokeCap = StrokeCap.round
-        ..color = const Color(0x55FFC48A));
+      canvas.drawPath(lock, hairPaint);
+      canvas.drawPath(lock, stroke(const Color(0x554A260F), 1.2));
+      canvas.drawPath(Path()..moveTo(x0 + side * 10, 96)..quadraticBezierTo(x0 + side * 20, 124, x0 + side * 14, 150), stroke(const Color(0x66FFC48A), 2.4));
     }
+
+    // 오른손으로 이삭을 들어 올린 팔 (시안처럼 한 손을 든다)
+    final arm = Path()..moveTo(cx + 62, 164)..quadraticBezierTo(cx + 92, 150, cx + 90, 118);
+    canvas.drawPath(arm, stroke(const Color(0xFFFFFBF2), 17));
+    canvas.drawPath(arm, stroke(const Color(0x33B5764A), 1.0));
+    canvas.drawCircle(const Offset(cx + 90, 112), 10, fill(const Color(0xFFFFDDBE)));
+    // 손에 든 밀 이삭
+    canvas.drawLine(const Offset(cx + 92, 112), const Offset(cx + 100, 62), stroke(const Color(0xFFD9A441), 2.4));
+    for (var i = 0; i < 5; i++) {
+      final y = 62 + i * 7.0;
+      canvas.drawOval(Rect.fromCenter(center: Offset(cx + 99 - i * .8 - 4, y), width: 9, height: 5), fill(const Color(0xFFF2C14E)));
+      canvas.drawOval(Rect.fromCenter(center: Offset(cx + 99 - i * .8 + 4, y + 3), width: 9, height: 5), fill(const Color(0xFFE5A92F)));
+    }
+
+    // 얼굴
+    final face = Rect.fromCenter(center: const Offset(cx, 106), width: 90, height: 96);
+    canvas.drawOval(face, Paint()..shader = const RadialGradient(center: Alignment(-.2, -.3), colors: [Color(0xFFFFE6CE), Color(0xFFFFD2AE)]).createShader(face));
+    canvas.drawOval(face, stroke(const Color(0x33B5764A), 1.0));
+    // 볼 터치
+    canvas.drawCircle(const Offset(cx - 30, 124), 11, fill(const Color(0x66FF8A78)));
+    canvas.drawCircle(const Offset(cx + 30, 124), 11, fill(const Color(0x66FF8A78)));
+    // 큰 눈: 짙은 갈색 홍채, 큰 하이라이트, 위쪽 속눈썹
+    for (final side in const [-1.0, 1.0]) {
+      final ex = cx + side * 22;
+      canvas.drawOval(Rect.fromCenter(center: Offset(ex, 108), width: 22, height: 27), fill(Colors.white));
+      canvas.drawOval(Rect.fromCenter(center: Offset(ex, 110), width: 17, height: 23), fill(const Color(0xFF4A2A18)));
+      canvas.drawOval(Rect.fromCenter(center: Offset(ex, 113), width: 10, height: 12), fill(const Color(0xFF2A1509)));
+      canvas.drawCircle(Offset(ex - side * 2.5 + 2, 103), 4.4, fill(Colors.white));
+      canvas.drawCircle(Offset(ex - 3, 116), 2.2, fill(const Color(0xCCFFFFFF)));
+      canvas.drawArc(Rect.fromCenter(center: Offset(ex, 108), width: 24, height: 28), math.pi * 1.05, math.pi * .9, false, stroke(const Color(0xFF3A1F10), 2.4));
+      canvas.drawLine(Offset(ex + 11 * side, 100), Offset(ex + 15 * side, 96), stroke(const Color(0xFF3A1F10), 1.6));
+      // 눈썹
+      canvas.drawPath(Path()..moveTo(ex - 10, 88)..quadraticBezierTo(ex, 82 - side, ex + 10, 87), stroke(const Color(0xFF7A3F1D), 2.2));
+    }
+    // 코와 활짝 웃는 입
+    canvas.drawCircle(const Offset(cx, 124), 1.8, fill(const Color(0x88B5764A)));
+    final mouth = Path()
+      ..moveTo(cx - 17, 134)
+      ..quadraticBezierTo(cx, 158, cx + 17, 134)
+      ..quadraticBezierTo(cx, 140, cx - 17, 134)
+      ..close();
+    canvas.drawPath(mouth, fill(const Color(0xFFC0463F)));
     canvas.save();
-    const GirlAvatarPainter().paint(canvas, const Size(s, s));
+    canvas.clipPath(mouth);
+    canvas.drawRect(const Rect.fromLTWH(cx - 14, 134, 28, 5), fill(Colors.white));
+    canvas.drawOval(Rect.fromCenter(center: const Offset(cx, 150), width: 16, height: 10), fill(const Color(0xFFF08A82)));
     canvas.restore();
+    canvas.drawPath(mouth, stroke(const Color(0xFF8E2A25), 1.2));
+
+    // 앞머리: 옆으로 갈라진 웨이브
+    final bangs = Path()
+      ..moveTo(cx - 45, 100)
+      ..cubicTo(cx - 52, 56, cx - 10, 48, cx + 6, 58)
+      ..cubicTo(cx + 30, 52, cx + 52, 64, cx + 45, 100)
+      ..cubicTo(cx + 40, 84, cx + 28, 78, cx + 16, 78)
+      ..cubicTo(cx + 4, 90, cx - 14, 84, cx - 24, 76)
+      ..cubicTo(cx - 36, 80, cx - 42, 88, cx - 45, 100)
+      ..close();
+    canvas.drawPath(bangs, hairPaint);
+    canvas.drawPath(bangs, stroke(const Color(0x554A260F), 1.0));
+
+    // 밀짚모자: 넓은 챙, 둥근 윗부분, 파란 띠, 잎
+    final brim = Rect.fromCenter(center: const Offset(cx, 62), width: 196, height: 44);
+    canvas.drawOval(brim, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFF7DE9C), Color(0xFFE8BE6A)]).createShader(brim));
+    canvas.drawOval(brim, stroke(const Color(0xFFC99A4B), 1.6));
+    final crown = Path()
+      ..moveTo(cx - 52, 60)
+      ..cubicTo(cx - 56, 6, cx + 56, 6, cx + 52, 60)
+      ..close();
+    canvas.drawPath(crown, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFBE9B0), Color(0xFFF0CC7C)]).createShader(const Rect.fromLTWH(cx - 56, 8, 112, 54)));
+    canvas.drawPath(crown, stroke(const Color(0xFFC99A4B), 1.4));
+    for (final dx in const [-26.0, -10.0, 8.0, 24.0]) {
+      canvas.drawLine(Offset(cx + dx, 16), Offset(cx + dx * 1.15, 52), stroke(const Color(0x33C99A4B), 1.2));
+    }
+    final band = Path()
+      ..moveTo(cx - 52, 52)
+      ..quadraticBezierTo(cx, 66, cx + 52, 52)
+      ..lineTo(cx + 53, 62)
+      ..quadraticBezierTo(cx, 76, cx - 53, 62)
+      ..close();
+    canvas.drawPath(band, fill(const Color(0xFF3B70D2)));
+    canvas.drawPath(band, stroke(const Color(0xFF2A55A8), 1.0));
+    canvas.save();
+    canvas.translate(cx + 36, 62);
+    canvas.rotate(-.7);
+    canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: 24, height: 10), fill(const Color(0xFF55B23A)));
+    canvas.drawLine(const Offset(-10, 0), const Offset(10, 0), stroke(const Color(0x88E8FFD0), 1.0));
     canvas.restore();
   }
 
@@ -412,6 +526,18 @@ class LevelUpCardPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.4
       ..color = const Color(0xFF6B3F1D));
+    // 간판 위쪽 모서리의 풀 장식
+    for (final side in const [-1.0, 1.0]) {
+      final bx = side < 0 ? 58.0 : 296.0;
+      for (var k = 0; k < 3; k++) {
+        canvas.save();
+        canvas.translate(bx + side * k * 7, 162);
+        canvas.rotate(side * (-.5 + k * .5));
+        final blade = Path()..moveTo(-3, 0)..quadraticBezierTo(0, -16, 0, -22)..quadraticBezierTo(4, -10, 3, 0)..close();
+        canvas.drawPath(blade, Paint()..color = k == 1 ? const Color(0xFF3FA33A) : const Color(0xFF7ED35A));
+        canvas.restore();
+      }
+    }
     // 못
     for (final x in const [54.0, 300.0]) {
       for (final y in const [174.0, 214.0]) {
