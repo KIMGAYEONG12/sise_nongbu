@@ -311,7 +311,7 @@ class GreenhousePainter extends CustomPainter {
       final dx = rw * (.12 + .5 * f) + rw * .06 * i / 7; // 앞으로 퍼져 나간다
       final dy = (ground - arm.dy) * f * f; // 아래로 갈수록 빨라진다
       final c = arm + Offset(dx, dy);
-      final r = w * .0105 * (1 - .3 * f);
+      final r = w * .017 * (1 - .3 * f);
       canvas.drawCircle(c, r + 1.2, Paint()..color = const Color(0x66BFE8FF).withValues(alpha: .4 * (1 - f)));
       canvas.drawCircle(c, r, Paint()..color = const Color(0xFF3CA7F0).withValues(alpha: .95 - .6 * f));
       canvas.drawCircle(c.translate(-r * .3, -r * .3), r * .35, Paint()..color = const Color(0xCCFFFFFF));
@@ -319,9 +319,9 @@ class GreenhousePainter extends CustomPainter {
     // 물이 닿는 작물 위의 작은 물결
     final splash = Offset(arm.dx + rw * .62, ground);
     final ps = (tt * 24) % 1.0;
-    canvas.drawOval(Rect.fromCenter(center: splash, width: rw * (.3 + .3 * ps), height: rw * .1), Paint()
+    canvas.drawOval(Rect.fromCenter(center: splash, width: rw * (.5 + .5 * ps), height: rw * .16), Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
+      ..strokeWidth = 1.8
       ..color = const Color(0xFFBFE8FF).withValues(alpha: .8 * (1 - ps)));
     canvas.restore();
   }

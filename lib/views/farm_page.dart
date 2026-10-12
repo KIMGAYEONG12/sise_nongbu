@@ -173,7 +173,7 @@ class _FarmHero extends StatelessWidget {
   static const maxScale = 1.4;
 
   /// 그림 맨 위에서 잘라 내는 비율 (옅은 안개색 부분)
-  static const _cropTop = .1;
+  static const _cropTop = .15;
 
   /// 프로필·날씨 카드 아래 끝 (그림은 이보다 36px 위에서 시작해 하늘과 겹친다)
   static double _headerBottom(double topInset) => topInset + 150;
@@ -219,7 +219,7 @@ class _FarmHero extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: const [Color(0xFF58B6EE), Color(0xFF78D0F8), Color(0xFF7FD8FC), Color(0xFF7FD8FC)],
+                  colors: const [Color(0xFF58B6EE), Color(0xFF78D0F8), Color(0xFF86D6F4), Color(0xFF86D6F4)],
                   stops: [0, ((seam / h) * .55).clamp(0.0, 1.0).toDouble(), (seam / h).clamp(0.0, 1.0).toDouble(), 1],
                 ),
               ),
@@ -236,23 +236,17 @@ class _FarmHero extends StatelessWidget {
           // 농장 일러스트: 윗부분 10%만 잘라 내고 나머지는 흐림·번짐 효과 없이 그대로 또렷하게 보여 준다
           Positioned(
             left: imgLeft,
-            top: seam,
+            top: imgTop,
             width: imgW,
-            height: imgH - cropPx,
+            height: imgH,
             child: ClipRect(
-              child: OverflowBox(
-                alignment: Alignment.bottomCenter,
-                minWidth: imgW,
-                maxWidth: imgW,
-                minHeight: imgH,
-                maxHeight: imgH,
-                child: Image.asset(AppImages.farmScene, width: imgW, height: imgH, fit: BoxFit.fill, filterQuality: FilterQuality.high),
-              ),
+              clipper: _TopCropClipper(cropPx),
+              child: Image.asset(AppImages.farmScene, width: imgW, height: imgH, fit: BoxFit.fill, filterQuality: FilterQuality.high),
             ),
           ),
           // 하늘과 그림이 만나는 곳의 숲 가장자리: 잘린 나무 윗부분을 둥근 덤불 선으로 자연스럽게 마무리한다 (그림 아님, 코드로 그린 또렷한 도형)
           if (seam > 12)
-            Positioned(left: 0, right: 0, top: seam - 14, height: math.max(24.0, imgH * .07), child: const IgnorePointer(child: CustomPaint(painter: _TreeLinePainter()))),
+            Positioned(left: 0, right: 0, top: seam - 14, height: math.max(40.0, imgH * .12), child: const IgnorePointer(child: CustomPaint(painter: _TreeLinePainter()))),
           // 연못에서 헤엄치는 물고기 (농장 탭을 보고 있을 때만 움직인다)
           Positioned.fromRect(
             rect: Rect.fromLTRB(imgLeft + _pond.left * k, imgTop + _pond.top * k, imgLeft + _pond.right * k, imgTop + _pond.bottom * k),
@@ -266,7 +260,8 @@ class _FarmHero extends StatelessWidget {
               top: imgTop,
               width: imgW,
               height: imgH,
-              child: IgnorePointer(child: GrowingHouseLayer(scale: houseScaleFor(level))),
+              // 윗부분은 하늘과 같이 잘라 낸다 (안 자르면 잘라 낸 자리에 그림 윗부분이 다시 비쳐 하늘 띠가 생긴다)
+              child: IgnorePointer(child: ClipRect(clipper: _TopCropClipper(cropPx), child: GrowingHouseLayer(scale: houseScaleFor(level)))),
             ),
           // 농장에서 움직이는 것들: 밭에서 흔들리는 작물 + 길을 순찰하며 물을 주는 최첨단 로봇 (농장 탭을 볼 때만 움직인다)
           Positioned(
@@ -302,6 +297,16 @@ class _FarmHero extends StatelessWidget {
       });
 }
 
+/// 그림 맨 위 [top]만큼을 잘라 내는 자르기 영역
+class _TopCropClipper extends CustomClipper<Rect> {
+  const _TopCropClipper(this.top);
+  final double top;
+  @override
+  Rect getClip(Size size) => Rect.fromLTRB(0, top, size.width, size.height);
+  @override
+  bool shouldReclip(_TopCropClipper old) => old.top != top;
+}
+
 /// 하늘과 농장 그림 사이의 숲 가장자리: 그림 속 나무와 같은 청록·초록으로 둥근 덤불을 이어 붙인 또렷한 선.
 /// 그림 윗부분을 잘라 낸 자리를 가려서 하늘과 그림이 띠 없이 이어져 보이게 한다 (흐림 효과 없음).
 class _TreeLinePainter extends CustomPainter {
@@ -324,10 +329,11 @@ class _TreeLinePainter extends CustomPainter {
       }
     }
 
-    row(h * .62, h * .26, h * .42, 3, const [Color(0xFF2FA89B), Color(0xFF1E8A82)]);
-    row(h * .92, h * .24, h * .38, 11, const [Color(0xFF5CBF6E), Color(0xFF2F9A5A)]);
+    row(h * .5, h * .22, h * .36, 3, const [Color(0xFF6CC9B4), Color(0xFF3FA88F)]);
+    row(h * .72, h * .2, h * .34, 7, const [Color(0xFF3FB29A), Color(0xFF2A9488)]);
+    row(h * .96, h * .2, h * .32, 11, const [Color(0xFF5CBF6E), Color(0xFF2F9A5A)]);
     // 맨 아래는 그림과 이어지는 초록 띠
-    canvas.drawRect(Rect.fromLTWH(0, h * .86, w, h * .14), Paint()..color = const Color(0xFF3FA45E));
+    canvas.drawRect(Rect.fromLTWH(0, h * .9, w, h * .1), Paint()..color = const Color(0xFF3FA45E));
   }
 
   @override
