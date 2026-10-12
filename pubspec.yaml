@@ -24,6 +24,11 @@ dev_dependencies:
   flutter_lints: ^4.0.0
 flutter:
   uses-material-design: true
+  fonts:
+    # 한글 글꼴 Noto Sans KR (오픈 라이선스 OFL, 가변 글꼴): 굵기별로 정확한 글자 모양이라 두꺼운 글씨도 뭉개지지 않는다
+    - family: NotoSansKR
+      fonts:
+        - asset: assets/fonts/NotoSansKR.ttf
   assets:
     - assets/auction_sample.json
     - assets/images/

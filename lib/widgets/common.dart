@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// 앱 전체 글꼴 (assets/fonts/NotoSansKR.ttf)
+const appFontFamily = 'NotoSansKR';
+
 /// 시안(연두 파스텔 + 짙은 초록 버튼) 색상
 class AppColors {
   static const bg = Color(0xFFF6F8EB); // 시안의 크림빛 연두 배경
@@ -172,6 +175,7 @@ ThemeData buildTheme() {
   final scheme = ColorScheme.fromSeed(seedColor: AppColors.green, brightness: Brightness.light);
   return ThemeData(
     useMaterial3: true,
+    fontFamily: appFontFamily,
     colorScheme: scheme,
     scaffoldBackgroundColor: AppColors.bg,
     snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
