@@ -2,7 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 /// 농장 풍경 속 집. 그림 파일(흐릿한 AI 이미지) 대신 코드(벡터)로 그려서 아무리 키워도 선명하다.
-/// 시안처럼 주황 기와지붕 · 굴뚝 · 지붕창 · 흰 벽 · 나무 문 · 창문과 꽃 화분이 있는 아담한 시골집.
+/// 시안(ChatGPT 농장 화면)의 집을 따라 비스듬히 본 시골집: 왼쪽 회색 박공 벽, 가운데 흰 박공과 나무 문,
+/// 오른쪽 날개, 큼직한 주황 기와지붕, 굴뚝 두 개, 지붕 채광창, 정원 꽃과 덤불.
 /// 그림 속 집(원본 936×714 기준 약 175~625, 105~405) 위에 같은 자리로 덮어 그린다.
 class FarmHouseArt extends StatelessWidget {
   const FarmHouseArt({super.key});
@@ -19,18 +20,19 @@ class FarmHousePainter extends CustomPainter {
 
   static const dw = 470.0, dh = 315.0; // 그리는 기준 크기
 
+  /// 시안 집 그림의 좌표(가로 85~880, 세로 95~650)를 이 그림 크기로 옮긴다.
+  static Offset o(double x, double y) => Offset(10 + (x - 85) * .567, (y - 95) * .567);
+
   @override
   void paint(Canvas canvas, Size size) {
     canvas.save();
     canvas.scale(size.width / dw, size.height / dh);
     _ground(canvas);
     _walls(canvas);
-    _chimney(canvas);
-    _roof(canvas);
-    _gable(canvas);
-    _dormer(canvas);
+    _roofs(canvas);
+    _chimneys(canvas);
     _windowsAndDoor(canvas);
-    _bushes(canvas);
+    _garden(canvas);
     canvas.restore();
   }
 
@@ -42,213 +44,152 @@ class FarmHousePainter extends CustomPainter {
     ..strokeCap = StrokeCap.round
     ..color = c;
 
+  Path _poly(List<Offset> pts) {
+    final p = Path()..moveTo(pts.first.dx, pts.first.dy);
+    for (final q in pts.skip(1)) {
+      p.lineTo(q.dx, q.dy);
+    }
+    return p..close();
+  }
+
+  Path _pp(List<List<double>> v) => _poly([for (final a in v) o(a[0], a[1])]);
+
   // ───────────────────────── 땅 ─────────────────────────
 
   void _ground(Canvas canvas) {
-    // 집 아래 풀 언덕 (옛 집의 아랫부분을 자연스럽게 덮는다)
-    final mound = Rect.fromCenter(center: const Offset(235, 278), width: 470, height: 78);
+    final mound = Rect.fromCenter(center: const Offset(235, 282), width: 470, height: 70);
     canvas.drawOval(mound, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF9BD65A), Color(0xFF5FB04A)]).createShader(mound));
-    // 풀잎 결
     for (var i = 0; i < 40; i++) {
-      final x = 20.0 + (i * 53 % 430), y = 262.0 + (i * 17 % 36);
+      final x = 20.0 + (i * 53 % 430), y = 268.0 + (i * 17 % 30);
       canvas.drawLine(Offset(x, y), Offset(x - 2, y - 7), _s(const Color(0x553C8A2A), 1.4));
-    }
-    // 현관 앞 돌길
-    final path = Path()
-      ..moveTo(228, 266)
-      ..lineTo(268, 266)
-      ..lineTo(300, 312)
-      ..lineTo(196, 312)
-      ..close();
-    canvas.drawPath(path, _f(const Color(0xFFE6D3A8)));
-    for (final r in const [Rect.fromLTWH(222, 276, 26, 9), Rect.fromLTWH(252, 282, 30, 9), Rect.fromLTWH(214, 292, 30, 9), Rect.fromLTWH(250, 300, 34, 9)]) {
-      canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(3)), _f(const Color(0xFFF3E6C4)));
     }
   }
 
   // ───────────────────────── 벽 ─────────────────────────
 
   void _walls(Canvas canvas) {
-    const body = Rect.fromLTRB(26, 140, 440, 266);
-    // 기단 그림자
-    canvas.drawRect(Rect.fromLTRB(36, 258, 436, 272), _f(const Color(0x33000000)));
-    canvas.drawRect(body, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFFF8EA), Color(0xFFF1E6CF)]).createShader(body));
-    // 오른쪽 날개는 조금 어둡게 (집이 꺾여 보이게)
-    canvas.drawRect(const Rect.fromLTRB(296, 140, 440, 266), _f(const Color(0x1A8A6A3A)));
-    canvas.drawLine(const Offset(296, 140), const Offset(296, 266), _s(const Color(0x338A6A3A), 2));
-    // 돌 기단
-    const base = Rect.fromLTRB(26, 246, 440, 266);
-    canvas.drawRect(base, _f(const Color(0xFFB9A98C)));
-    for (var x = 26.0; x < 440; x += 26) {
-      canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(x + 2, 248, 22, 16), const Radius.circular(3)), _f(((x ~/ 26) % 2 == 0) ? const Color(0xFFCDBFA3) : const Color(0xFFC2B397)));
-    }
-    // 나무 벽 장식 선
-    canvas.drawLine(const Offset(42, 188), const Offset(430, 188), _s(const Color(0x22A9885A), 1.2));
-    canvas.drawRect(body, _s(const Color(0x66A9885A), 1.6));
-  }
-
-  // ───────────────────────── 굴뚝 ─────────────────────────
-
-  void _chimney(Canvas canvas) {
-    const r = Rect.fromLTRB(142, 6, 190, 90);
-    canvas.drawRect(r, Paint()..shader = const LinearGradient(colors: [Color(0xFFC96F52), Color(0xFFA9553C)]).createShader(r));
-    for (var y = 14.0; y < 88; y += 11) {
-      canvas.drawLine(Offset(142, y), Offset(190, y), _s(const Color(0x44FFFFFF), 1.2));
-    }
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(136, 0, 196, 14), const Radius.circular(3)), _f(const Color(0xFF7A4A38)));
-    canvas.drawRect(r, _s(const Color(0xFF6B3A2A), 1.4));
+    // 왼쪽 회색 박공 벽
+    final left = _pp(const [[112, 400], [205, 285], [345, 470], [345, 625], [128, 630]]);
+    canvas.drawPath(left, Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFC4C2D2), Color(0xFFA9A7BB)]).createShader(const Rect.fromLTRB(0, 40, 200, 300)));
+    canvas.drawPath(left, _s(const Color(0x66605878), 1.4));
+    // 가운데 낮은 흰 벽 (큰 창)
+    final mid = _pp(const [[345, 470], [545, 432], [560, 612], [345, 625]]);
+    canvas.drawPath(mid, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFFFBF0), Color(0xFFF1E6CF)]).createShader(const Rect.fromLTRB(110, 190, 260, 305)));
+    canvas.drawPath(mid, _s(const Color(0x66A9885A), 1.4));
+    // 흰 박공 (문이 있는 앞으로 나온 부분)
+    final gable = _pp(const [[540, 436], [630, 292], [704, 402], [706, 612], [558, 616]]);
+    canvas.drawPath(gable, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFFFFFF), Color(0xFFF3E8D2)]).createShader(const Rect.fromLTRB(250, 110, 360, 305)));
+    canvas.drawPath(gable, _s(const Color(0x66A9885A), 1.4));
+    // 오른쪽 날개 벽
+    final right = _pp(const [[704, 402], [842, 386], [844, 520], [708, 560]]);
+    canvas.drawPath(right, _f(const Color(0xFFF7EEDB)));
+    canvas.drawPath(right, _s(const Color(0x66A9885A), 1.4));
+    // 아래 기단 그림자
+    canvas.drawPath(_pp(const [[130, 626], [345, 622], [560, 612], [708, 560], [844, 520], [844, 540], [708, 585], [560, 640], [345, 646], [130, 650]]), _f(const Color(0x22000000)));
   }
 
   // ───────────────────────── 지붕 ─────────────────────────
 
-  void _roof(Canvas canvas) {
-    final roof = Path()
-      ..moveTo(6, 156)
-      ..lineTo(84, 20)
-      ..lineTo(372, 20)
-      ..lineTo(464, 156)
-      ..close();
-    const box = Rect.fromLTRB(6, 20, 462, 156);
-    canvas.drawPath(roof, Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFF0845A), Color(0xFFE2603B), Color(0xFFC84A2C)]).createShader(box));
-    canvas.save();
-    canvas.clipPath(roof);
-    // 기와 줄무늬 (가로) + 어긋난 세로 이음
-    for (var y = 34.0; y < 156; y += 13) {
-      canvas.drawLine(Offset(0, y), Offset(470, y), _s(const Color(0x40A23A20), 1.4));
-      final odd = ((y - 34) ~/ 13).isOdd;
-      for (var x = odd ? 16.0 : 4.0; x < 470; x += 24) {
-        canvas.drawLine(Offset(x, y), Offset(x, y + 13), _s(const Color(0x2AA23A20), 1.1));
-      }
-    }
-    // 햇빛 받는 윗면 / 그림자 오른쪽
-    canvas.drawRect(const Rect.fromLTRB(0, 20, 470, 52), _f(const Color(0x22FFFFFF)));
-    canvas.drawPath(Path()..moveTo(372, 20)..lineTo(464, 156)..lineTo(390, 156)..lineTo(330, 20)..close(), _f(const Color(0x18000000)));
-    canvas.restore();
-    // 처마 끝 두꺼운 선과 그림자
-    canvas.drawPath(Path()..moveTo(6, 156)..lineTo(462, 156), _s(const Color(0xFF9E3B22), 5));
-    canvas.drawRect(const Rect.fromLTRB(10, 158, 458, 168), _f(const Color(0x33000000)));
-    // 마루(맨 위 선)
-    canvas.drawLine(const Offset(84, 20), const Offset(372, 20), _s(const Color(0xFF9E3B22), 5));
-    canvas.drawPath(roof, _s(const Color(0xFF8E3420), 2));
-  }
+  void _roofs(Canvas canvas) {
+    const roofColors = [Color(0xFFF59A5F), Color(0xFFE2653A), Color(0xFFC84A2C)];
+    Paint roofPaint(Rect r) => Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: roofColors).createShader(r);
 
-  /// 오른쪽에 앞으로 튀어나온 박공(삼각 지붕): 시안처럼 집이 ㄱ자로 보이게 한다.
-  void _gable(Canvas canvas) {
-    // 박공 아래 벽(앞으로 나온 쪽은 더 밝게)
-    final wall = Path()
-      ..moveTo(252, 262)
-      ..lineTo(252, 176)
-      ..lineTo(330, 100)
-      ..lineTo(424, 176)
-      ..lineTo(424, 262)
-      ..close();
-    canvas.drawPath(wall, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFFFBF0), Color(0xFFF3E8D2)]).createShader(const Rect.fromLTRB(252, 100, 424, 262)));
-    canvas.drawPath(wall, _s(const Color(0x66A9885A), 1.6));
-    // 박공 지붕(주황 테두리 두 줄)
-    final roofL = Path()..moveTo(236, 182)..lineTo(330, 88)..lineTo(330, 100)..lineTo(252, 182)..close();
-    final roofR = Path()..moveTo(330, 88)..lineTo(440, 182)..lineTo(424, 182)..lineTo(330, 100)..close();
-    for (final p in [roofL, roofR]) {
-      canvas.drawPath(p, _f(const Color(0xFFE2603B)));
+    // 뒤쪽(오른쪽) 지붕
+    final back = _pp(const [[420, 207], [668, 152], [906, 364], [704, 402], [630, 296]]);
+    canvas.drawPath(back, roofPaint(const Rect.fromLTRB(170, 70, 470, 200)));
+    // 큰 앞쪽(왼쪽) 지붕
+    final front = _pp(const [[84, 388], [212, 242], [482, 202], [632, 292], [542, 436], [346, 492]]);
+    canvas.drawPath(front, roofPaint(const Rect.fromLTRB(0, 60, 300, 220)));
+    // 계곡(두 지붕이 만나는 어두운 면)
+    final valley = _pp(const [[482, 202], [632, 292], [542, 436], [488, 336]]);
+    canvas.drawPath(valley, Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF9A4A2E), Color(0xFF7A3620)]).createShader(const Rect.fromLTRB(230, 60, 330, 190)));
+    // 박공 앞 작은 지붕 (문 위)
+    final porch = _pp(const [[536, 440], [630, 288], [712, 400], [700, 410], [630, 318], [556, 448]]);
+    canvas.drawPath(porch, _f(const Color(0xFFDE5E34)));
+
+    // 기와 줄무늬
+    canvas.save();
+    canvas.clipPath(front);
+    for (var k = 0; k < 16; k++) {
+      canvas.drawLine(o(84 + k * 33.0, 388 - k * 9.0), o(346 + k * 22.0, 492 - k * 26.0), _s(const Color(0x30A23A20), 1.2));
+    }
+    canvas.restore();
+    canvas.save();
+    canvas.clipPath(back);
+    for (var k = 0; k < 14; k++) {
+      canvas.drawLine(o(420 + k * 22.0, 207 - k * 3.0), o(704 + k * 12.0, 398 - k * 3.0), _s(const Color(0x30A23A20), 1.2));
+    }
+    canvas.restore();
+
+    // 처마 선과 윤곽
+    for (final p in [back, front, valley, porch]) {
       canvas.drawPath(p, _s(const Color(0xFF8E3420), 1.8));
     }
-    canvas.drawLine(const Offset(236, 182), const Offset(330, 88), _s(const Color(0xFFB9482A), 4));
-    canvas.drawLine(const Offset(330, 88), const Offset(440, 182), _s(const Color(0xFFB9482A), 4));
-    // 박공 안의 둥근 창
-    canvas.drawCircle(const Offset(330, 140), 15, _f(const Color(0xFF6B4423)));
-    final glass = Rect.fromCircle(center: const Offset(330, 140), radius: 12);
-    canvas.drawOval(glass, Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFD6F0FF), Color(0xFF7FC4EE)]).createShader(glass));
-    canvas.drawLine(const Offset(330, 128), const Offset(330, 152), _s(const Color(0xFFFFF8EA), 2));
-    canvas.drawLine(const Offset(318, 140), const Offset(342, 140), _s(const Color(0xFFFFF8EA), 2));
-    // 박공 아래 처마 그림자
-    canvas.drawRect(const Rect.fromLTRB(252, 178, 424, 186), _f(const Color(0x22000000)));
+    canvas.drawLine(o(84, 388), o(346, 492), _s(const Color(0xFFB5442A), 4));
+    canvas.drawLine(o(704, 398), o(884, 352), _s(const Color(0xFFB5442A), 4));
+    // 지붕 채광창(하얀 창)
+    for (final c in const [[385.0, 345.0], [715.0, 262.0]]) {
+      final r = Rect.fromCenter(center: o(c[0], c[1]), width: 34, height: 26);
+      canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(5)), _f(const Color(0xFFFFFBF0)));
+      canvas.drawRRect(RRect.fromRectAndRadius(r.deflate(5), const Radius.circular(3)), _f(const Color(0xFFBFE6FF)));
+      canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(5)), _s(const Color(0xFF8E3420), 1.4));
+    }
   }
 
-  /// 지붕창: 작은 삼각 지붕이 달린 창
-  void _dormer(Canvas canvas) {
-    const cx = 232.0;
-    final wall = RRect.fromRectAndRadius(const Rect.fromLTRB(cx - 26, 70, cx + 26, 118), const Radius.circular(3));
-    canvas.drawRRect(wall, _f(const Color(0xFFFFF8EA)));
-    canvas.drawRRect(wall, _s(const Color(0xFFA9885A), 1.6));
-    final glass = RRect.fromRectAndRadius(const Rect.fromLTRB(cx - 18, 80, cx + 18, 114), const Radius.circular(2));
-    canvas.drawRRect(glass, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFBFE6FF), Color(0xFF7CC3F0)]).createShader(glass.outerRect));
-    canvas.drawLine(const Offset(cx, 80), const Offset(cx, 114), _s(Colors.white, 2));
-    canvas.drawLine(const Offset(cx - 18, 97), const Offset(cx + 18, 97), _s(Colors.white, 2));
-    canvas.drawRRect(glass, _s(const Color(0xFF7A4A28), 2));
-    // 작은 삼각 지붕
-    final cap = Path()
-      ..moveTo(cx - 34, 74)
-      ..lineTo(cx, 46)
-      ..lineTo(cx + 34, 74)
-      ..close();
-    canvas.drawPath(cap, _f(const Color(0xFFD95B36)));
-    canvas.drawPath(cap, _s(const Color(0xFF8E3420), 2));
-    canvas.drawLine(Offset(cx - 22, 66), Offset(cx + 22, 66), _s(const Color(0x44FFFFFF), 1.4));
+  // ───────────────────────── 굴뚝 ─────────────────────────
+
+  void _chimney(Canvas canvas, List<List<double>> pts) {
+    final p = _pp(pts);
+    final r = p.getBounds();
+    canvas.drawPath(p, Paint()..shader = const LinearGradient(colors: [Color(0xFFD27A58), Color(0xFFA9553C)]).createShader(r));
+    canvas.drawPath(p, _s(const Color(0xFF6B3A2A), 1.4));
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTRB(r.left - 3, r.top - 3, r.right + 3, r.top + 6), const Radius.circular(3)), _f(const Color(0xFF7A4A38)));
+    for (var y = r.top + 12; y < r.bottom - 4; y += 11) {
+      canvas.drawLine(Offset(r.left, y), Offset(r.right, y), _s(const Color(0x44FFFFFF), 1.1));
+    }
+  }
+
+  void _chimneys(Canvas canvas) {
+    _chimney(canvas, const [[305, 170], [392, 165], [388, 256], [310, 262]]);
+    _chimney(canvas, const [[630, 100], [716, 106], [712, 192], [640, 186]]);
   }
 
   // ───────────────────────── 창문과 문 ─────────────────────────
 
-  void _window(Canvas canvas, Rect r) {
-    // 덧창(초록 갈색)
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTRB(r.left - 12, r.top, r.left - 2, r.bottom), const Radius.circular(2)), _f(const Color(0xFF8A5A33)));
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTRB(r.right + 2, r.top, r.right + 12, r.bottom), const Radius.circular(2)), _f(const Color(0xFF8A5A33)));
-    // 틀과 유리
-    canvas.drawRRect(RRect.fromRectAndRadius(r.inflate(3), const Radius.circular(3)), _f(const Color(0xFF6B4423)));
-    final glass = RRect.fromRectAndRadius(r, const Radius.circular(2));
-    canvas.drawRRect(glass, Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFD6F0FF), Color(0xFF7FC4EE)]).createShader(r));
-    canvas.drawLine(Offset(r.center.dx, r.top), Offset(r.center.dx, r.bottom), _s(const Color(0xFFFFF8EA), 2.4));
-    canvas.drawLine(Offset(r.left, r.center.dy), Offset(r.right, r.center.dy), _s(const Color(0xFFFFF8EA), 2.4));
-    canvas.drawPath(Path()..moveTo(r.left + 3, r.top + 12)..lineTo(r.left + 14, r.top + 3), _s(const Color(0x99FFFFFF), 2));
-    // 꽃 화분
-    final box = Rect.fromLTRB(r.left - 6, r.bottom + 4, r.right + 6, r.bottom + 15);
-    canvas.drawRRect(RRect.fromRectAndRadius(box, const Radius.circular(2)), _f(const Color(0xFF8A5A33)));
-    const colors = [Color(0xFFE5483B), Color(0xFFFFD34E), Color(0xFFFF8FB1), Color(0xFFFFFFFF)];
-    for (var i = 0; i < 6; i++) {
-      final x = box.left + 5 + i * (box.width - 10) / 5;
-      canvas.drawCircle(Offset(x, box.top - 2), 4, _f(const Color(0xFF3FA33A)));
-      canvas.drawCircle(Offset(x, box.top - 5), 3.2, _f(colors[i % colors.length]));
-    }
+  void _win(Canvas canvas, Rect r, {bool arch = false}) {
+    canvas.drawRRect(RRect.fromRectAndRadius(r.inflate(3), Radius.circular(arch ? 9 : 3)), _f(const Color(0xFF7A4A28)));
+    final glass = RRect.fromRectAndRadius(r, Radius.circular(arch ? 8 : 2));
+    canvas.drawRRect(glass, Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFF3DFA8), Color(0xFFC9A55A)]).createShader(r));
+    canvas.drawLine(Offset(r.center.dx, r.top), Offset(r.center.dx, r.bottom), _s(const Color(0xFF7A4A28), 1.8));
+    canvas.drawLine(Offset(r.left, r.center.dy), Offset(r.right, r.center.dy), _s(const Color(0xFF7A4A28), 1.8));
   }
 
   void _windowsAndDoor(Canvas canvas) {
-    _window(canvas, const Rect.fromLTRB(78, 172, 118, 214));
-    _window(canvas, const Rect.fromLTRB(150, 172, 190, 214));
-    _window(canvas, const Rect.fromLTRB(284, 196, 320, 232));
-    _window(canvas, const Rect.fromLTRB(352, 196, 388, 232));
-
-    // 나무 문 (위가 둥근 아치) + 문 위 작은 차양
-    const door = Rect.fromLTRB(226, 190, 272, 262);
-    final arch = Path()
-      ..moveTo(door.left, door.bottom)
-      ..lineTo(door.left, door.top + 20)
-      ..quadraticBezierTo(door.left, door.top, door.center.dx, door.top)
-      ..quadraticBezierTo(door.right, door.top, door.right, door.top + 20)
-      ..lineTo(door.right, door.bottom)
-      ..close();
-    canvas.drawPath(arch.shift(const Offset(0, 0)), Paint()..shader = const LinearGradient(begin: Alignment.centerLeft, end: Alignment.centerRight, colors: [Color(0xFFB56A30), Color(0xFF8A4A1E)]).createShader(door));
-    // 널빤지 선
-    for (final x in const [238.0, 249.0, 260.0]) {
-      canvas.drawLine(Offset(x, door.top + 10), Offset(x, door.bottom), _s(const Color(0x44301808), 1.2));
+    // 왼쪽 회색 벽의 작은 창 세 개
+    for (final c in const [[212.0, 372.0], [182.0, 500.0], [268.0, 520.0]]) {
+      _win(canvas, Rect.fromCenter(center: o(c[0], c[1]), width: 15, height: 21));
     }
-    // 문 작은 창
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(238, 204, 260, 224), const Radius.circular(3)), _f(const Color(0xFFBFE6FF)));
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(238, 204, 260, 224), const Radius.circular(3)), _s(const Color(0xFF5A3216), 1.6));
-    canvas.drawCircle(const Offset(264, 232), 2.6, _f(const Color(0xFFFFD34E))); // 손잡이
-    canvas.drawPath(arch, _s(const Color(0xFF4A2810), 2.4));
-    // 문 차양
-    final awning = Path()
-      ..moveTo(214, 192)
-      ..quadraticBezierTo(249, 168, 284, 192)
-      ..lineTo(278, 198)
-      ..quadraticBezierTo(249, 178, 220, 198)
-      ..close();
-    canvas.drawPath(awning, _f(const Color(0xFFD95B36)));
-    canvas.drawPath(awning, _s(const Color(0xFF8E3420), 1.6));
-    // 계단
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(218, 262, 280, 272), const Radius.circular(3)), _f(const Color(0xFFD9C79F)));
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(210, 270, 288, 280), const Radius.circular(3)), _f(const Color(0xFFE6D6B0)));
+    // 가운데 낮은 벽의 가로 창
+    _win(canvas, Rect.fromPoints(o(405, 505), o(500, 560)));
+    // 박공 위 아치 창
+    _win(canvas, Rect.fromCenter(center: o(630, 380), width: 22, height: 30), arch: true);
+    // 오른쪽 날개 창
+    _win(canvas, Rect.fromCenter(center: o(765, 450), width: 30, height: 34));
+    // 나무 문 (박공 아래)
+    final door = _pp(const [[570, 472], [666, 462], [668, 594], [576, 604]]);
+    canvas.drawPath(door, Paint()..shader = const LinearGradient(begin: Alignment.centerLeft, end: Alignment.centerRight, colors: [Color(0xFFD08A44), Color(0xFFA8651F)]).createShader(door.getBounds()));
+    final glass = _pp(const [[590, 490], [650, 484], [652, 574], [594, 582]]);
+    canvas.drawPath(glass, _f(const Color(0xFFE7CF86)));
+    canvas.drawPath(glass, _s(const Color(0xFF6B3F18), 1.4));
+    canvas.drawLine(o(620, 487), o(623, 578), _s(const Color(0xFF6B3F18), 1.4));
+    canvas.drawPath(door, _s(const Color(0xFF5A3216), 2.2));
+    // 현관 계단
+    final step = _pp(const [[560, 604], [680, 594], [716, 628], [572, 640]]);
+    canvas.drawPath(step, _f(const Color(0xFFE2CE9E)));
+    canvas.drawPath(step, _s(const Color(0x66A9885A), 1.4));
   }
 
-  // ───────────────────────── 덤불과 꽃 ─────────────────────────
+  // ───────────────────────── 정원 ─────────────────────────
 
   void _bush(Canvas canvas, Offset c, double r) {
     final rect = Rect.fromCircle(center: c, radius: r);
@@ -257,13 +198,13 @@ class FarmHousePainter extends CustomPainter {
     canvas.drawArc(Rect.fromCircle(center: c.translate(-r * .1, -r * .1), radius: r * .6), math.pi * 1.1, math.pi * .6, false, _s(const Color(0x66E5FFC9), 1.6));
   }
 
-  void _bushes(Canvas canvas) {
-    for (final b in const [(Offset(34, 262), 24.0), (Offset(66, 274), 20.0), (Offset(438, 262), 24.0), (Offset(404, 276), 20.0), (Offset(190, 282), 14.0), (Offset(296, 284), 14.0)]) {
+  void _garden(Canvas canvas) {
+    for (final b in [(o(205, 590), 26.0), (o(150, 640), 18.0), (o(470, 640), 16.0), (o(720, 620), 20.0), (o(800, 600), 18.0), (o(860, 560), 15.0)]) {
       _bush(canvas, b.$1, b.$2);
     }
-    const petals = [Color(0xFFFF8FB1), Color(0xFFFFFFFF), Color(0xFFFFD34E), Color(0xFFE5483B)];
+    const petals = [Color(0xFFFF8A3D), Color(0xFFFFD34E), Color(0xFFE5483B), Color(0xFFFFFFFF), Color(0xFFFF8FB1)];
     var n = 0;
-    for (final f in const [Offset(26, 252), Offset(52, 268), Offset(444, 254), Offset(414, 270), Offset(188, 276), Offset(300, 278)]) {
+    for (final f in [o(380, 640), o(420, 650), o(520, 650), o(600, 660), o(690, 640), o(740, 650), o(790, 630), o(190, 660), o(560, 630)]) {
       for (var i = 0; i < 5; i++) {
         final a = i * 2 * math.pi / 5;
         canvas.drawCircle(f + Offset(math.cos(a), math.sin(a)) * 3.4, 2.6, _f(petals[n % petals.length]));
