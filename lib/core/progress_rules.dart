@@ -184,15 +184,15 @@ class PointItem {
 
 /// 특별 상점 상품. 포인트(Point)로만 살 수 있다.
 const pointItems = [
-  PointItem(pointRareSeed, '희귀 씨앗', '🌰', 60, '무작위 작물의 씨앗 3개를 받아요'),
-  PointItem(pointDecor, '농장 장식', '🌻', 50, '농장 화면에 꽃 장식이 늘어나요 (최대 5개)'),
-  PointItem(pointVault, '특별 보관함', '🧰', 120, '창고 용량 +50kg (최대 3회)'),
-  PointItem(pointLucky, '행운의 비료', '🍀', 90, '영양제 3개를 받아요'),
-  PointItem(pointWaterPack, '물방울 꾸러미', '💦', 40, '물통 10개를 한 번에 받아요'),
-  PointItem(pointBoosterPack, '번개 촉진제', '⚡', 70, '성장촉진제 2개를 받아요'),
-  PointItem(pointSeedBox, '씨앗 선물 상자', '🎁', 60, '기본 작물 여섯 가지의 씨앗을 1개씩 받아요'),
-  PointItem(pointCoinBag, '금화 주머니', '💰', 80, '게임 돈 10,000P를 받아요'),
-  PointItem(pointFarmBook, '농부 교본', '📘', 100, '경험치 300을 받아 레벨을 올려요'),
+  PointItem(pointRareSeed, '희귀 씨앗', '🌰', 40, '무작위 작물의 씨앗 3개를 받아요'),
+  PointItem(pointDecor, '농장 장식', '🌻', 30, '농장 화면에 꽃 장식이 늘어나요 (최대 5개)'),
+  PointItem(pointVault, '특별 보관함', '🧰', 80, '창고 용량 +50kg (최대 3회)'),
+  PointItem(pointLucky, '행운의 비료', '🍀', 60, '영양제 3개를 받아요'),
+  PointItem(pointWaterPack, '물방울 꾸러미', '💦', 25, '물통 10개를 한 번에 받아요'),
+  PointItem(pointBoosterPack, '번개 촉진제', '⚡', 45, '성장촉진제 2개를 받아요'),
+  PointItem(pointSeedBox, '씨앗 선물 상자', '🎁', 40, '기본 작물 여섯 가지의 씨앗을 1개씩 받아요'),
+  PointItem(pointCoinBag, '금화 주머니', '💰', 55, '게임 돈 10,000P를 받아요'),
+  PointItem(pointFarmBook, '농부 교본', '📘', 70, '경험치 300을 받아 레벨을 올려요'),
 ];
 
 // ───────────────────────── 기간별 카운터 (일일/주간) ─────────────────────────

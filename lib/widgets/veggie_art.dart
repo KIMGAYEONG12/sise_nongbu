@@ -157,8 +157,13 @@ class VeggiePainter extends CustomPainter {
       ..cubicTo(c.dx - r * 1.0, c.dy - r * .5, c.dx - r * .3, c.dy - r * .86, c.dx, c.dy - r * .52)
       ..close();
     final rect = Rect.fromCircle(center: c, radius: r);
-    canvas.drawPath(body, Paint()..shader = const RadialGradient(center: Alignment(-.35, -.4), radius: 1.0, colors: [Color(0xFFFF8A78), Color(0xFFE5392B), Color(0xFFB11F1A)], stops: [0, .55, 1]).createShader(rect));
-    canvas.drawPath(body, _line(const Color(0xFF8E1713), r * .035));
+    canvas.drawPath(body, Paint()..shader = const RadialGradient(center: Alignment(-.35, -.4), radius: 1.0, colors: [Color(0xFFFF9A8A), Color(0xFFC81E3A), Color(0xFF8E1230)], stops: [0, .55, 1]).createShader(rect));
+    // 사과는 아래쪽이 노랗게 물든 후지 사과 → 토마토(주황빛 빨강)와 한눈에 구별된다
+    canvas.save();
+    canvas.clipPath(body);
+    canvas.drawRect(Rect.fromLTWH(c.dx - r, c.dy + r * .15, r * 2, r * .85), Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x00FFD34E), Color(0xCCFFD34E)]).createShader(Rect.fromLTWH(c.dx - r, c.dy + r * .15, r * 2, r * .85)));
+    canvas.restore();
+    canvas.drawPath(body, _line(const Color(0xFF7A1230), r * .035));
     canvas.drawLine(c.translate(0, -r * .5), c.translate(r * .08, -r * .92), _line(const Color(0xFF7A4A21), r * .08));
     _leafBlade(canvas, c.translate(r * .1, -r * .78), 1.05, r * .5, r * .17, const [Color(0xFF3F8F2E), Color(0xFF8CCB55)]);
     canvas.drawOval(Rect.fromCenter(center: c.translate(-r * .38, -r * .22), width: r * .22, height: r * .34), Paint()..color = const Color(0x88FFFFFF));
@@ -167,7 +172,7 @@ class VeggiePainter extends CustomPainter {
   // 토마토: 살짝 납작한 빨간 열매 + 초록 별 모양 꼭지
   void _tomato(Canvas canvas, Offset c, double r) {
     final body = Rect.fromCenter(center: c.translate(0, r * .08), width: r * 1.8, height: r * 1.55);
-    canvas.drawOval(body, Paint()..shader = const RadialGradient(center: Alignment(-.3, -.45), radius: 1.0, colors: [Color(0xFFFF7B6A), Color(0xFFE5392B), Color(0xFFB91F1B)], stops: [0, .55, 1]).createShader(body));
+    canvas.drawOval(body, Paint()..shader = const RadialGradient(center: Alignment(-.3, -.45), radius: 1.0, colors: [Color(0xFFFF8A55), Color(0xFFF03C1C), Color(0xFFC22A10)], stops: [0, .55, 1]).createShader(body));
     canvas.drawOval(body, _line(const Color(0xFF8E1713), r * .035));
     // 꼭지(초록 별)
     final star = Path();

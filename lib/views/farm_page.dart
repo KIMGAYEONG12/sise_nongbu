@@ -489,7 +489,7 @@ class _GreenhouseSheet extends ConsumerWidget {
             onPressed: user.money < cost ? null : () => runGuarded(context, ref.read(farmViewModelProvider).buyGreenhouse, ok: '하우스를 지었어요 🏠'),
           ),
           if (user.money < cost)
-            const Padding(padding: EdgeInsets.only(top: 6), child: Text('자금이 모자라요', style: TextStyle(fontSize: 12.5, color: AppColors.sub))),
+            const Padding(padding: EdgeInsets.only(top: 6), child: Text('Point가 부족합니다', style: TextStyle(fontSize: 12.5, color: AppColors.sub))),
         ]),
       ),
     );

@@ -290,7 +290,7 @@ void main() {
         expect(find.text('${item.cost}P'), findsWidgets);
       }
       expect(find.text('희귀 씨앗'), findsOneWidget);
-      expect(find.text('60P'), findsWidgets);
+      expect(find.text('40P'), findsWidgets);
       expect(find.text('모든 아이템을 살 수 있어요!'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await savePreview(tester, _shot, 'point_shop');

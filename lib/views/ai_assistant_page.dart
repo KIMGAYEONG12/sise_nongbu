@@ -264,7 +264,7 @@ class _AiAssistantPageState extends ConsumerState<AiAssistantPage> {
           if (_busy)
             const Padding(
                 padding: EdgeInsets.only(bottom: 6),
-                child: Text('생각 중…', style: TextStyle(color: AppColors.sub))),
+                child: Text('답을 찾는 중…', style: TextStyle(color: AppColors.sub))),
           if (_listening)
             const Padding(
                 padding: EdgeInsets.only(bottom: 6),
@@ -273,7 +273,7 @@ class _AiAssistantPageState extends ConsumerState<AiAssistantPage> {
                         color: AppColors.up, fontWeight: FontWeight.w800))),
           // 추천 질문: 옆으로 밀어서 더 볼 수 있다
           SizedBox(
-            height: 52,
+            height: 64,
             child: ScrollConfiguration(
               // 손가락뿐 아니라 마우스·트랙패드로도 옆으로 밀 수 있게 한다 (에뮬레이터 포함)
               behavior: ScrollConfiguration.of(context).copyWith(dragDevices: {
@@ -285,13 +285,16 @@ class _AiAssistantPageState extends ConsumerState<AiAssistantPage> {
               child: Scrollbar(
                 controller: _chips,
                 thumbVisibility: true,
-                thickness: 3,
+                trackVisibility: true,
+                interactive: true, // 회색 막대를 손가락·마우스로 끌어서 옆으로 옮길 수 있다
+                thickness: 8,
+                radius: const Radius.circular(4),
                 child: ListView.separated(
                   controller: _chips,
                   physics: const BouncingScrollPhysics(
                       parent: AlwaysScrollableScrollPhysics()),
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 14), // 아래 14는 회색 막대 자리
                   itemCount: aiSuggestions.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (_, i) {

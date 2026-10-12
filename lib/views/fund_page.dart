@@ -120,7 +120,7 @@ class _FundPageState extends ConsumerState<FundPage> {
                     const SizedBox(height: 12),
                     GreenButton(label: '${won(amount)} 기부하기', loading: _busy, onPressed: user.money < amount ? null : () => _donate(amount)),
                     if (user.money < amount)
-                      const Padding(padding: EdgeInsets.only(top: 6), child: Text('보유 자금이 부족해요', style: TextStyle(fontSize: 11, color: AppColors.sub))),
+                      const Padding(padding: EdgeInsets.only(top: 6), child: Text('Point가 부족합니다', style: TextStyle(fontSize: 11, color: AppColors.sub))),
                   ]),
                 ),
                 const SectionTitle('기금 달성 보상'),

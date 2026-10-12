@@ -8,7 +8,7 @@ const geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
 /// Google Gemini API(generateContent)를 두뇌로 쓰는 도우미.
 /// 앞 모델이 바쁘거나(503) 한도에 걸리면(429) 다음 모델로 자동으로 넘어간다.
 class GeminiLlm implements Llm {
-  GeminiLlm(this._client, {required this.apiKey, this.models = const ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']});
+  GeminiLlm(this._client, {required this.apiKey, this.models = const ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-flash-latest']});
   final http.Client _client;
   final String apiKey;
   final List<String> models;
@@ -51,10 +51,11 @@ class GeminiLlm implements Llm {
                 ]
               }
             ],
-            'generationConfig': {'maxOutputTokens': 500},
+            // 빠른 답: 생각하는 단계를 끄고(thinkingBudget 0) 답을 짧게(최대 300토큰) 받는다
+            'generationConfig': {'maxOutputTokens': 300, 'thinkingConfig': {'thinkingBudget': 0}},
           }),
         )
-        .timeout(Duration(seconds: image == null ? 25 : 45));
+        .timeout(Duration(seconds: image == null ? 10 : 30));
     if (res.statusCode != 200) throw StateError('Gemini ${res.statusCode}');
     final body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     final cands = body['candidates'];

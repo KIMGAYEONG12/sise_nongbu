@@ -24,9 +24,21 @@ class FirestoreGameService {
   /// (에뮬레이터나 불안정한 네트워크에서 [cloud_firestore/unknown] null 같은 오류가 한 번 나고 지나가는 일이 있어서)
   Future<T> _tx<T>(Future<T> Function(Transaction tx) handler) async {
     for (var attempt = 0;; attempt++) {
+      // 규칙 위반(예: "Point가 부족합니다")으로 던진 StateError는 Firestore가 "[cloud_firestore/unknown] null"로 바꿔 버리므로,
+      // 던질 때 따로 붙잡아 두었다가 그 문구를 그대로 사용자에게 돌려준다. (다시 시도하지도 않는다)
+      StateError? rule;
       try {
-        return await db.runTransaction<T>(handler);
+        return await db.runTransaction<T>((tx) async {
+          try {
+            return await handler(tx);
+          } on StateError catch (e) {
+            rule = e;
+            rethrow;
+          }
+        });
       } on FirebaseException catch (e) {
+        final r = rule;
+        if (r != null) throw r;
         const retryable = {'unknown', 'aborted', 'unavailable', 'deadline-exceeded', 'internal'};
         if (!retryable.contains(e.code) || attempt >= 2) rethrow;
         await Future<void>.delayed(Duration(milliseconds: 400 * (attempt + 1)));
@@ -148,7 +160,7 @@ class FirestoreGameService {
         final key = seedKey(c.code);
         final seeds = _int(_asMap(u['items'])?[key]);
         final useSeed = seeds > 0;
-        if (!useSeed && money < c.seedCost) throw StateError('자금이 부족해요');
+        if (!useSeed && money < c.seedCost) throw StateError('Point가 부족합니다');
         final upd = <String, dynamic>{
           'money': useSeed ? money : money - c.seedCost,
           'totalProfit': _int(u['totalProfit']) - (useSeed ? 0 : c.seedCost),
@@ -260,7 +272,7 @@ class FirestoreGameService {
         final u = (await tx.get(_user)).data()!;
         final total = price * qty;
         final money = _int(u['money']);
-        if (money < total) throw StateError('자금이 부족해요');
+        if (money < total) throw StateError('Point가 부족합니다');
         final have = _int(_asMap(u['items'])?[key]);
         tx.update(_user, {
           'money': money - total,
@@ -328,7 +340,7 @@ class FirestoreGameService {
         if (cost == null) throw StateError('더 이상 밭을 넓힐 수 없어요');
         final u = (await tx.get(_user)).data()!;
         final money = _int(u['money']);
-        if (money < cost) throw StateError('자금이 부족해요');
+        if (money < cost) throw StateError('Point가 부족합니다');
         tx.update(_user, {'money': money - cost, 'updatedAt': FieldValue.serverTimestamp()});
         for (var i = currentCount; i < currentCount + plotExpandStep && i < maxPlots; i++) {
           tx.set(_col('plots').doc('$i'), _emptyPlot());
@@ -341,7 +353,7 @@ class FirestoreGameService {
         if (lv >= maxWarehouseLevel) throw StateError('창고를 더 이상 넓힐 수 없어요');
         final cost = warehouseCost(lv);
         final money = _int(u['money']);
-        if (money < cost) throw StateError('자금이 부족해요');
+        if (money < cost) throw StateError('Point가 부족합니다');
         tx.update(_user, {'money': money - cost, 'warehouseLevel': lv + 1, 'updatedAt': FieldValue.serverTimestamp()});
       });
 
@@ -354,7 +366,7 @@ class FirestoreGameService {
         final owned = UserData(u).greenhouses;
         final cost = greenhouseCostFor(owned);
         final money = _int(u['money']);
-        if (money < cost) throw StateError('자금이 부족해요');
+        if (money < cost) throw StateError('Point가 부족합니다');
         // 트랜잭션은 읽기를 모두 끝낸 뒤에 쓴다
         final plotSnaps = [for (var i = 0; i < maxPlots; i++) await tx.get(_col('plots').doc('$i'))];
         tx.update(_user, {'money': money - cost, 'greenhouse': true, 'greenhouses': owned + 1, 'updatedAt': FieldValue.serverTimestamp()});
@@ -394,7 +406,7 @@ class FirestoreGameService {
         final t = DateTime.now();
         final u = (await tx.get(_user)).data()!;
         final money = _int(u['money']);
-        if (money < price) throw StateError('자금이 부족해요');
+        if (money < price) throw StateError('Point가 부족합니다');
         final items = _asMap(u['items']) ?? {};
         final upd = <String, dynamic>{
           'money': money - price,
@@ -515,7 +527,7 @@ class FirestoreGameService {
         final u = (await tx.get(_user)).data()!;
         final f = (await tx.get(_fund)).data();
         final money = _int(u['money']);
-        if (money < amount) throw StateError('자금이 부족해요');
+        if (money < amount) throw StateError('Point가 부족합니다');
         final total = _int(f?['total']);
         final goal = _int(f?['goal']) > 0 ? _int(f?['goal']) : fundDefaultGoal;
         tx.update(_user, {
