@@ -89,10 +89,10 @@ class FarmPage extends ConsumerWidget {
                     const SizedBox(height: 2),
                     // 아랫줄: 레벨·칭호(자리가 모자라면 글자가 줄어 끝까지 보인다) 와 포인트 알약이 같은 높이에 나란히
                     Row(children: [
-                      Expanded(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text('Lv. ${lv.level}  ·  ${farmerTitles[user.titleIndex].emoji} ${farmerTitles[user.titleIndex].name}', maxLines: 1, style: const TextStyle(fontSize: 14, color: Color(0xFF2B3A30), fontWeight: FontWeight.w700)))),
-                      const SizedBox(width: 14), // 칭호와 포인트 사이 간격
+                      Flexible(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text('Lv. ${lv.level}  ·  ${farmerTitles[user.titleIndex].emoji} ${farmerTitles[user.titleIndex].name}', maxLines: 1, style: const TextStyle(fontSize: 14, color: Color(0xFF2B3A30), fontWeight: FontWeight.w700)))),
+                      const SizedBox(width: 10), // 칭호와 포인트 사이 간격 (알약이 칭호 바로 옆에 붙는다)
                       MoneyPill(money: user.money),
-                      const SizedBox(width: 4),
+                      const Spacer(),
                     ]),
                   ]),
                 ),
