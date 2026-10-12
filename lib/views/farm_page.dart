@@ -92,7 +92,6 @@ class FarmPage extends ConsumerWidget {
                       Flexible(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text('Lv. ${lv.level}  ·  ${farmerTitles[user.titleIndex].emoji} ${farmerTitles[user.titleIndex].name}', maxLines: 1, style: const TextStyle(fontSize: 14, color: Color(0xFF2B3A30), fontWeight: FontWeight.w700)))),
                       const SizedBox(width: 10), // 칭호와 포인트 사이 간격 (알약이 칭호 바로 옆에 붙는다)
                       MoneyPill(money: user.money),
-                      const Spacer(),
                     ]),
                   ]),
                 ),
@@ -177,7 +176,7 @@ class _FarmHero extends StatelessWidget {
   static const _srcW = 936.0, _srcH = 714.0;
 
   /// 그림 확대 한도. 원본이 작아서 이보다 키우면 깨져 보인다.
-  static const maxScale = 1.4;
+  static const maxScale = 1.52; // 예전에는 높은 레벨에서 집만 8% 키웠다. 그 겹침을 없애는 대신 그림 전체를 그만큼 키워 집 크기를 유지한다
 
   /// 그림 맨 위에서 잘라 내는 비율 (옅은 안개색 부분)
   static const _cropTop = .15;
