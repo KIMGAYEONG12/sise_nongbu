@@ -290,7 +290,7 @@ class GreenhousePainter extends CustomPainter {
   /// 하우스 안을 왼쪽·오른쪽으로 오가며 작물에 물을 주는 로봇. 오른쪽으로 갈 때 물을 뿌리고, 방향을 바꿀 때 몸을 돌린다.
   void _drawRobot(Canvas canvas, Size size, double a2, double base) {
     final w = size.width, h = size.height;
-    final rw = w * .14, rh = h * .24; // 작은 로봇 (예전의 70%)
+    final rw = w * .12, rh = h * .205; // 작은 로봇
     final s = math.sin(a2); // -1(왼쪽 끝) ~ 1(오른쪽 끝)
     final goingRight = math.cos(a2) >= 0;
     final cx = w * (.5 + .25 * s);
@@ -300,7 +300,29 @@ class GreenhousePainter extends CustomPainter {
       canvas.translate(rw, 0);
       canvas.scale(-1, 1); // 왼쪽으로 갈 때는 몸을 돌린다
     }
-    FarmRobotPainter(t: a2 / (math.pi * 2), watering: goingRight).paint(canvas, Size(rw, rh));
+    final tt = a2 / (math.pi * 2);
+    FarmRobotPainter(t: tt, watering: false).paint(canvas, Size(rw, rh));
+    // 물 주는 모습: 앞으로 내민 팔(오른쪽 위)에서 물방울이 포물선으로 퍼지며 작물 위로 떨어진다.
+    // (로봇 그림 안의 물방울은 크기에 비례해 1픽셀도 안 돼서 안 보였다 → 하우스 크기에 맞춰 크게 따로 그린다)
+    final arm = Offset(rw * 1.0, rh * .52);
+    final ground = h * (base - .03) - (h * (base - .005) - rh); // 로봇 좌표에서 밭 높이
+    for (var i = 0; i < 7; i++) {
+      final f = (tt * 24 + i / 7) % 1.0; // 한 방울이 떨어지는 시간 (빠르게 계속 이어진다)
+      final dx = rw * (.12 + .5 * f) + rw * .06 * i / 7; // 앞으로 퍼져 나간다
+      final dy = (ground - arm.dy) * f * f; // 아래로 갈수록 빨라진다
+      final c = arm + Offset(dx, dy);
+      final r = w * .0105 * (1 - .3 * f);
+      canvas.drawCircle(c, r + 1.2, Paint()..color = const Color(0x66BFE8FF).withValues(alpha: .4 * (1 - f)));
+      canvas.drawCircle(c, r, Paint()..color = const Color(0xFF3CA7F0).withValues(alpha: .95 - .6 * f));
+      canvas.drawCircle(c.translate(-r * .3, -r * .3), r * .35, Paint()..color = const Color(0xCCFFFFFF));
+    }
+    // 물이 닿는 작물 위의 작은 물결
+    final splash = Offset(arm.dx + rw * .62, ground);
+    final ps = (tt * 24) % 1.0;
+    canvas.drawOval(Rect.fromCenter(center: splash, width: rw * (.3 + .3 * ps), height: rw * .1), Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..color = const Color(0xFFBFE8FF).withValues(alpha: .8 * (1 - ps)));
     canvas.restore();
   }
 
@@ -320,7 +342,7 @@ class GreenhousePainter extends CustomPainter {
 
     // 천천히 둥실 떠다니며(위아래·좌우) 살짝 기울어진다
     final sat = p(.86 + math.sin(a2) * .014, .07 + math.cos(a2 * 1.0 + 1.2) * .016);
-    final unit = w * .04;
+    final unit = w * .034; // 위성 크기 (조금 작게)
 
     // 지붕으로 보내는 점선 신호
     final from = sat + Offset(-unit * .6, unit * 1.9);
