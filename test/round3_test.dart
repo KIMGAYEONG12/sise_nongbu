@@ -37,7 +37,7 @@ void main() {
 
   test('AI는 빠른 모델이 먼저이고 짧게 답한다', () {
     final g = GeminiLlm(_NoClient(), apiKey: 'x');
-    expect(g.models.first, 'gemini-2.5-flash-lite');
+    expect(g.models.first, 'gemini-2.5-flash');
   });
 }
 

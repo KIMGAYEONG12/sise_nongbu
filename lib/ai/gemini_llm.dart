@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'package:http/http.dart' as http;
 import 'ai_agent.dart';
 
@@ -8,7 +9,7 @@ const geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
 /// Google Gemini API(generateContent)를 두뇌로 쓰는 도우미.
 /// 앞 모델이 바쁘거나(503) 한도에 걸리면(429) 다음 모델로 자동으로 넘어간다.
 class GeminiLlm implements Llm {
-  GeminiLlm(this._client, {required this.apiKey, this.models = const ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-flash-latest']});
+  GeminiLlm(this._client, {required this.apiKey, this.models = const ['gemini-2.5-flash', 'gemini-flash-latest']});
   final http.Client _client;
   final String apiKey;
   final List<String> models;
@@ -25,6 +26,7 @@ class GeminiLlm implements Llm {
         return await _ask(m, question, ctx, image);
       } catch (e) {
         lastError = e;
+        if (kDebugMode) debugPrint('Gemini $m 실패: $e');
       }
     }
     throw lastError ?? StateError('Gemini 응답 없음');
