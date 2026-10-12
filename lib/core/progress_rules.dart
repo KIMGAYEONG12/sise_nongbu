@@ -9,8 +9,8 @@ int expToNext(int level) => 100 * (level + 1);
 /// 경험치를 얻는 모든 행동(파종·수확·판매·구매·미션·기부·게임)에 곱하는 배율. 레벨이 빨리 오른다.
 const expBoost = 3;
 
-/// 수확 한 번에 얻는 경험치
-const harvestExp = 20 * expBoost;
+/// 수확 한 번에 얻는 경험치 (예전 +60에서 +100으로 올렸다)
+const harvestExp = 100;
 
 /// 판매 금액에 따라 얻는 경험치 (금액 700원당 1, 최소 3)
 int sellExp(int amount) => amount ~/ 700 < 3 ? 3 : amount ~/ 700;
@@ -197,11 +197,23 @@ const pointItems = [
 
 // ───────────────────────── 기간별 카운터 (일일/주간) ─────────────────────────
 
-String dayTag(DateTime d) =>
-    '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+/// 한국 시간(KST, UTC+9)으로 바꾼 시각. 에뮬레이터·기기의 시간대가 달라도 하루가 바뀌는 때는 한국 자정이다.
+/// (돌려주는 값의 연·월·일·시 필드가 곧 한국 시각이다)
+DateTime toKst(DateTime d) => d.toUtc().add(const Duration(hours: 9));
 
-/// 그 주 월요일 날짜를 주간 태그로 쓴다.
-String weekTag(DateTime d) => dayTag(DateTime(d.year, d.month, d.day).subtract(Duration(days: d.weekday - 1)));
+/// 지금 한국 시각
+DateTime kstNow() => toKst(DateTime.now());
+
+String _ymd(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+/// 한국 날짜 기준 하루 태그 (일일 미션이 초기화되는 기준). 예) 2026-10-12
+String dayTag(DateTime d) => _ymd(toKst(d));
+
+/// 그 주 월요일(한국 날짜)을 주간 태그로 쓴다.
+String weekTag(DateTime d) {
+  final k = toKst(d);
+  return _ymd(DateTime(k.year, k.month, k.day).subtract(Duration(days: k.weekday - 1)));
+}
 
 /// 태그가 같으면 이어서, 다르면 새로 시작한 카운터 맵을 돌려준다.
 Map<String, dynamic> bumpPeriod(Map<String, dynamic>? old, String tag, String key, [int n = 1]) {
@@ -392,6 +404,23 @@ int farmerTitleIndex(int level) {
     if (level >= farmerTitles[i].minLevel) idx = i;
   }
   return idx;
+}
+
+/// 지금 쓸 칭호 번호. 사용자가 장착한 칭호([equipped])가 있고 이미 얻은 것이면 그것을, 아니면 레벨에 맞는 가장 높은 칭호를 쓴다.
+int effectiveTitleIndex(int level, int? equipped) {
+  if (equipped != null && equipped >= 0 && equipped < farmerTitles.length && level >= farmerTitles[equipped].minLevel) return equipped;
+  return farmerTitleIndex(level);
+}
+
+/// [titleIndex] 칭호를 얻은 뒤 지금까지 올라간 단계 (그 칭호를 얻은 레벨이 1단계)
+int titleRankOf(int level, int titleIndex) => (level - farmerTitles[titleIndex].minLevel + 1).clamp(1, 9999).toInt();
+
+/// 다음 새 칭호까지 얼마나 왔는지 0.0~1.0 (경험치 막대까지 반영). 마지막 칭호면 1.
+double titleProgress(LevelInfo lv) {
+  final i = farmerTitleIndex(lv.level);
+  if (i + 1 >= farmerTitles.length) return 1;
+  final from = farmerTitles[i].minLevel, to = farmerTitles[i + 1].minLevel;
+  return (((lv.level - from) + lv.ratio) / (to - from)).clamp(0.0, 1.0).toDouble();
 }
 
 /// 칭호 안에서의 단계 (1부터). 레벨이 한 번 오를 때마다 1씩 올라가고, 칭호 이름이 바뀌면 다시 1단계부터 시작한다.

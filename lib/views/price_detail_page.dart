@@ -131,7 +131,7 @@ class _ChangePill extends StatelessWidget {
 }
 
 List<String> _dayLabels(int n) {
-  final now = DateTime.now();
+  final now = kstNow(); // 한국 날짜 기준 (서버가 한국 날짜로 저장한다)
   return [
     for (var i = n - 1; i >= 0; i--) '${now.subtract(Duration(days: i)).month}/${now.subtract(Duration(days: i)).day}',
   ];
@@ -200,7 +200,7 @@ class _SummaryCard extends ConsumerWidget {
       child: Column(children: [
         row(
           '거래량',
-          vol.when(loading: () => bold('불러오는 중…'), error: (_, __) => bold('확인할 수 없어요'), data: (v) => bold(v == null ? '확인할 수 없어요' : '${commaNum(v)}kg')),
+          vol.when(loading: () => bold('불러오는 중…'), error: (_, __) => bold('불러오지 못했어요'), data: (v) => bold(v == null ? '불러오지 못했어요' : '${commaNum(v)}kg')),
         ),
         const Divider(height: 1, color: AppColors.line),
         row(

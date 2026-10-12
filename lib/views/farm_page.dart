@@ -83,7 +83,7 @@ class FarmPage extends ConsumerWidget {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(user.nickname, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20))),
                     const SizedBox(height: 3),
-                    Text('Lv. ${lv.level}', style: const TextStyle(fontSize: 14, color: Color(0xFF2B3A30), fontWeight: FontWeight.w700)),
+                    Text('Lv. ${lv.level}  ·  ${farmerTitles[user.titleIndex].emoji} ${farmerTitles[user.titleIndex].name}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, color: Color(0xFF2B3A30), fontWeight: FontWeight.w700)),
                   ]),
                 ),
                 MoneyPill(money: user.money),
@@ -171,6 +171,9 @@ class _FarmHero extends StatelessWidget {
   /// 그림 확대 한도. 원본이 작아서 이보다 키우면 깨져 보인다.
   static const maxScale = 1.4;
 
+  /// 그림 맨 위에서 잘라 내는 비율 (옅은 안개색 부분)
+  static const _cropTop = .1;
+
   /// 프로필·날씨 카드 아래 끝 (그림은 이보다 36px 위에서 시작해 하늘과 겹친다)
   static double _headerBottom(double topInset) => topInset + 150;
 
@@ -200,8 +203,9 @@ class _FarmHero extends StatelessWidget {
         final imgTop = h - imgH; // 그림 아래 끝 = 하단 탭 바로 위
         final imgLeft = -(imgW - w) / 2;
         final k = imgW / _srcW; // 원본 1px → 화면 크기
-        // 하늘이 그림과 만나는 높이 (그림 맨 위)
-        final seam = imgTop;
+        // 그림 윗부분 10%는 옅은 안개·흐린 하늘색이라 잘라 낸다 (그 아래부터는 또렷한 산과 나무). 하늘은 이 높이에서 그림 속 하늘색으로 이어진다.
+        final cropPx = imgH * _cropTop;
+        final seam = imgTop + cropPx;
 
         final stage = greenhouseStage(level, greenhouses);
         final field = Rect.fromLTRB(imgLeft + _field.left * k, imgTop + _field.top * k, imgLeft + _field.right * k, imgTop + _field.bottom * k);
@@ -214,8 +218,8 @@ class _FarmHero extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: const [Color(0xFF72C6F1), Color(0xFF9DE0FA), Color(0xFFBDEFFD), Color(0xFFC9F4FE), Color(0xFFC9F4FE)],
-                  stops: [0, ((seam / h) * .45).clamp(0.0, 1.0).toDouble(), ((seam / h) * .8).clamp(0.0, 1.0).toDouble(), (seam / h).clamp(0.0, 1.0).toDouble(), 1],
+                  colors: const [Color(0xFF58B6EE), Color(0xFF78D0F8), Color(0xFF7FD8FC), Color(0xFF7FD8FC)],
+                  stops: [0, ((seam / h) * .55).clamp(0.0, 1.0).toDouble(), (seam / h).clamp(0.0, 1.0).toDouble(), 1],
                 ),
               ),
             ),
@@ -228,25 +232,26 @@ class _FarmHero extends StatelessWidget {
             Positioned(left: 24, top: topInset + 170, child: const _Cloud(width: 92)),
             Positioned(right: 18, top: (topInset + 150 + imgTop) / 2 - 10, child: const _Cloud(width: 120)),
           ],
-          // 농장 일러스트: 원본에 가까운 크기로 선명하게 (윗가장자리에 흐림 효과 없음)
+          // 농장 일러스트: 윗부분 10%만 잘라 내고 나머지는 흐림·번짐 효과 없이 그대로 또렷하게 보여 준다
           Positioned(
             left: imgLeft,
             top: seam,
             width: imgW,
-            height: imgH,
-            // 윗가장자리 20%는 하늘색에 서서히 녹아서 나무 윗부분이 딱 잘린 것처럼 보이지 않는다 (아래 구름이 이음새를 한 번 더 덮는다)
-            child: ShaderMask(
-              blendMode: BlendMode.dstIn,
-              shaderCallback: (r) => const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.white], stops: [0, .2]).createShader(r),
-              child: Image.asset(AppImages.farmScene, fit: BoxFit.fill, filterQuality: FilterQuality.high),
+            height: imgH - cropPx,
+            child: ClipRect(
+              child: OverflowBox(
+                alignment: Alignment.bottomCenter,
+                minWidth: imgW,
+                maxWidth: imgW,
+                minHeight: imgH,
+                maxHeight: imgH,
+                child: Image.asset(AppImages.farmScene, width: imgW, height: imgH, fit: BoxFit.fill, filterQuality: FilterQuality.high),
+              ),
             ),
           ),
-          // 하늘과 그림이 만나는 이음새를 가로지르는 구름: 그림 위에 걸쳐 놓아서 띠가 없이 한 장의 풍경으로 이어진다
-          if (seam > 30) ...[
-            Positioned(left: -26, top: seam - 22, child: const _Cloud(width: 168)),
-            Positioned(right: -18, top: seam + 4, child: const _Cloud(width: 142)),
-            Positioned(left: w * .38, top: seam - 8, child: const _Cloud(width: 96)),
-          ],
+          // 하늘과 그림이 만나는 곳의 숲 가장자리: 잘린 나무 윗부분을 둥근 덤불 선으로 자연스럽게 마무리한다 (그림 아님, 코드로 그린 또렷한 도형)
+          if (seam > 12)
+            Positioned(left: 0, right: 0, top: seam - 14, height: math.max(24.0, imgH * .07), child: const IgnorePointer(child: CustomPaint(painter: _TreeLinePainter()))),
           // 연못에서 헤엄치는 물고기 (농장 탭을 보고 있을 때만 움직인다)
           Positioned.fromRect(
             rect: Rect.fromLTRB(imgLeft + _pond.left * k, imgTop + _pond.top * k, imgLeft + _pond.right * k, imgTop + _pond.bottom * k),
@@ -283,7 +288,7 @@ class _FarmHero extends StatelessWidget {
               // 하우스를 지을 때마다 조금씩 커진다 (왼쪽 아래 모서리를 기준으로 위·오른쪽으로 커짐)
               rect: _houseRect(imgLeft, imgTop, k, greenhouseSizeScale(stage)),
               // 누르면 하우스 정보와 "더 짓기" 창이 열린다
-              child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: onGreenhouse, child: CustomPaint(painter: GreenhousePainter(count: greenhouses, tier: greenhouseTierOfStage(stage), name: greenhouseStageName(stage), stage: stage))),
+              child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: onGreenhouse, child: GreenhouseView(count: greenhouses, tier: greenhouseTierOfStage(stage), name: greenhouseStageName(stage), stage: stage, active: fishActive)),
             ),
           // 포인트 상점에서 산 농장 장식(해바라기)은 밭 왼쪽 위에 작게
           if (decor > 0)
@@ -294,6 +299,38 @@ class _FarmHero extends StatelessWidget {
             ),
         ]);
       });
+}
+
+/// 하늘과 농장 그림 사이의 숲 가장자리: 그림 속 나무와 같은 청록·초록으로 둥근 덤불을 이어 붙인 또렷한 선.
+/// 그림 윗부분을 잘라 낸 자리를 가려서 하늘과 그림이 띠 없이 이어져 보이게 한다 (흐림 효과 없음).
+class _TreeLinePainter extends CustomPainter {
+  const _TreeLinePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    // 뒤줄(진한 청록) → 앞줄(초록): 반지름과 높이를 다르게 해서 들쭉날쭉한 숲 선이 된다
+    void row(double baseY, double rMin, double rMax, int seed, List<Color> colors) {
+      var x = -rMax * .6;
+      var i = seed;
+      while (x < w + rMax) {
+        final r = rMin + (rMax - rMin) * (((i * 37) % 100) / 100);
+        final c = Offset(x + r, baseY - r * .55 + (((i * 53) % 7) - 3));
+        final rect = Rect.fromCircle(center: c, radius: r);
+        canvas.drawCircle(c, r, Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: colors).createShader(rect));
+        x += r * 1.35;
+        i++;
+      }
+    }
+
+    row(h * .62, h * .26, h * .42, 3, const [Color(0xFF2FA89B), Color(0xFF1E8A82)]);
+    row(h * .92, h * .24, h * .38, 11, const [Color(0xFF5CBF6E), Color(0xFF2F9A5A)]);
+    // 맨 아래는 그림과 이어지는 초록 띠
+    canvas.drawRect(Rect.fromLTWH(0, h * .86, w, h * .14), Paint()..color = const Color(0xFF3FA45E));
+  }
+
+  @override
+  bool shouldRepaint(_TreeLinePainter old) => false;
 }
 
 class _Cloud extends StatelessWidget {
@@ -419,7 +456,7 @@ class _GreenhouseSheet extends ConsumerWidget {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 44, height: 5, decoration: BoxDecoration(color: AppColors.line, borderRadius: BorderRadius.circular(3))),
           const SizedBox(height: 14),
-          SizedBox(height: 150 * (0.8 + 0.2 * scale), child: AspectRatio(aspectRatio: 260 / 176, child: CustomPaint(painter: GreenhousePainter(count: owned, tier: tier, name: greenhouseStageName(stage), stage: stage)))),
+          SizedBox(height: 150 * (0.8 + 0.2 * scale), child: AspectRatio(aspectRatio: 260 / 176, child: GreenhouseView(count: owned, tier: tier, name: greenhouseStageName(stage), stage: stage))),
           const SizedBox(height: 10),
           Text(greenhouseStageName(stage), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.ink)),
           const SizedBox(height: 4),

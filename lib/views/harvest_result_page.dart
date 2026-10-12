@@ -39,7 +39,7 @@ class HarvestResultPage extends ConsumerWidget {
                 ]),
               ),
               const SizedBox(height: 8),
-              Text('${withJosa(c.name, '을', '를')} 수확했습니다!', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              Text('${withJosa(c.name, '을', '를')} 수확했습니다! ${c.emoji}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
               const Spacer(),
               // 경험치: 이번에 얻은 경험치와 현재 레벨 진행 막대
               SoftCard(
@@ -51,10 +51,13 @@ class HarvestResultPage extends ConsumerWidget {
                     const SizedBox(width: 8),
                     const Text('경험치', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF000000))),
                     const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                      decoration: BoxDecoration(color: AppColors.greenLight, borderRadius: BorderRadius.circular(12)),
-                      child: const Text('+$harvestExp EXP', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: AppColors.greenDark)),
+                    // 경험치가 +100처럼 세 자리가 되어도 좁은 화면에서 넘치지 않게 남는 자리 안에서 줄어든다
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(color: AppColors.greenLight, borderRadius: BorderRadius.circular(12)),
+                        child: const FittedBox(fit: BoxFit.scaleDown, child: Text('+$harvestExp EXP', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: AppColors.greenDark))),
+                      ),
                     ),
                     const Spacer(),
                     Text('Lv. ${lv.level}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF000000))),

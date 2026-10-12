@@ -247,11 +247,14 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
   String get _clock =>
       '${(_left ~/ 60).toString().padLeft(2, '0')}:${(_left % 60).toString().padLeft(2, '0')}';
 
-  /// 힌트를 항상 켜 두는 난이도(쉬움)인지
-  bool get _alwaysHint => _lv.hintAfter == 0;
+  /// 처음 한 쌍에만 노란 힌트를 보여 주는 난이도(쉬움)인지
+  bool get _firstHintLevel => _lv.hintAfter == 0;
+
+  /// 처음 한 쌍을 이미 맞춰서 노란 힌트를 더는 보여 주지 않는지 (두 번째부터는 스스로 찾는다)
+  bool _hintDone = false;
 
   String get _startTip =>
-      _alwaysHint ? '반짝이는 같은 작물 두 칸을 차례로 눌러 보세요' : '같은 작물 두 칸을 차례로 눌러 짝을 맞춰요';
+      _firstHintLevel ? '노랗게 반짝이는 두 칸이 첫 힌트예요. 다음부터는 마음대로 눌러 보세요' : '같은 작물 두 칸을 차례로 눌러 짝을 맞춰요';
 
   void _startTimer() {
     _timer?.cancel();
@@ -266,7 +269,8 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
           _left--;
           _idle++;
           final after = _lv.hintAfter;
-          if (after != null && _idle >= after && _hint == null) {
+          // 가만히 있으면 힌트를 보여 주는 난이도(보통)만. 쉬움(0초)은 처음 한 쌍에만 힌트라서 타이머로는 켜지 않는다.
+          if (after != null && after > 0 && _idle >= after && _hint == null) {
             _hint = _board.findHint();
           }
         });
@@ -288,7 +292,8 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
       _sel = null;
       _rewarded = null;
       _idle = 0;
-      _hint = _alwaysHint ? _board.findHint() : null;
+      _hintDone = false;
+      _hint = _firstHintLevel ? _board.findHint() : null; // 노란 힌트는 첫 한 쌍에만
       _tip = _startTip;
     });
     _startTimer();
@@ -319,8 +324,9 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
       _rewarded = null;
       _idle = 0;
       _saved = null;
-      _hint = _alwaysHint ? _board.findHint() : null;
-      _tip = '이어서 시작해요! $_startTip';
+      _hintDone = true;
+      _hint = null;
+      _tip = '이어서 시작해요! 같은 작물 두 칸을 차례로 눌러 짝을 맞춰요';
     });
     _startTimer();
   }
@@ -352,7 +358,7 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
     if (s == null) {
       setState(() {
         _sel = idx;
-        _hint = _alwaysHint ? _hint : null;
+        _hint = _firstHintLevel && !_hintDone ? _hint : null; // 첫 한 쌍을 맞출 때까지는 노란 표시를 그대로 둔다
         _tip = '같은 작물을 하나 더 눌러요';
       });
       return;
@@ -374,6 +380,7 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
   }
 
   void _onMatched(int kind) {
+    _hintDone = true; // 두 번째부터는 노란 표시 없음
     _streak++;
     final w = _weights();
     final base = 20 * (kind < w.length ? w[kind] : 1.0) * _lv.bonus;
@@ -386,11 +393,11 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
       _left += matchStageBonusSeconds;
       _stage++;
       _board = PairBoard(_rows, _cols, _crops.length);
-      _hint = _alwaysHint ? _board.findHint() : null;
+      _hint = null;
       _tip =
           '🎉 한 판 완성! 다음 판으로 넘어가요 (+$matchStageBonusScore점 · +$matchStageBonusSeconds초)';
     } else {
-      _hint = _alwaysHint ? _board.findHint() : null;
+      _hint = null;
       _tip = _streak > 1 ? '짝이 맞았어요! $_streak연속 +$pts점' : '짝이 맞았어요! +$pts점';
     }
     setState(() {});
@@ -832,7 +839,7 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
         KoText(
           '작물 ${_crops.length}종 · ${lv.size}×${lv.size}칸 · ${lv.seconds ~/ 60}분 ${lv.seconds % 60 == 0 ? '' : '${lv.seconds % 60}초 '}\n'
           '같은 작물 두 칸을 눌러 짝을 맞춰요. 한 판을 다 맞추면 다음 판!\n'
-          '${lv.hintAfter == 0 ? '힌트가 계속 반짝여요' : lv.hintAfter == null ? '힌트 없음 (점수 ×${lv.bonus})' : '${lv.hintAfter}초 가만히 있으면 힌트 (점수 ×${lv.bonus})'}\n'
+          '${lv.hintAfter == 0 ? '처음 한 쌍만 노란 힌트가 나와요' : lv.hintAfter == null ? '힌트 없음 (점수 ×${lv.bonus})' : '${lv.hintAfter}초 가만히 있으면 힌트 (점수 ×${lv.bonus})'}\n'
           '오늘 시세가 오른 작물(▲)을 맞추면 점수가 최대 2배!',
           textAlign: TextAlign.center,
           style: const TextStyle(

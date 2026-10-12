@@ -76,6 +76,28 @@ class AuctionApiService implements AuctionSource {
     'BROCCOLI': ('13', '06'), // 양채류 > 브로콜리
   };
 
+  /// 요청 사이 최소 간격. 공공데이터 API는 "초당 요청 수"가 제한되어 있어서(429,
+  /// LIMITED_NUMBER_OF_SERVICE_REQUESTS_PER_SECOND_EXCEEDS_ERROR) 작물 21종의 시세를 한꺼번에 요청하면 대부분 거절된다.
+  /// 그러면 시세가 비거나(그래프 없음, 거래량 "확인할 수 없어요") 전날 값이 엉뚱하게 나온다.
+  static const minGap = Duration(milliseconds: 350);
+  static Future<void> _queue = Future<void>.value();
+  static DateTime _lastStart = DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// 모든 요청을 한 줄로 세워서 [minGap] 간격으로 내보낸다 (동시에 여러 개를 보내지 않는다).
+  static Future<T> _paced<T>(Future<T> Function() job) {
+    final done = _queue.then((_) async {
+      final wait = minGap - DateTime.now().difference(_lastStart);
+      if (wait > Duration.zero) await Future<void>.delayed(wait);
+      _lastStart = DateTime.now();
+      return job();
+    });
+    _queue = done.then<void>((_) {}, onError: (_) {});
+    return done;
+  }
+
+  /// 초당 제한에 걸린 응답인지 (HTTP 429 또는 본문의 제한 오류 문구)
+  static bool isRateLimited(int status, String body) => status == 429 || body.contains('LIMITED_NUMBER_OF_SERVICE_REQUESTS');
+
   /// 공공데이터포털의 "Encoding" 키(%가 들어 있음)를 넣어도 두 번 인코딩되지 않게 풀어서 쓴다.
   static String get _key {
     final k = auctionApiKey.trim();
@@ -107,8 +129,15 @@ class AuctionApiService implements AuctionSource {
         itemParam: code.$2,
         'selectable': selectable,
       });
-      final res = await client.get(uri).timeout(const Duration(seconds: 15));
-      final body = utf8.decode(res.bodyBytes);
+      // 초당 제한에 걸리면 조금 쉬었다가 다시 시도한다 (최대 4번)
+      late http.Response res;
+      late String body;
+      for (var attempt = 1;; attempt++) {
+        res = await _paced(() => client.get(uri).timeout(const Duration(seconds: 15)));
+        body = utf8.decode(res.bodyBytes);
+        if (!isRateLimited(res.statusCode, body) || attempt >= 4) break;
+        await Future<void>.delayed(Duration(milliseconds: 800 * attempt));
+      }
       if (res.statusCode != 200) throw Exception('시세 API 오류 ${res.statusCode}: ${_errorText(body)}');
       final decoded = _decode(body);
       raw.addAll(decoded.items);

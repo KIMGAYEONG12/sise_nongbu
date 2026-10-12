@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/game_rules.dart';
 import '../services/auth_service.dart';
 import '../viewmodels/view_models.dart';
+import '../models/models.dart';
 import '../widgets/common.dart';
+import '../widgets/crop_art.dart';
 import 'about_page.dart';
 import '../core/progress_rules.dart';
 import 'achievement_page.dart';
@@ -68,15 +70,20 @@ class MyPage extends ConsumerWidget {
         ]),
       );
 
-  /// 나의 칭호 카드: 지금 칭호 + 다음 칭호까지 레벨 진행
-  /// 나의 칭호 카드: 레벨이 한 번 오를 때마다 칭호 "단계"가 하나씩 오르고, 정해진 레벨마다 칭호 이름이 더 멋진 것으로 바뀐다.
-  Widget _titleCard(LevelInfo lv) {
+  /// 나의 칭호 카드: 지금 쓰는 칭호 + 다음 새 칭호까지 진행. 누르면 얻은 칭호 중에서 골라 장착할 수 있다.
+  /// 레벨이 한 번 오를 때마다 칭호 "단계"가 하나씩 오르고, 정해진 레벨마다 더 멋진 칭호가 열린다.
+  Widget _titleCard(BuildContext context, UserData user) {
+    final lv = user.level;
     final level = lv.level;
-    final i = farmerTitleIndex(level);
+    final top = farmerTitleIndex(level); // 레벨로 얻은 가장 높은 칭호
+    final i = user.titleIndex; // 지금 쓰는 칭호 (장착한 것 또는 가장 높은 것)
     final cur = farmerTitles[i];
-    final next = i + 1 < farmerTitles.length ? farmerTitles[i + 1] : null;
-    final rank = farmerTitleRank(level);
-    return Container(
+    final next = top + 1 < farmerTitles.length ? farmerTitles[top + 1] : null;
+    final rank = titleRankOf(level, i);
+    final progress = titleProgress(lv);
+    return GestureDetector(
+      onTap: () => showTitleSheet(context),
+      child: Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
@@ -109,16 +116,19 @@ class MyPage extends ConsumerWidget {
               ),
             ]),
             const SizedBox(height: 4),
-            Text(next == null ? '레벨이 오를 때마다 단계가 올라가요' : '다음 칭호 "${next.name}"까지 Lv.${next.minLevel}', style: const TextStyle(fontSize: 12.5, color: Color(0xFF3D4A40), fontWeight: FontWeight.w600)),
+            Text(next == null ? '가장 높은 칭호예요. 레벨이 오를 때마다 단계가 올라가요' : '다음 칭호 "${next.name}"까지 Lv.${next.minLevel}', style: const TextStyle(fontSize: 12.5, color: Color(0xFF3D4A40), fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Row(children: [
-              Expanded(child: ThinBar(value: lv.ratio, height: 9)),
+              Expanded(child: ThinBar(value: progress, height: 9)),
               const SizedBox(width: 8),
-              Text('다음 ${rank + 1}단계', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF3D4A40))),
+              Text(next == null ? 'MAX' : '${(progress * 100).floor()}%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF3D4A40))),
             ]),
+            const SizedBox(height: 4),
+            Text(user.titleIdx == null ? '눌러서 칭호 바꾸기' : '장착 중 · 눌러서 칭호 바꾸기', style: const TextStyle(fontSize: 11.5, color: AppColors.greenDark, fontWeight: FontWeight.w800)),
           ]),
         ),
       ]),
+      ),
     );
   }
 
@@ -195,7 +205,7 @@ class MyPage extends ConsumerWidget {
       const SizedBox(height: 18),
       // 시안: 나의 칭호 (레벨에 따라 바뀐다)
       const Padding(padding: EdgeInsets.only(left: 4, bottom: 8), child: Text('나의 칭호', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20)))),
-      _titleCard(lv),
+      _titleCard(context, user),
       const SizedBox(height: 14),
       SoftCard(
         color: Colors.white,
@@ -294,33 +304,115 @@ class _LinkAccountSheetState extends State<_LinkAccountSheet> {
 }
 
 /// 농작물 통계 (누적 수익, 파종·수확·판매 횟수, 작물별 수확 횟수). MY 화면과 고객센터에서 연다.
+/// 작물이 21종이라 길어서, 화면 높이의 85%까지만 차지하고 그 안에서 스크롤된다 (예전에는 아래가 넘쳐 노란 줄무늬 오류가 났다).
 void showCropStats(BuildContext context) {
   showModalBottomSheet<void>(
     context: context,
+    isScrollControlled: true,
     backgroundColor: AppColors.bg,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-    builder: (_) => Consumer(builder: (_, r, __) {
+    builder: (sheet) => Consumer(builder: (_, r, __) {
       final u = r.watch(userDataProvider);
-      Widget line(String a, String b) => Padding(
+      Widget line(Widget a, String b) => Padding(
             padding: const EdgeInsets.symmetric(vertical: 5),
-            child: Row(children: [Text(a, style: const TextStyle(fontWeight: FontWeight.w700)), const Spacer(), Text(b, style: const TextStyle(fontWeight: FontWeight.w900))]),
+            child: Row(children: [Expanded(child: a), Text(b, style: const TextStyle(fontWeight: FontWeight.w900))]),
           );
+      Widget label(String t) => Text(t, style: const TextStyle(fontWeight: FontWeight.w700));
       return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('농작물 통계', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 10),
-            line('누적 수익', won(u.totalProfit)),
-            line('파종', '${u.stat('plant')}회'),
-            line('수확', '${u.stat('harvest')}회'),
-            line('판매', '${u.stat('sell')}회'),
-            const Divider(),
-            for (final c in crops) line('${c.emoji} ${c.name} 수확', '${u.stat('crop_${c.code}')}회'),
-          ]),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(sheet).height * .85),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              const Center(child: Text('농작물 통계', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900))),
+              const SizedBox(height: 10),
+              line(label('누적 수익'), won(u.totalProfit)),
+              line(label('파종'), '${u.stat('plant')}회'),
+              line(label('수확'), '${u.stat('harvest')}회'),
+              line(label('판매'), '${u.stat('sell')}회'),
+              const Divider(),
+              for (final c in crops)
+                line(Row(children: [CropArt(code: c.code, size: 26), const SizedBox(width: 8), label('${c.name} 수확')]), '${u.stat('crop_${c.code}')}회'),
+            ]),
+          ),
         ),
       );
     }),
   );
+}
+
+/// 칭호 고르기 창: 7가지 칭호 가운데 얻은 것은 눌러서 장착하고, 아직 못 얻은 것은 열리는 레벨을 보여 준다.
+/// "자동"을 고르면 레벨에 맞는 가장 높은 칭호가 쓰인다.
+void showTitleSheet(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.bg,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (_) => const TitleSheet(),
+  );
+}
+
+class TitleSheet extends ConsumerWidget {
+  const TitleSheet({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(userDataProvider);
+    final level = user.level.level;
+    final top = farmerTitleIndex(level);
+    final current = user.titleIndex;
+    Future<void> pick(int? index) async {
+      final ok = await runGuarded(context, () => ref.read(farmViewModelProvider).setTitle(index), ok: index == null ? '칭호를 자동으로 바꿨어요' : '"${farmerTitles[index].name}" 칭호를 장착했어요');
+      if (ok && context.mounted) Navigator.of(context).pop();
+    }
+
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .85),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const Center(child: Text('나의 칭호', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
+            const SizedBox(height: 4),
+            Center(child: Text('Lv.$level · 레벨이 오르면 더 멋진 칭호가 열려요', style: const TextStyle(fontSize: 12.5, color: Color(0xFF3D4A40), fontWeight: FontWeight.w600))),
+            const SizedBox(height: 12),
+            for (var i = 0; i < farmerTitles.length; i++)
+              Builder(builder: (_) {
+                final t = farmerTitles[i];
+                final unlocked = level >= t.minLevel;
+                final on = i == current;
+                // ListTile은 가장 가까운 Material 위에 배경과 물결 효과를 그린다. 배경색 상자(DecoratedBox) 안에 넣으면 가려지고
+                // 디버그에서 오류가 나므로, 배경·테두리를 Material 자체에 준다.
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Material(
+                    color: on ? const Color(0xFFE3F4D2) : Colors.white,
+                    clipBehavior: Clip.antiAlias,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      side: BorderSide(color: on ? AppColors.green : const Color(0xFFE3ECD9), width: on ? 2 : 1.2),
+                    ),
+                    child: ListTile(
+                    enabled: unlocked,
+                    onTap: unlocked ? () => pick(i) : null,
+                    leading: Opacity(opacity: unlocked ? 1 : .35, child: Text(t.emoji, style: const TextStyle(fontSize: 30, height: 1))),
+                    title: Text(t.name, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: unlocked ? const Color(0xFF111111) : const Color(0xFF8A958C))),
+                    subtitle: Text(
+                      unlocked ? (i == top ? 'Lv.${t.minLevel}부터 · 지금 얻을 수 있는 가장 높은 칭호' : 'Lv.${t.minLevel}부터') : '🔒 Lv.${t.minLevel}에 열려요 (${t.minLevel - level}레벨 남음)',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    trailing: on ? const Icon(Icons.check_circle_rounded, color: AppColors.green) : (unlocked ? const Text('장착', style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.greenDark)) : null),
+                    ),
+                  ),
+                );
+              }),
+            const SizedBox(height: 4),
+            GreenButton(label: user.titleIdx == null ? '자동으로 쓰는 중 (가장 높은 칭호)' : '자동으로 바꾸기 (가장 높은 칭호)', outlined: true, onPressed: user.titleIdx == null ? null : () => pick(null)),
+          ]),
+        ),
+      ),
+    );
+  }
 }
 

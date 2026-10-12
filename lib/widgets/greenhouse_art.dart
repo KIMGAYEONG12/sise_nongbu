@@ -70,7 +70,10 @@ const greenhouseTierLevels = [1, 3, 5, 7, 10, 13];
 /// 0 비닐하우스: 나무 뼈대에 비닐을 씌운 둥근 터널 · 1 유리 온실: 흰 철제 뼈대와 유리 지붕 ·
 /// 2 스마트 온실: 파란 유리 + 지붕 태양광 패널 · 3 황금 온실: 금빛 뼈대와 깃발, 반짝이는 별.
 class GreenhousePainter extends CustomPainter {
-  const GreenhousePainter({this.count = 1, this.tier = 1, this.name, this.stage = 0});
+  const GreenhousePainter({this.count = 1, this.tier = 1, this.name, this.stage = 0, this.anim}) : super(repaint: anim);
+
+  /// 0~1을 되풀이하는 움직임 시간. 있으면 안의 작물이 살랑이고 위성·신호·별이 움직인다. null이면 멈춘 그림.
+  final Animation<double>? anim;
 
   /// 지은 하우스 수 (이름표에 "하우스 ×3"으로 보여준다)
   final int count;
@@ -88,6 +91,8 @@ class GreenhousePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
     final t = tier.clamp(0, greenhouseMaxTier);
+    final a = anim?.value ?? 0.0; // 움직임 시간 0~1
+    final a2 = a * math.pi * 2;
     Offset p(double x, double y) => Offset(x * w, y * h);
     Paint fill(Color c) => Paint()..color = c;
     Paint line(Color c, double lw) => Paint()
@@ -146,13 +151,16 @@ class GreenhousePainter extends CustomPainter {
       final fruit = [const Color(0xFFE5483B), const Color(0xFFE5483B), const Color(0xFFFF7A2F), const Color(0xFFFFC21A), const Color(0xFFFF5C8A), const Color(0xFFB9FF5C)][t];
       for (var i = 0; i < 5; i++) {
         final x = .16 + i * .17;
-        canvas.drawLine(p(x, base), p(x, base - .24), line(const Color(0xFF3F8F2E), 2.2));
+        // 위로 갈수록 더 크게 흔들리는 줄기 (뿌리는 그대로)
+        final sw = math.sin(a2 + i * 1.1) * .016;
+        double bend(double height) => sw * (height / .24);
+        canvas.drawLine(p(x, base), p(x + sw, base - .24), line(const Color(0xFF3F8F2E), 2.2));
         for (final d in const [(-.04, .1), (.04, .15), (-.035, .2), (.04, .24)]) {
-          canvas.drawOval(Rect.fromCenter(center: p(x + d.$1, base - d.$2), width: w * .075 * big, height: h * .045 * big), fill(i.isEven ? const Color(0xFF55B23A) : const Color(0xFF3F9E35)));
+          canvas.drawOval(Rect.fromCenter(center: p(x + d.$1 + bend(d.$2), base - d.$2), width: w * .075 * big, height: h * .045 * big), fill(i.isEven ? const Color(0xFF55B23A) : const Color(0xFF3F9E35)));
         }
         for (final d in t == 0 ? const [(.03, .08)] : const [(.03, .08), (-.03, .17), (.035, .22)]) {
-          canvas.drawCircle(p(x + d.$1, base - d.$2), w * .017 * big, fill(fruit));
-          canvas.drawCircle(p(x + d.$1 - .005, base - d.$2 - .008), w * .005, fill(const Color(0xAAFFFFFF)));
+          canvas.drawCircle(p(x + d.$1 + bend(d.$2), base - d.$2), w * .017 * big, fill(fruit));
+          canvas.drawCircle(p(x + d.$1 + bend(d.$2) - .005, base - d.$2 - .008), w * .005, fill(const Color(0xAAFFFFFF)));
         }
       }
     }
@@ -257,7 +265,7 @@ class GreenhousePainter extends CustomPainter {
     canvas.drawCircle(p(cx + .02, .72), w * .008, fill(const Color(0xFFE0A800)));
 
     // 11단계(AI 퀀텀 팜)부터는 단계가 오를 때마다 첨단 장치가 하나씩 더 붙는다 (앞 단계 장치는 그대로 유지)
-    if (stage >= 11) _drawTech(canvas, size, stage, frame);
+    if (stage >= 11) _drawTech(canvas, size, stage, frame, a);
 
     // 이름표
     final name = this.name ?? greenhouseNames[t];
@@ -274,7 +282,8 @@ class GreenhousePainter extends CustomPainter {
 
   /// 위성: 금박 몸체, 격자무늬 파란 태양광 날개, 접시 안테나, 반짝이는 신호.
   /// 오른쪽 위에 떠 있으면서 지붕 쪽으로 점선 신호와 물결을 보낸다.
-  void _drawSatellite(Canvas canvas, Size size) {
+  void _drawSatellite(Canvas canvas, Size size, double a) {
+    final a2 = a * math.pi * 2;
     final w = size.width, h = size.height;
     Offset p(double x, double y) => Offset(x * w, y * h);
     Paint fill(Color c) => Paint()..color = c;
@@ -285,7 +294,8 @@ class GreenhousePainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..color = c;
 
-    final sat = p(.86, .07);
+    // 천천히 둥실 떠다니며(위아래·좌우) 살짝 기울어진다
+    final sat = p(.86 + math.sin(a2) * .014, .07 + math.cos(a2 * 1.0 + 1.2) * .016);
     final unit = w * .04;
 
     // 지붕으로 보내는 점선 신호
@@ -294,20 +304,28 @@ class GreenhousePainter extends CustomPainter {
     final beam = Path()
       ..moveTo(from.dx, from.dy)
       ..lineTo(to.dx, to.dy);
+    // 점선이 지붕 쪽으로 흘러간다 (한 바퀴에 두 칸씩)
+    final phase = (a * 14) % 7.0;
     for (final m in beam.computeMetrics()) {
-      for (var d = 0.0; d < m.length; d += 7) {
-        final a = d / m.length; // 지붕에 가까울수록 또렷하게
-        canvas.drawPath(m.extractPath(d, math.min(d + 3.5, m.length)), line(const Color(0xFFFFE066).withValues(alpha: .35 + .6 * a), 1.5));
+      for (var d = phase - 7; d < m.length; d += 7) {
+        final start = math.max(0.0, d), end = math.min(d + 3.5, m.length);
+        if (end <= start) continue;
+        final k = start / m.length; // 지붕에 가까울수록 또렷하게
+        canvas.drawPath(m.extractPath(start, end), line(const Color(0xFFFFE066).withValues(alpha: .35 + .6 * k), 1.5));
       }
     }
     // 위성 아래로 퍼지는 신호 물결
+    // 물결이 안쪽에서 바깥으로 차례로 퍼진다
+    var ring = 0;
     for (final r in const [.05, .08, .11]) {
-      canvas.drawArc(Rect.fromCenter(center: from, width: w * r * 2, height: w * r * 2), math.pi * .5, math.pi * .5, false, line(const Color(0xFFFFE066).withValues(alpha: .85 - r * 4), 1.3));
+      final glowK = .5 + .5 * math.sin(a2 * 2 - ring * 1.1);
+      canvas.drawArc(Rect.fromCenter(center: from, width: w * r * 2, height: w * r * 2), math.pi * .5, math.pi * .5, false, line(const Color(0xFFFFE066).withValues(alpha: (.85 - r * 4) * (.35 + .65 * glowK)), 1.3));
+      ring++;
     }
 
     canvas.save();
     canvas.translate(sat.dx, sat.dy);
-    canvas.rotate(-.42);
+    canvas.rotate(-.42 + math.sin(a2 + .6) * .07);
 
     // 뒤에서 은은하게 빛나는 기운
     canvas.drawCircle(Offset.zero, unit * 3.4, Paint()..shader = const RadialGradient(colors: [Color(0x887DF9FF), Color(0x007DF9FF)]).createShader(Rect.fromCircle(center: Offset.zero, radius: unit * 3.4)));
@@ -365,8 +383,9 @@ class GreenhousePainter extends CustomPainter {
 
     // 위쪽 안테나 + 깜빡이는 불빛
     canvas.drawLine(Offset(unit * .35, -unit * .95), Offset(unit * .55, -unit * 1.7), line(const Color(0xFFC9D4E2), 1.3));
-    canvas.drawCircle(Offset(unit * .55, -unit * 1.7), unit * .2, Paint()..color = const Color(0xCCFF5C7A)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
-    canvas.drawCircle(Offset(unit * .55, -unit * 1.7), unit * .11, fill(const Color(0xFFFF8FA3)));
+    final blink = (math.sin(a2 * 4) > 0) ? 1.0 : .25; // 안테나 불빛이 깜빡
+    canvas.drawCircle(Offset(unit * .55, -unit * 1.7), unit * .2, Paint()..color = const Color(0xCCFF5C7A).withValues(alpha: .8 * blink)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
+    canvas.drawCircle(Offset(unit * .55, -unit * 1.7), unit * .11, fill(Color.lerp(const Color(0xFF7A3A48), const Color(0xFFFF8FA3), blink)!));
 
     // 아래 접시 안테나 (신호를 지붕으로 쏜다)
     canvas.drawLine(Offset(0, unit * .95), Offset(0, unit * 1.35), line(const Color(0xFFC9D4E2), 1.4));
@@ -379,8 +398,11 @@ class GreenhousePainter extends CustomPainter {
     canvas.restore();
 
     // 반짝이는 별 (네 갈래)
+    var starN = 0;
     for (final sp in const [(.72, .035, .018), (.95, .15, .014), (.77, .17, .012)]) {
-      final c = p(sp.$1, sp.$2), r = w * sp.$3;
+      final tw = .65 + .35 * math.sin(a2 * 2 + starN * 2.1); // 반짝반짝 크기가 변한다
+      starN++;
+      final c = p(sp.$1, sp.$2), r = w * sp.$3 * tw;
       final star = Path()
         ..moveTo(c.dx, c.dy - r * 1.6)
         ..quadraticBezierTo(c.dx + r * .2, c.dy - r * .2, c.dx + r * 1.6, c.dy)
@@ -393,7 +415,8 @@ class GreenhousePainter extends CustomPainter {
   }
 
   /// 11단계 이후의 첨단 장치들. 위성 연동 스마트팜(15단계)에는 지붕 위 위성과 신호가 나온다.
-  void _drawTech(Canvas canvas, Size size, int stage, Color frame) {
+  void _drawTech(Canvas canvas, Size size, int stage, Color frame, double a) {
+    final a2 = a * math.pi * 2;
     final w = size.width, h = size.height;
     Offset p(double x, double y) => Offset(x * w, y * h);
     Paint fill(Color c) => Paint()..color = c;
@@ -416,9 +439,12 @@ class GreenhousePainter extends CustomPainter {
 
     // 12 나노 바이오 팜: 안에서 떠다니는 초록 나노 입자
     if (stage >= 12) {
+      var n = 0;
       for (final d in const [(.2, .55), (.34, .66), (.66, .6), (.8, .68), (.5, .74), (.28, .46), (.72, .46)]) {
-        canvas.drawCircle(p(d.$1, d.$2), w * .016, glow(const Color(0xCC9BFF7A), 3));
-        canvas.drawCircle(p(d.$1, d.$2), w * .008, fill(const Color(0xFFE9FFD0)));
+        final c = p(d.$1 + math.sin(a2 + n) * .012, d.$2 + math.cos(a2 * 1.3 + n * 1.7) * .018);
+        canvas.drawCircle(c, w * .016, glow(const Color(0xCC9BFF7A), 3));
+        canvas.drawCircle(c, w * .008, fill(const Color(0xFFE9FFD0)));
+        n++;
       }
     }
 
@@ -431,18 +457,20 @@ class GreenhousePainter extends CustomPainter {
 
     // 14 플라즈마 에너지 팜: 꼭대기의 분홍빛 플라즈마 구슬
     if (stage >= 14) {
-      canvas.drawCircle(p(.5, .06), w * .05, glow(const Color(0xCCFF5CE1), 5));
-      canvas.drawCircle(p(.5, .06), w * .024, fill(const Color(0xFFFFE0FA)));
+      final pulse = 1 + .14 * math.sin(a2 * 2);
+      canvas.drawCircle(p(.5, .06), w * .05 * pulse, glow(const Color(0xCCFF5CE1), 5));
+      canvas.drawCircle(p(.5, .06), w * .024 * pulse, fill(const Color(0xFFFFE0FA)));
     }
 
     // 15 위성 연동 스마트팜: 오른쪽 위에 위성이 떠 있고, 지붕으로 신호를 보낸다
-    if (stage >= 15) _drawSatellite(canvas, size);
+    if (stage >= 15) _drawSatellite(canvas, size, a);
 
     // 16 핵융합 에너지 팜: 안쪽 가운데의 밝은 에너지 코어
     if (stage >= 16) {
-      canvas.drawCircle(p(.5, .66), w * .06, glow(const Color(0xCCFFB84A), 6));
+      final core = 1 + .12 * math.sin(a2 * 3);
+      canvas.drawCircle(p(.5, .66), w * .06 * core, glow(const Color(0xCCFFB84A), 6));
       canvas.drawCircle(p(.5, .66), w * .026, fill(const Color(0xFFFFF6D0)));
-      canvas.drawCircle(p(.5, .66), w * .05, line(const Color(0xAAFFD34E), 1.2));
+      canvas.drawCircle(p(.5, .66), w * .05 * core, line(const Color(0xAAFFD34E), 1.2));
     }
 
     // 17 우주 정거장 팜: 하우스를 감싸는 궤도 고리
@@ -477,5 +505,50 @@ class GreenhousePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(GreenhousePainter old) => old.tier != tier || old.count != count || old.name != name || old.stage != stage;
+  bool shouldRepaint(GreenhousePainter old) => old.tier != tier || old.count != count || old.name != name || old.stage != stage || old.anim != anim;
+}
+
+/// 움직이는 하우스: [GreenhousePainter]에 시간을 흘려 보내서 안의 작물이 살랑이고 위성·신호·별이 움직이게 한다.
+/// [active]가 false이면(농장 탭이 아닐 때 등) 멈춰서 배터리를 아낀다. 크기는 부모가 정한다.
+class GreenhouseView extends StatefulWidget {
+  const GreenhouseView({super.key, required this.count, required this.tier, required this.stage, this.name, this.active = true});
+  final int count, tier, stage;
+  final String? name;
+  final bool active;
+
+  @override
+  State<GreenhouseView> createState() => _GreenhouseViewState();
+}
+
+class _GreenhouseViewState extends State<GreenhouseView> with SingleTickerProviderStateMixin {
+  /// 한 바퀴 시간 (이 안에서 위성이 한 번 떠다니고, 작물이 한 번 살랑인다)
+  static const loop = Duration(seconds: 6);
+  late final AnimationController _c = AnimationController(vsync: this, duration: loop);
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.active) _c.repeat();
+  }
+
+  @override
+  void didUpdateWidget(GreenhouseView old) {
+    super.didUpdateWidget(old);
+    if (widget.active && !_c.isAnimating) {
+      _c.repeat();
+    } else if (!widget.active && _c.isAnimating) {
+      _c.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => RepaintBoundary(
+        child: CustomPaint(painter: GreenhousePainter(count: widget.count, tier: widget.tier, name: widget.name, stage: widget.stage, anim: _c)),
+      );
 }

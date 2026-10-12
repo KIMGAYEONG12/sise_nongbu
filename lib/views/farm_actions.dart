@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/game_rules.dart';
+import '../core/korean.dart';
 import '../core/progress_rules.dart';
 import '../models/models.dart';
 import '../viewmodels/view_models.dart';
@@ -42,7 +43,7 @@ Future<void> showPlantSheet(BuildContext context, WidgetRef ref, Plot plot) {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     onTap: () {
                       Navigator.pop(sheetContext);
-                      runGuarded(context, () => ref.read(farmViewModelProvider).plant(plot.index, c), ok: '심었어요!', okCrop: c.code);
+                      runGuarded(context, () => ref.read(farmViewModelProvider).plant(plot.index, c), ok: '${withJosa(c.name, '을', '를')} 심었어요! ${c.emoji}', okCrop: c.code);
                     },
                     child: Row(children: [
                       CropBadge(c.code),
@@ -76,7 +77,8 @@ Future<void> harvestPlot(BuildContext context, WidgetRef ref, Plot plot) async {
   try {
     final kg = await ref.read(farmViewModelProvider).harvest(plot);
     if (!context.mounted) return;
-    showCropMsg(context, cropCode, '수확했어요!');
+    final spec = cropOf(cropCode);
+    showCropMsg(context, cropCode, '${withJosa(spec.name, '을', '를')} 수확했어요! ${spec.emoji}');
     await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => HarvestResultPage(cropCode: cropCode, kg: kg)));
   } catch (e) {
     if (context.mounted) showMsg(context, errMsg(e));

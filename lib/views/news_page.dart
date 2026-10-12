@@ -6,10 +6,18 @@ import '../models/models.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
 import '../widgets/crop_art.dart';
+import 'fund_page.dart';
+import 'match_game_page.dart';
+import 'mission_page.dart';
+import 'point_shop_page.dart';
+import 'price_detail_page.dart';
+
+/// 뉴스를 눌렀을 때 가는 곳
+enum NewsGo { missions, fund, match, shop, pointShop }
 
 /// 뉴스 한 건. 시세 소식은 작물 그림·kg당 가격·등락률이 함께 나오고, 이벤트·특수 소식은 이모지와 안내 글만 나온다.
 class NewsItem {
-  const NewsItem(this.category, this.emoji, this.title, this.body, {this.time, this.cropCode, this.price, this.percent, this.tag});
+  const NewsItem(this.category, this.emoji, this.title, this.body, {this.time, this.cropCode, this.price, this.percent, this.tag, this.go, this.openCrop});
 
   /// 시세 · 이벤트 · 특수
   final String category;
@@ -25,6 +33,12 @@ class NewsItem {
   /// 가격 옆에 붙는 작은 꼬리표 (예: 출하 추천 · 보관 추천)
   final String? tag;
 
+  /// 눌렀을 때 열 화면: 작물 시세 상세([openCrop]) 또는 게임 안의 해당 화면([go]). 둘 다 없으면 눌러도 이동하지 않는다.
+  final NewsGo? go;
+  final String? openCrop;
+
+  bool get tappable => go != null || openCrop != null;
+
   bool get isUp => (percent ?? 0) >= 0.05;
   bool get isDown => (percent ?? 0) <= -0.05;
 }
@@ -38,10 +52,10 @@ List<NewsItem> buildNews(Map<String, AuctionPrice> prices) {
     final pct = changePercent(p.pricePerKg, p.prevPerKg);
     if (pct == null) {
       news.add(NewsItem('시세', c.emoji, '${c.name} 시세 ${krw(p.pricePerKg)}/kg', '${p.asOf.month}월 ${p.asOf.day}일 경매 기준 시세예요.',
-          time: p.asOf, cropCode: c.code, price: p.pricePerKg));
+          time: p.asOf, cropCode: c.code, price: p.pricePerKg, openCrop: c.code));
     } else if (pct.abs() < 0.05) {
       news.add(NewsItem('시세', c.emoji, '${c.name} 시세 보합', '전일과 거의 같은 ${krw(p.pricePerKg)}/kg이에요.',
-          time: p.asOf, cropCode: c.code, price: p.pricePerKg, percent: pct, tag: '보합'));
+          time: p.asOf, cropCode: c.code, price: p.pricePerKg, percent: pct, tag: '보합', openCrop: c.code));
     } else {
       final up = pct > 0;
       news.add(NewsItem(
@@ -54,6 +68,7 @@ List<NewsItem> buildNews(Map<String, AuctionPrice> prices) {
         price: p.pricePerKg,
         percent: pct,
         tag: up ? '출하 추천' : '보관 추천',
+        openCrop: c.code,
       ));
     }
   }
@@ -63,12 +78,12 @@ List<NewsItem> buildNews(Map<String, AuctionPrice> prices) {
     return y.compareTo(x);
   });
   news.addAll(const [
-    NewsItem('이벤트', '📋', '미션을 완료하고 포인트를 받아요', '일일·주간 미션을 채우면 포인트 보상을 받을 수 있어요.'),
-    NewsItem('이벤트', '🏡', '마을 공동기금 모으기', '기금이 25·50·75·100%에 도달하면 기부한 농부에게 포인트를 드려요.'),
-    NewsItem('이벤트', '🧩', '작물 매칭 도전', '하루 $gameDailyRewardLimit번까지 점수에 따라 자금과 포인트를 받아요.'),
-    NewsItem('특수', '🏠', '하우스로 더 빨리 키워요', '하우스를 지을 때마다 모든 작물의 성장 시간이 줄어요. 10채면 최대 70%까지 줄어요.'),
-    NewsItem('특수', '🧰', '특별 보관함', '특별 상점에서 창고 용량을 늘릴 수 있어요.'),
-    NewsItem('특수', '🥔', '감자는 가장 빨리 자라요', '성장 시간이 짧아 자주 수확하고 싶을 때 좋아요.'),
+    NewsItem('이벤트', '📋', '미션을 완료하고 포인트를 받아요', '일일·주간 미션을 채우면 포인트 보상을 받을 수 있어요.', go: NewsGo.missions),
+    NewsItem('이벤트', '🏡', '마을 공동기금 모으기', '기금이 25·50·75·100%에 도달하면 기부한 농부에게 포인트를 드려요.', go: NewsGo.fund),
+    NewsItem('이벤트', '🧩', '작물 매칭 도전', '하루 $gameDailyRewardLimit번까지 점수에 따라 자금과 포인트를 받아요.', go: NewsGo.match),
+    NewsItem('특수', '🏠', '하우스로 더 빨리 키워요', '하우스를 지을 때마다 모든 작물의 성장 시간이 줄어요. 10채면 최대 70%까지 줄어요.', go: NewsGo.shop),
+    NewsItem('특수', '🧰', '특별 보관함', '특별 상점에서 창고 용량을 늘릴 수 있어요.', go: NewsGo.pointShop),
+    NewsItem('특수', '🥔', '감자는 가장 빨리 자라요', '성장 시간이 짧아 자주 수확하고 싶을 때 좋아요.', openCrop: 'POTATO'),
   ]);
   return news;
 }
@@ -83,6 +98,33 @@ class NewsPage extends ConsumerStatefulWidget {
 class _NewsPageState extends ConsumerState<NewsPage> {
   static const _tabs = ['전체', '시세', '이벤트', '특수'];
   int _tab = 0;
+
+  void _push(Widget page) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+
+  /// 뉴스를 눌렀을 때: 시세 소식은 그 작물 시세 상세로, 게임 소식은 해당 화면으로 간다.
+  void _open(NewsItem n) {
+    final crop = n.openCrop;
+    if (crop != null) {
+      _push(PriceDetailPage(cropCode: crop));
+      return;
+    }
+    switch (n.go) {
+      case NewsGo.missions:
+        _push(const MissionPage());
+      case NewsGo.fund:
+        _push(const FundPage());
+      case NewsGo.match:
+        _push(const MatchGamePage());
+      case NewsGo.pointShop:
+        _push(const PointShopPage());
+      case NewsGo.shop:
+        // 하우스는 일반 상점에서 짓는다: 맨 앞 화면으로 돌아가 상점 탭을 연다
+        ref.read(shellIndexProvider.notifier).state = 3;
+        Navigator.of(context).popUntil((r) => r.isFirst);
+      case null:
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +142,7 @@ class _NewsPageState extends ConsumerState<NewsPage> {
             Expanded(
               child: list.isEmpty
                   ? const Center(child: Text('아직 소식이 없어요', style: TextStyle(color: AppColors.sub)))
-                  : ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [for (final n in list) NewsCard(item: n)]),
+                  : ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [for (final n in list) NewsCard(item: n, onTap: n.tappable ? () => _open(n) : null)]),
             ),
           ]),
         ),
@@ -111,8 +153,11 @@ class _NewsPageState extends ConsumerState<NewsPage> {
 
 /// 시안의 뉴스 카드: 왼쪽 둥근 그림 · 가운데 제목과 "가격 + 꼬리표" · 오른쪽 ▲▼ 등락률
 class NewsCard extends StatelessWidget {
-  const NewsCard({super.key, required this.item});
+  const NewsCard({super.key, required this.item, this.onTap});
   final NewsItem item;
+
+  /// 누르면 이동할 곳 (없으면 눌러도 아무 일 없음)
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -122,14 +167,21 @@ class NewsCard extends StatelessWidget {
     final hasPrice = n.price != null && n.cropCode != null;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.line),
         boxShadow: [BoxShadow(color: AppColors.green.withValues(alpha: .07), blurRadius: 10, offset: const Offset(0, 3))],
       ),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
         // 왼쪽 둥근 그림 (시세 소식은 작물 그림, 나머지는 이모지)
         Container(
           width: 58,
@@ -177,7 +229,11 @@ class NewsCard extends StatelessWidget {
           const SizedBox(width: 8),
           _Change(percent: n.percent!),
         ],
+        if (onTap != null) const Icon(Icons.chevron_right_rounded, color: Color(0xFF55655A), size: 24),
       ]),
+          ),
+        ),
+      ),
     );
   }
 }

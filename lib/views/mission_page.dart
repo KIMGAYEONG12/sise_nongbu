@@ -64,6 +64,16 @@ class _MissionPageState extends ConsumerState<MissionPage> {
           child: Column(children: [
             PageHeader(title: '미션', onBack: () => Navigator.of(context).pop(), trailing: PointPill(points: user.points)),
             Padding(padding: const EdgeInsets.fromLTRB(16, 4, 16, 8), child: PillTabs(labels: const ['일일 미션', '주간 미션'], index: _tab, onChanged: (v) => setState(() => _tab = v))),
+            // 위쪽에도 "전체 받기": 목록이 길어도 바로 눌러 한 번에 받을 수 있다 (아래 큰 버튼과 같은 동작)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: GreenButton(
+                height: 44,
+                icon: const Icon(Icons.redeem_rounded, size: 20),
+                label: claimable.isEmpty ? '받을 보상이 없어요' : '전체 받기 +${claimablePts}P (${claimable.length}개)',
+                onPressed: claimable.isEmpty ? null : () => _claimAll(claimable),
+              ),
+            ),
             Expanded(
               child: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
                 for (final m in list)

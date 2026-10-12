@@ -113,10 +113,15 @@ class _FarmLifeState extends State<FarmLife> with SingleTickerProviderStateMixin
                   top: FarmLife.patches[i].dy * k - cropSize * .86,
                   width: cropSize,
                   height: cropSize,
-                  child: Transform.rotate(
-                    angle: math.sin(t * math.pi * 2 * 3 + i * 1.7) * .07,
+                  // 바람에 흔들리는 작물: 한 바퀴(28초)에 14번, 약 7도까지 기울고 숨 쉬듯 살짝 커졌다 작아진다 (눈에 띄게)
+                  child: Transform.scale(
+                    scale: 1 + .035 * math.sin(t * math.pi * 2 * 14 * 2 + i),
                     alignment: Alignment.bottomCenter,
-                    child: CropArt(code: planted[i].cropCode!, size: cropSize, stage: planted[i].progress(now)),
+                    child: Transform.rotate(
+                      angle: math.sin(t * math.pi * 2 * 14 + i * 1.7) * .12,
+                      alignment: Alignment.bottomCenter,
+                      child: CropArt(code: planted[i].cropCode!, size: cropSize, stage: planted[i].progress(now)),
+                    ),
                   ),
                 ),
               // 순찰하는 최첨단 로봇

@@ -110,6 +110,16 @@ class FirestoreGameService {
 
   Future<void> setNickname(String name) => _user.update({'nickname': name.trim(), 'updatedAt': FieldValue.serverTimestamp()});
 
+  /// 칭호 장착 ([index]가 null이면 자동: 레벨에 맞는 가장 높은 칭호). 아직 얻지 못한 칭호는 장착할 수 없다.
+  Future<void> setTitle(int? index) => _tx((tx) async {
+        final u = (await tx.get(_user)).data()!;
+        if (index != null) {
+          if (index < 0 || index >= farmerTitles.length) throw StateError('없는 칭호예요');
+          if (levelInfo(_int(u['exp'])).level < farmerTitles[index].minLevel) throw StateError('아직 얻지 못한 칭호예요');
+        }
+        tx.update(_user, {'titleIdx': index ?? FieldValue.delete(), 'updatedAt': FieldValue.serverTimestamp()});
+      });
+
   Stream<Map<String, dynamic>> user() => _user.snapshots().map((s) => s.data() ?? {});
   Stream<List<Plot>> plots() => _col('plots').snapshots().map((s) => s.docs.map(Plot.fromDoc).toList()..sort((a, b) => a.index - b.index));
   Stream<List<Lot>> lots() => _col('inventory').snapshots().map((s) => s.docs.map(Lot.fromDoc).toList());

@@ -152,7 +152,11 @@ class _LevelUpDialogState extends State<_LevelUpDialog> with SingleTickerProvide
                       Rect at(double l, double tp, double r, double b) => Rect.fromLTRB(l / _artW * w, tp / _artH * h, r / _artW * w, b / _artH * h);
                       return Stack(clipBehavior: Clip.hardEdge, children: [
                         // 일러스트 카드 (농부 · 나무 간판 "LEVEL UP!" · 풀숲과 꽃): 코드로 그린 벡터라 아무리 커져도 선명하다
-                        const Positioned.fill(child: LevelUpCardArt()),
+                        const Positioned.fill(child: LevelUpCardArt(layer: LevelUpLayer.back)),
+                        // 떨어지는 색종이: 그림 뒤(간판·글자 아래)에서 떨어져서 글자를 가리거나 깨져 보이게 하지 않는다
+                        const Positioned.fill(child: LevelUpConfetti()),
+                        // 나무 간판 "LEVEL UP!"과 리본은 색종이 위에 선명하게
+                        const Positioned.fill(child: LevelUpCardArt(layer: LevelUpLayer.front)),
                         // 시안 그림 속 "Lv.4" 리본 자리에 실제 레벨을 덮어 그린다
                         Positioned.fromRect(
                           rect: at(106, 226, 252, 264),
@@ -197,17 +201,6 @@ class _LevelUpDialogState extends State<_LevelUpDialog> with SingleTickerProvide
                             ),
                           ),
                         ),
-                        // 떨어지는 색종이
-                        for (var i = 0; i < 10; i++)
-                          Builder(builder: (_) {
-                            final v = ((t * 1.3 + i * .09) % 1.0);
-                            final x = (i * 53 % 100) / 100;
-                            return Positioned(
-                              left: 10 + x * (w - 40),
-                              top: -10 + v * h * .9,
-                              child: IgnorePointer(child: Opacity(opacity: (1 - v).clamp(0.0, 1.0).toDouble() * _seg(t, 0, .1), child: Transform.rotate(angle: v * 9 + i, child: Text(const ['🎊', '✨', '🎉', '⭐'][i % 4], style: const TextStyle(fontSize: 18, height: 1))))),
-                            );
-                          }),
                       ]);
                     }),
                   ),

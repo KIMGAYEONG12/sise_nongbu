@@ -2,18 +2,90 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'common.dart' show GirlAvatarPainter;
 
-/// 레벨 업 창의 배경 그림 (농부 · 나무 간판 "LEVEL UP!" · 풀숲과 꽃).
+/// 레벨 업 창의 배경 그림이 어느 층인지.
+/// back: 하늘·햇살·풀숲·소·농부 (색종이 뒤에 깔린다)
+/// front: 나무 간판 "LEVEL UP!"과 "Lv.n" 리본 (색종이 앞에 놓여서 글자가 가려지거나 깨져 보이지 않는다)
+enum LevelUpLayer { back, front }
+
+/// 레벨 업 창의 그림 (농부 · 소 · 나무 간판 "LEVEL UP!" · 풀숲과 꽃).
 /// 그림 파일이 아니라 코드(벡터)로 그려서 화면이 커져도 도트가 깨지지 않고 선명하다.
 /// 좌표는 예전 시안 그림과 같은 354×486 기준이라, 위에 얹는 "Lv.n" 리본과 흰 안내 판 자리는 그대로다.
 class LevelUpCardArt extends StatelessWidget {
-  const LevelUpCardArt({super.key});
+  const LevelUpCardArt({super.key, this.layer = LevelUpLayer.back});
+  final LevelUpLayer layer;
 
   @override
-  Widget build(BuildContext context) => const RepaintBoundary(child: CustomPaint(painter: LevelUpCardPainter(), size: Size.infinite));
+  Widget build(BuildContext context) => RepaintBoundary(child: CustomPaint(painter: LevelUpCardPainter(layer: layer), size: Size.infinite));
+}
+
+/// 계속 떨어지는 색종이 (이모지 글자가 아니라 코드로 그린 별·조각·점이라 어떤 기기에서도 깨지지 않는다)
+class LevelUpConfetti extends StatefulWidget {
+  const LevelUpConfetti({super.key});
+  @override
+  State<LevelUpConfetti> createState() => _LevelUpConfettiState();
+}
+
+class _LevelUpConfettiState extends State<LevelUpConfetti> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(seconds: 5))..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => IgnorePointer(child: RepaintBoundary(child: CustomPaint(painter: _ConfettiPainter(_c), size: Size.infinite)));
+}
+
+class _ConfettiPainter extends CustomPainter {
+  _ConfettiPainter(this.t) : super(repaint: t);
+  final Animation<double> t;
+
+  static const _colors = [Color(0xFFFFD34E), Color(0xFFFF8FB1), Color(0xFF5ED6C8), Color(0xFFFFFFFF), Color(0xFFFFA24C)];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.scale(size.width / LevelUpCardPainter.artW, size.height / LevelUpCardPainter.artH);
+    for (var i = 0; i < 24; i++) {
+      final v = (t.value + i * .043) % 1.0; // 0(위)~1(아래)
+      final x = 8 + ((i * 53) % 100) / 100 * (LevelUpCardPainter.artW - 16) + math.sin(v * math.pi * 3 + i) * 8;
+      final y = -12 + v * (LevelUpCardPainter.artH + 24);
+      final alpha = (v < .08 ? v / .08 : (1 - v)).clamp(0.0, 1.0) * .95;
+      final p = Paint()..color = _colors[i % _colors.length].withValues(alpha: alpha);
+      canvas.save();
+      canvas.translate(x, y);
+      canvas.rotate(v * 8 + i);
+      switch (i % 4) {
+        case 0:
+          final star = Path();
+          for (var k = 0; k < 10; k++) {
+            final r = k.isEven ? 6.5 : 2.8;
+            final a = -math.pi / 2 + k * math.pi / 5;
+            k == 0 ? star.moveTo(math.cos(a) * r, math.sin(a) * r) : star.lineTo(math.cos(a) * r, math.sin(a) * r);
+          }
+          canvas.drawPath(star..close(), p);
+        case 1:
+          canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(-5, -2.5, 10, 5), const Radius.circular(1.5)), p);
+        case 2:
+          canvas.drawCircle(Offset.zero, 3, p);
+        default:
+          canvas.drawPath(Path()..moveTo(0, -5)..lineTo(4, 0)..lineTo(0, 5)..lineTo(-4, 0)..close(), p);
+      }
+      canvas.restore();
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_ConfettiPainter old) => false;
 }
 
 class LevelUpCardPainter extends CustomPainter {
-  const LevelUpCardPainter();
+  const LevelUpCardPainter({this.layer = LevelUpLayer.back});
+
+  final LevelUpLayer layer;
 
   static const artW = 354.0, artH = 486.0;
 
@@ -25,12 +97,16 @@ class LevelUpCardPainter extends CustomPainter {
     canvas.save();
     canvas.scale(size.width / artW, size.height / artH);
     canvas.clipRect(const Rect.fromLTWH(0, 0, artW, artH));
-    _sky(canvas);
-    _confetti(canvas);
-    _bushes(canvas);
-    _girl(canvas);
-    _sign(canvas);
-    _ribbon(canvas);
+    if (layer == LevelUpLayer.back) {
+      _sky(canvas);
+      _sparkles(canvas);
+      _bushes(canvas);
+      _cow(canvas);
+      _girl(canvas);
+    } else {
+      _sign(canvas);
+      _ribbon(canvas);
+    }
     canvas.restore();
   }
 
@@ -79,41 +155,46 @@ class LevelUpCardPainter extends CustomPainter {
     canvas.drawPath(hills, Paint()..color = const Color(0x6671C4B8));
   }
 
-  // ───────────────────────── 반짝이와 색종이 ─────────────────────────
+  // ───────────────────────── 반짝이는 별과 잎 (시안처럼 위쪽을 화려하게) ─────────────────────────
 
-  static const _confettiSpots = <(double, double, int, int)>[
-    (34, 44, 0, 0), (62, 96, 1, 1), (22, 140, 2, 2), (312, 40, 0, 1), (288, 92, 2, 0), (332, 132, 1, 2),
-    (96, 30, 2, 1), (258, 28, 1, 0), (48, 188, 1, 2), (318, 186, 0, 0), (140, 14, 0, 2), (208, 18, 1, 1),
-    (80, 150, 2, 0), (276, 150, 2, 2),
-  ];
-  static const _confettiColors = [Color(0xFFFFD34E), Color(0xFFFF8FB1), Color(0xFF5ED6C8)];
-
-  void _confetti(Canvas canvas) {
-    for (var i = 0; i < _confettiSpots.length; i++) {
-      final (x, y, kind, col) = _confettiSpots[i];
-      final p = Paint()..color = _confettiColors[col];
+  void _sparkles(Canvas canvas) {
+    // 네 갈래 반짝이
+    for (final sp in const [(34.0, 52.0, 9.0), (320.0, 60.0, 10.0), (58.0, 110.0, 6.0), (298.0, 118.0, 7.0), (262.0, 22.0, 6.0), (92.0, 24.0, 6.0)]) {
+      final c = Offset(sp.$1, sp.$2), r = sp.$3;
+      final star = Path()
+        ..moveTo(c.dx, c.dy - r * 1.7)
+        ..quadraticBezierTo(c.dx + r * .22, c.dy - r * .22, c.dx + r * 1.7, c.dy)
+        ..quadraticBezierTo(c.dx + r * .22, c.dy + r * .22, c.dx, c.dy + r * 1.7)
+        ..quadraticBezierTo(c.dx - r * .22, c.dy + r * .22, c.dx - r * 1.7, c.dy)
+        ..quadraticBezierTo(c.dx - r * .22, c.dy - r * .22, c.dx, c.dy - r * 1.7)
+        ..close();
+      canvas.drawPath(star, Paint()..color = const Color(0xEEFFF6C2));
+    }
+    // 반짝이는 큰 잎 (왼쪽 초록, 오른쪽 주황)
+    void leaf(Offset at, double angle, double len, Color a, Color b) {
       canvas.save();
-      canvas.translate(x, y);
-      canvas.rotate(i * .7);
-      switch (kind) {
-        case 0: // 별
-          final star = Path();
-          for (var k = 0; k < 10; k++) {
-            final r = k.isEven ? 8.0 : 3.4;
-            final a = -math.pi / 2 + k * math.pi / 5;
-            k == 0 ? star.moveTo(math.cos(a) * r, math.sin(a) * r) : star.lineTo(math.cos(a) * r, math.sin(a) * r);
-          }
-          canvas.drawPath(star..close(), p);
-          break;
-        case 1: // 색종이 조각
-          canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(-6, -3, 12, 6), const Radius.circular(1.5)), p);
-          break;
-        default: // 반짝이는 점
-          canvas.drawCircle(Offset.zero, 3.4, p);
-          canvas.drawCircle(Offset.zero, 6, Paint()..color = p.color.withValues(alpha: .25));
-      }
+      canvas.translate(at.dx, at.dy);
+      canvas.rotate(angle);
+      final path = Path()
+        ..moveTo(0, 0)
+        ..quadraticBezierTo(len * .5, -len * .5, len, 0)
+        ..quadraticBezierTo(len * .5, len * .42, 0, 0)
+        ..close();
+      final rect = Rect.fromLTWH(0, -len * .5, len, len * .9);
+      canvas.drawPath(path, Paint()..shader = LinearGradient(colors: [a, b]).createShader(rect));
+      canvas.drawPath(path, Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..color = const Color(0x55FFFFFF));
+      canvas.drawLine(Offset.zero, Offset(len * .9, 0), Paint()
+        ..strokeWidth = 1
+        ..color = const Color(0x66FFFFFF));
       canvas.restore();
     }
+
+    leaf(const Offset(10, 70), -.5, 34, const Color(0xFF8FE05A), const Color(0xFF3FA33A));
+    leaf(const Offset(344, 84), math.pi + .6, 34, const Color(0xFFFFC85A), const Color(0xFFF08A1E));
+    leaf(const Offset(12, 156), -.1, 26, const Color(0xFFB7F07A), const Color(0xFF4DB04A));
   }
 
   // ───────────────────────── 풀숲과 꽃 ─────────────────────────
@@ -178,6 +259,49 @@ class LevelUpCardPainter extends CustomPainter {
     }
   }
 
+  // ───────────────────────── 소 (시안 왼쪽 아래에서 빼꼼) ─────────────────────────
+
+  void _cow(Canvas canvas) {
+    const c = Offset(46, 136);
+    // 귀
+    for (final dx in const [-27.0, 27.0]) {
+      canvas.drawOval(Rect.fromCenter(center: c.translate(dx, -10), width: 20, height: 12), Paint()..color = const Color(0xFFF3F3F3));
+      canvas.drawOval(Rect.fromCenter(center: c.translate(dx, -10), width: 12, height: 6), Paint()..color = const Color(0xFFFFB6C1));
+    }
+    // 뿔
+    for (final dx in const [-11.0, 11.0]) {
+      canvas.drawOval(Rect.fromCenter(center: c.translate(dx, -26), width: 8, height: 14), Paint()..color = const Color(0xFFF5E6B8));
+    }
+    // 얼굴
+    final face = Rect.fromCenter(center: c, width: 54, height: 50);
+    canvas.drawOval(face, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.white, Color(0xFFE6E6E6)]).createShader(face));
+    canvas.drawOval(face, Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4
+      ..color = const Color(0xFF8A8A8A));
+    // 검은 얼룩
+    canvas.save();
+    canvas.clipPath(Path()..addOval(face));
+    canvas.drawOval(Rect.fromCenter(center: c.translate(-14, -10), width: 26, height: 22), Paint()..color = const Color(0xFF3A3A3A));
+    canvas.restore();
+    // 눈
+    for (final dx in const [-10.0, 10.0]) {
+      canvas.drawCircle(c.translate(dx, -4), 3.4, Paint()..color = const Color(0xFF1A1A1A));
+      canvas.drawCircle(c.translate(dx - .9, -5), 1.1, Paint()..color = Colors.white);
+    }
+    // 코와 웃는 입
+    final muzzle = Rect.fromCenter(center: c.translate(0, 13), width: 30, height: 20);
+    canvas.drawOval(muzzle, Paint()..color = const Color(0xFFFFB6C1));
+    for (final dx in const [-5.0, 5.0]) {
+      canvas.drawOval(Rect.fromCenter(center: c.translate(dx, 11), width: 4, height: 6), Paint()..color = const Color(0xFFC96B7A));
+    }
+    canvas.drawArc(Rect.fromCenter(center: c.translate(0, 15), width: 12, height: 8), .2, math.pi - .4, false, Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round
+      ..color = const Color(0xFFA24C5A));
+  }
+
   // ───────────────────────── 농부 ─────────────────────────
 
   void _girl(Canvas canvas) {
@@ -188,6 +312,28 @@ class LevelUpCardPainter extends CustomPainter {
     canvas.clipRect(const Rect.fromLTWH(-30, 0, s + 60, 170));
     // 뒤에서 비치는 따뜻한 빛
     canvas.drawCircle(const Offset(s / 2, 92), 86, Paint()..shader = const RadialGradient(colors: [Color(0xAAFFF8D0), Color(0x00FFF8D0)]).createShader(Rect.fromCircle(center: const Offset(s / 2, 92), radius: 86)));
+    // 시안처럼 어깨 아래로 길게 내려오는 갈색 머리 (얼굴 뒤에 깔린다)
+    final hair = Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF9A5A2E), Color(0xFF6E3C1A)]).createShader(const Rect.fromLTWH(0, 40, s, 140));
+    for (final side in const [-1.0, 1.0]) {
+      final x0 = s / 2 + side * 46; // 얼굴 옆
+      final lock = Path()
+        ..moveTo(x0, 70)
+        ..cubicTo(x0 + side * 26, 96, x0 + side * 22, 134, x0 + side * 34, 172)
+        ..lineTo(x0 - side * 18, 172)
+        ..cubicTo(x0 - side * 4, 130, x0 - side * 8, 100, x0 - side * 6, 78)
+        ..close();
+      canvas.drawPath(lock, hair);
+      canvas.drawPath(lock, Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..color = const Color(0x554A260F));
+      // 머리결 하이라이트
+      canvas.drawPath(Path()..moveTo(x0 + side * 8, 92)..quadraticBezierTo(x0 + side * 14, 120, x0 + side * 12, 150), Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round
+        ..color = const Color(0x55FFC48A));
+    }
     canvas.save();
     const GirlAvatarPainter().paint(canvas, const Size(s, s));
     canvas.restore();
@@ -293,5 +439,5 @@ class LevelUpCardPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(LevelUpCardPainter old) => false;
+  bool shouldRepaint(LevelUpCardPainter old) => old.layer != layer;
 }

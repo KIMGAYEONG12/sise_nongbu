@@ -295,6 +295,8 @@ class FarmViewModel {
   Future<void> buyGreenhouse() => _repo.buyGreenhouse();
   Future<void> buyBundle(BundleItem b) => _repo.buyItem(b.itemKey, b.price, qty: b.qty);
   Future<void> buySeedPack() => _repo.buySeedPack(seedPackPrice());
+  /// 칭호 장착 (null이면 자동)
+  Future<void> setTitle(int? index) => _repo.setTitle(index);
   Future<void> buyPointItem(PointItem i, {String? cropCode}) =>
       _repo.buyPointItem(i.key, cropCode: cropCode);
 

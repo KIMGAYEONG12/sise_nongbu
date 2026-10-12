@@ -67,10 +67,19 @@ function kgFactor(unit) {
   return null;
 }
 
+// 공공데이터 API는 초당 요청 수가 제한되어 있다(429). 요청 사이에 간격을 둔다.
+let lastCall = 0;
+async function paced() {
+  const wait = 300 - (Date.now() - lastCall);
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  lastCall = Date.now();
+}
+
 async function getJson(url) {
   let lastErr;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
+      await paced();
       const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
       const text = await res.text();
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 150)}`);
@@ -141,16 +150,26 @@ let calls = 0, failures = 0;
 for (let back = 0; back < KEEP_DAYS; back++) {
   const day = kstYmd(back);
   const prev = oldDays[day];
-  if (back >= RECENT_DAYS && prev && prev.done) {
-    days[day] = prev; // 지난 날짜는 바뀌지 않으므로 그대로 쓴다
+  // 지난 날짜는 바뀌지 않으므로 한 번 받은 값을 그대로 쓴다. 다만 나중에 새로 추가된 작물은 그 날짜 기록이 없으니 그것만 다시 받는다.
+  // (이미 받아 봤는데 거래가 없던 작물은 none 에 적어 두어서 매번 다시 받지 않는다)
+  const known = (c) => prev && (prev[c] || (prev.none || []).includes(c));
+  const missing = Object.keys(CROPS).filter((c) => !known(c));
+  if (back >= RECENT_DAYS && prev && prev.done && missing.length === 0) {
+    days[day] = prev;
     continue;
   }
-  const entry = { done: true };
+  const entry = { done: true, none: [] };
   for (const code of Object.keys(CROPS)) {
+    if (back >= RECENT_DAYS && prev && prev.done && known(code)) {
+      if (prev[code]) entry[code] = prev[code];
+      else entry.none.push(code);
+      continue;
+    }
     try {
       calls++;
       const s = summarize(await fetchItems(code, day));
       if (s) entry[code] = s;
+      else entry.none.push(code);
     } catch (e) {
       failures++;
       entry.done = false; // 다음 실행 때 다시 받는다
