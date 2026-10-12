@@ -175,6 +175,9 @@ class _FarmHero extends StatelessWidget {
   // 그림(farm_scene.jpg) 좌표 기준 크기 (실제 파일은 2배 고해상도 1872×1428)
   static const _srcW = 936.0, _srcH = 714.0;
 
+  /// 그림 속 집을 키우는 배율 (집만)
+  static const houseScale = 1.08;
+
   /// 그림 확대 한도. 원본이 작아서 이보다 키우면 깨져 보인다.
   static const maxScale = 1.4; // 그림 확대 한도. 더 키우면 원본의 네모 얼룩이 커져 집이 깨져 보인다
 
@@ -261,6 +264,14 @@ class _FarmHero extends StatelessWidget {
           // 그림 윗가장자리를 가리는 구름 띠: 나무가 잘린 가장자리가 딱 끊겨 보이지 않고 하늘과 자연스럽게 이어져 보인다
           // 레벨이 오를수록 집이 조금씩 커진다 (최대 8%, 그림 속 집 둘레만 부드럽게 겹쳐 그린다)
           // (예전에는 레벨이 오르면 그림 속 집을 늘려 한 번 더 겹쳐 그렸는데, 늘린 가장자리가 흐릿하게 번져서 화질이 깨져 보여 뺐다. 하우스는 코드로 그려서 계속 커진다)
+          // 그림 속 집만 조금 더 크게 (집 바닥 가운데를 기준으로 커지고, 집 둘레는 서서히 투명해져 풀밭·나무와 이어진다). 집 외의 부분은 그대로.
+          Positioned(
+            left: imgLeft,
+            top: imgTop,
+            width: imgW,
+            height: imgH,
+            child: IgnorePointer(child: ClipRect(clipper: _TopCropClipper(cropPx), child: const GrowingHouseLayer(scale: _FarmHero.houseScale))),
+          ),
           // 농장에서 움직이는 것들: 밭에서 흔들리는 작물 + 길을 순찰하며 물을 주는 최첨단 로봇 (농장 탭을 볼 때만 움직인다)
           Positioned(
             left: imgLeft,
@@ -415,7 +426,7 @@ class GrowingHouseLayer extends StatelessWidget {
 
   // 그림 원본(936×714) 좌표: 집 가운데와 집 바닥 가운데
   static const _center = Offset(390, 262);
-  static const _base = Offset(400, 396);
+  static const _base = Offset(400, 128); // 지붕 쪽을 기준으로 키워서 집이 위로 커져 지붕이 잘리지 않고 아래·옆으로 커진다
 
   @override
   Widget build(BuildContext context) {
