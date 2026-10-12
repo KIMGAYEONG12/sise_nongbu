@@ -21,20 +21,20 @@ class FarmLife extends StatefulWidget {
   final bool robot;
 
   /// 그림 속 흙 밭 세 곳의 가운데 (원본 픽셀)
-  static const patches = [Offset(352, 596), Offset(470, 628), Offset(585, 676)];
+  static const patches = [Offset(385, 648), Offset(485, 600), Offset(600, 652)];
 
   /// 로봇이 다니는 길 (원본 픽셀): 집 앞에서 시작해 길을 따라 밭 쪽으로 내려갔다가 돌아온다.
   static const route = [
-    Offset(330, 436),
-    Offset(292, 498),
-    Offset(338, 556),
-    Offset(420, 590),
-    Offset(500, 612),
-    Offset(560, 654),
-    Offset(500, 612),
-    Offset(420, 590),
-    Offset(338, 556),
-    Offset(292, 498),
+    Offset(150, 400),
+    Offset(260, 455),
+    Offset(380, 495),
+    Offset(480, 540),
+    Offset(580, 590),
+    Offset(700, 650),
+    Offset(580, 590),
+    Offset(480, 540),
+    Offset(380, 495),
+    Offset(260, 455),
   ];
 
   @override
