@@ -35,6 +35,9 @@ class AppImages {
   /// 레벨 업 창 전체 일러스트 (시안에서 오려 낸 그림: 농부·간판·풀숲)
   static const levelupCard = 'assets/images/levelup_card.png';
 
+  /// 레벨 업 창 시안 그림을 3배로 곱게 키운 것 (1062×1458). 창은 이 그림 위에 글자·버튼만 얹는다.
+  static const levelupCardHd = 'assets/images/levelup_card_hd.png';
+
   /// 프로필 아바타: 튜토리얼 마지막 그림(밀짚모자 쓴 농부)에서 오려 낸 그림
   static const avatarGirl = 'assets/images/avatar_girl.png';
   static const loginLand = 'assets/images/login_land.png';
@@ -363,7 +366,7 @@ class MoneyPill extends StatelessWidget {
   final int money;
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         // 하늘·구름 위에서도 잘 보이도록 불투명한 흰 바탕 + 진한 큰 글씨
         decoration: BoxDecoration(
           color: Colors.white,
@@ -372,9 +375,9 @@ class MoneyPill extends StatelessWidget {
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .12), blurRadius: 6, offset: const Offset(0, 2))],
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const CoinIcon(size: 18),
-          const SizedBox(width: 5),
-          Text('${commaNum(money)} P', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF111111))),
+          const CoinIcon(size: 16),
+          const SizedBox(width: 4),
+          Text('${commaNum(money)} P', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFF111111))),
         ]),
       );
 }

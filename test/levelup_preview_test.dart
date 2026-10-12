@@ -24,7 +24,9 @@ void main() {
       ));
       await tester.tap(find.text('열기'));
       await tester.pump(const Duration(milliseconds: 400));
-      // 그림은 코드(벡터)로 그리므로 이미지 파일을 미리 읽을 필요가 없다
+      await tester.runAsync(() async {
+        await precacheImage(const AssetImage('assets/images/levelup_card_hd.png'), tester.element(find.byType(Dialog)));
+      });
       await tester.pump(const Duration(milliseconds: 2500));
       expect(find.text('Lv.9'), findsOneWidget);
       expect(find.text('확인'), findsOneWidget);

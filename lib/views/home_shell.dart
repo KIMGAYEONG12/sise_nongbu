@@ -151,12 +151,8 @@ class _LevelUpDialogState extends State<_LevelUpDialog> with SingleTickerProvide
                       final w = box.maxWidth, h = box.maxHeight;
                       Rect at(double l, double tp, double r, double b) => Rect.fromLTRB(l / _artW * w, tp / _artH * h, r / _artW * w, b / _artH * h);
                       return Stack(clipBehavior: Clip.hardEdge, children: [
-                        // 일러스트 카드 (농부 · 나무 간판 "LEVEL UP!" · 풀숲과 꽃): 코드로 그린 벡터라 아무리 커져도 선명하다
-                        const Positioned.fill(child: LevelUpCardArt(layer: LevelUpLayer.back)),
-                        // 떨어지는 색종이: 그림 뒤(간판·글자 아래)에서 떨어져서 글자를 가리거나 깨져 보이게 하지 않는다
-                        const Positioned.fill(child: LevelUpConfetti()),
-                        // 나무 간판 "LEVEL UP!"과 리본은 색종이 위에 선명하게
-                        const Positioned.fill(child: LevelUpCardArt(layer: LevelUpLayer.front)),
+                        // 시안 일러스트 (농부 · 소 · 간판 "LEVEL UP!" · 풀숲): 3배로 곱게 키운 그림이라 시안과 똑같고 흐리지 않다
+                        Positioned.fill(child: Image.asset(AppImages.levelupCardHd, fit: BoxFit.fill, filterQuality: FilterQuality.high)),
                         // 시안 그림 속 "Lv.4" 리본 자리에 실제 레벨을 덮어 그린다
                         Positioned.fromRect(
                           rect: at(106, 226, 252, 264),
@@ -177,7 +173,7 @@ class _LevelUpDialogState extends State<_LevelUpDialog> with SingleTickerProvide
                         ),
                         // 글이 들어가는 흰 안내 판 (그림 속 예전 글자를 덮고 실제 내용을 보여 준다)
                         Positioned.fromRect(
-                          rect: at(44, 278, 310, 486),
+                          rect: at(36, 268, 318, 486),
                           child: Opacity(
                             opacity: fade,
                             child: Container(
