@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'crop_art.dart';
 
 /// 시안(연두 파스텔 + 짙은 초록 버튼) 색상
 class AppColors {
@@ -125,14 +126,36 @@ void showMsg(BuildContext context, String msg) {
     ..showSnackBar(SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating));
 }
 
+/// 앞에 작물 그림이 붙는 알림. 이모지(🥬 같은 글자 그림)가 아니라 코드로 그린 작물 그림을 보여 준다. 예) 배추 그림 + "수확했어요!"
+void showCropMsg(BuildContext context, String cropCode, String msg) {
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(
+      content: Row(children: [
+        CropArt(code: cropCode, size: 30),
+        const SizedBox(width: 10),
+        Expanded(child: Text(msg)),
+      ]),
+      behavior: SnackBarBehavior.floating,
+    ));
+}
+
 /// 비동기 작업을 실행하고 실패하면 스낵바로 알린다. 성공 시 [ok]가 있으면 그 문구를 보여준다. 성공 여부를 돌려준다.
-Future<bool> runGuarded(BuildContext context, Future<void> Function() job, {String? ok}) async {
+/// [okCrop]에 작물 코드를 주면 성공 문구 앞에 그 작물 그림을 붙인다.
+Future<bool> runGuarded(BuildContext context, Future<void> Function() job, {String? ok, String? okCrop}) async {
   try {
     await job();
-    if (ok != null) showMsg(context, ok);
+    if (ok != null && context.mounted) {
+      if (okCrop != null) {
+        showCropMsg(context, okCrop, ok);
+      } else {
+        showMsg(context, ok);
+      }
+    }
     return true;
   } catch (e) {
-    showMsg(context, errMsg(e));
+    if (context.mounted) showMsg(context, errMsg(e));
     return false;
   }
 }

@@ -90,8 +90,9 @@ const itemWater = 'water';
 const itemFertilizer = 'fertilizer';
 const itemBooster = 'booster';
 
-const waterCut = 0.10; // 물주기: 전체 성장 시간의 10% 단축
-const waterMaxPerPlot = 3;
+/// 물주기: 한 번에 전체 성장 시간의 3% 단축, 한 밭에 최대 10번 (모두 주면 30% 단축 — 예전 "10%씩 3번"과 같은 최대 효과)
+const waterCut = 0.03;
+const waterMaxPerPlot = 10;
 const boosterCut = 0.30; // 성장촉진제: 전체 성장 시간의 30% 단축
 const fertilizerBonus = 0.20; // 영양제: 수확량 +20%
 const fertilizerMaxPerPlot = 10; // 한 밭에 최대 10번
@@ -106,7 +107,7 @@ class ShopItem {
 }
 
 const consumables = [
-  ShopItem(itemWater, '물통', '💧', 500, '물주기 1회 · 성장 시간 10% 단축 (밭당 최대 3회)'),
+  ShopItem(itemWater, '물통', '💧', 500, '물주기 1회 · 성장 시간 3% 단축 (밭당 최대 10회)'),
   ShopItem(itemFertilizer, '영양제', '🧪', 1500, '수확량 +20% (밭당 최대 10회)'),
   ShopItem(itemBooster, '성장촉진제', '⚡', 3000, '성장 시간 30% 단축 (밭당 1회)'),
 ];
@@ -124,8 +125,14 @@ const bundles = [
   BundleItem(itemBooster, '성장촉진제 3개 묶음', '⚡', 3, 8100),
 ];
 
-/// 씨앗 꾸러미: 여섯 작물의 씨앗을 1개씩. 따로 사는 값의 90%.
-int seedPackPrice() => (crops.fold<int>(0, (a, c) => a + seedPrice(c)) * 0.9).round();
+/// 씨앗 꾸러미에 들어 있는 기본 작물 수 (처음 6종). 작물이 21종으로 늘어도 꾸러미는 이 6종만 담아서 값이 터무니없이 커지지 않는다.
+const seedPackCropCount = 6;
+
+/// 씨앗 꾸러미에 담기는 작물 (기본 6종)
+List<CropSpec> get seedPackCrops => crops.take(seedPackCropCount).toList();
+
+/// 씨앗 꾸러미: 기본 여섯 작물의 씨앗을 1개씩. 따로 사는 값의 90%.
+int seedPackPrice() => (seedPackCrops.fold<int>(0, (a, c) => a + seedPrice(c)) * 0.9).round();
 
 /// 씨앗은 파종비의 85% 가격. 가지고 있으면 파종할 때 파종비 대신 씨앗을 쓴다.
 int seedPrice(CropSpec c) => (c.seedCost * 0.85).round();
@@ -156,7 +163,18 @@ const pointRareSeed = 'rare_seed';
 const pointDecor = 'decor';
 const pointVault = 'vault';
 const pointLucky = 'lucky';
+const pointWaterPack = 'water_pack';
+const pointBoosterPack = 'booster_pack';
+const pointSeedBox = 'seed_box';
+const pointCoinBag = 'coin_bag';
+const pointFarmBook = 'farm_book';
 const maxDecor = 5;
+
+/// 금화 주머니로 바꿔 받는 게임 돈(P)
+const coinBagMoney = 10000;
+
+/// 농부 교본으로 얻는 경험치
+const farmBookExp = 300;
 
 class PointItem {
   const PointItem(this.key, this.name, this.emoji, this.cost, this.desc);
@@ -164,11 +182,17 @@ class PointItem {
   final int cost;
 }
 
+/// 특별 상점 상품. 포인트(Point)로만 살 수 있다.
 const pointItems = [
-  PointItem(pointRareSeed, '희귀 씨앗', '🌰', 100, '무작위 작물의 씨앗 3개를 받아요'),
-  PointItem(pointDecor, '농장 장식', '🌻', 80, '농장 화면에 꽃 장식이 늘어나요 (최대 5개)'),
-  PointItem(pointVault, '특별 보관함', '🧰', 200, '창고 용량 +50kg (최대 3회)'),
-  PointItem(pointLucky, '행운의 비료', '🍀', 150, '영양제 3개를 받아요'),
+  PointItem(pointRareSeed, '희귀 씨앗', '🌰', 60, '무작위 작물의 씨앗 3개를 받아요'),
+  PointItem(pointDecor, '농장 장식', '🌻', 50, '농장 화면에 꽃 장식이 늘어나요 (최대 5개)'),
+  PointItem(pointVault, '특별 보관함', '🧰', 120, '창고 용량 +50kg (최대 3회)'),
+  PointItem(pointLucky, '행운의 비료', '🍀', 90, '영양제 3개를 받아요'),
+  PointItem(pointWaterPack, '물방울 꾸러미', '💦', 40, '물통 10개를 한 번에 받아요'),
+  PointItem(pointBoosterPack, '번개 촉진제', '⚡', 70, '성장촉진제 2개를 받아요'),
+  PointItem(pointSeedBox, '씨앗 선물 상자', '🎁', 60, '기본 작물 여섯 가지의 씨앗을 1개씩 받아요'),
+  PointItem(pointCoinBag, '금화 주머니', '💰', 80, '게임 돈 10,000P를 받아요'),
+  PointItem(pointFarmBook, '농부 교본', '📘', 100, '경험치 300을 받아 레벨을 올려요'),
 ];
 
 // ───────────────────────── 기간별 카운터 (일일/주간) ─────────────────────────
@@ -309,7 +333,7 @@ double? changePercent(double current, double? prev) {
 // ───────────────────────── 판매 보상 ─────────────────────────
 
 /// 작물 1건을 판매할 때마다 받는 포인트 (판매 화면의 "Point +nP"에 쓴다)
-const sellPointReward = 5;
+const sellPointReward = 10;
 
 // ───────────────────────── 레벨 업 보상 ─────────────────────────
 

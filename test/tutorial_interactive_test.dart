@@ -64,13 +64,13 @@ void main() {
     await tester.tap(find.text('수확')); // 수확 카드
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('수확: 다 자라면'), findsOneWidget);
-    // 물주기 체험: 40% → 물을 줄 때마다 10%씩 올라간다
+    // 물주기 체험: 40% → 물을 줄 때마다 3%씩 올라간다 (한 밭에 최대 10번)
     await tester.pump(const Duration(milliseconds: 700));
     expect(find.text('40%'), findsOneWidget);
     await tester.tap(find.text('물주기'));
     await tester.pump(const Duration(milliseconds: 700));
     await tester.pump(const Duration(milliseconds: 700));
-    expect(find.text('50%'), findsOneWidget);
+    expect(find.text('43%'), findsOneWidget);
 
     // 4장: 시세는 1,850원 고정, 판매하기를 누르면 판매 완료
     await _next(tester);

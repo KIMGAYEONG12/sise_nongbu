@@ -15,8 +15,8 @@ void main() {
     expect(soldMessage(['배추', '무', '사과']), '배추 외 2종이 판매되었습니다!');
   });
 
-  test('판매 1건당 포인트는 5P', () {
-    expect(sellPointReward, 5);
+  test('판매 1건당 포인트는 10P', () {
+    expect(sellPointReward, 10);
   });
 
   testWidgets('스플래시: 연출이 돌아가고 진행 막대가 차면 onDone이 한 번 불린다', (tester) async {

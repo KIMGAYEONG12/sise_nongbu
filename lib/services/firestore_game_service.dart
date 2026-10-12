@@ -379,7 +379,7 @@ class FirestoreGameService {
         return changed;
       });
 
-  /// 씨앗 꾸러미: 여섯 작물의 씨앗을 1개씩 한 번에 받는다.
+  /// 씨앗 꾸러미: 기본 여섯 작물의 씨앗을 1개씩 한 번에 받는다.
   Future<void> buySeedPack(int price) => _tx((tx) async {
         final t = DateTime.now();
         final u = (await tx.get(_user)).data()!;
@@ -393,7 +393,7 @@ class FirestoreGameService {
           ..._bumps(u, t, ['shop']),
           'updatedAt': FieldValue.serverTimestamp(),
         };
-        for (final c in crops) {
+        for (final c in seedPackCrops) {
           upd['items.${seedKey(c.code)}'] = _int(items[seedKey(c.code)]) + 1;
         }
         tx.update(_user, upd);
@@ -430,6 +430,23 @@ class FirestoreGameService {
             break;
           case pointLucky:
             upd['items.$itemFertilizer'] = _int(items[itemFertilizer]) + 3;
+            break;
+          case pointWaterPack:
+            upd['items.$itemWater'] = _int(items[itemWater]) + 10;
+            break;
+          case pointBoosterPack:
+            upd['items.$itemBooster'] = _int(items[itemBooster]) + 2;
+            break;
+          case pointSeedBox:
+            for (final c in seedPackCrops) {
+              upd['items.${seedKey(c.code)}'] = _int(items[seedKey(c.code)]) + 1;
+            }
+            break;
+          case pointCoinBag:
+            upd['money'] = _int(u['money']) + coinBagMoney;
+            break;
+          case pointFarmBook:
+            upd['exp'] = _int(u['exp']) + farmBookExp;
             break;
         }
         tx.update(_user, upd);

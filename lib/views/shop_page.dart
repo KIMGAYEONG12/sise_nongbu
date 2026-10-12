@@ -5,6 +5,7 @@ import '../core/progress_rules.dart';
 import '../models/models.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
+import '../widgets/crop_art.dart';
 import 'point_shop_page.dart';
 import '../core/korean.dart';
 
@@ -35,10 +36,10 @@ class _ShopPageState extends ConsumerState<ShopPage> {
         ),
       );
 
-  Widget _row(String emoji, String title, String sub, Widget action) => SoftCard(
+  Widget _row(String emoji, String title, String sub, Widget action, {String? cropCode}) => SoftCard(
         margin: const EdgeInsets.only(bottom: 10),
         child: Row(children: [
-          EmojiBadge(emoji, size: 50),
+          if (cropCode != null) CropBadge(cropCode, size: 50) else EmojiBadge(emoji, size: 50),
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -70,7 +71,8 @@ class _ShopPageState extends ConsumerState<ShopPage> {
                 const SectionTitle('씨앗'),
                 for (final c in crops)
                   _row(c.emoji, '${c.name} 씨앗', '보유 ${user.item(seedKey(c.code))}개 · 파종비(${won(c.seedCost)})보다 15% 저렴',
-                      _buyBtn(won(seedPrice(c)), user.money < seedPrice(c) ? null : () => runGuarded(context, () => vm.buySeed(c), ok: '${c.name} 씨앗을 샀어요'))),
+                      _buyBtn(won(seedPrice(c)), user.money < seedPrice(c) ? null : () => runGuarded(context, () => vm.buySeed(c), ok: '${c.name} 씨앗을 샀어요')),
+                      cropCode: c.code),
                 const SectionTitle('성장 아이템'),
                 for (final i in consumables)
                   _row(i.emoji, i.name, '${i.desc}\n보유 ${user.item(i.key)}개',
@@ -80,7 +82,7 @@ class _ShopPageState extends ConsumerState<ShopPage> {
                 for (final bd in bundles)
                   _row(bd.emoji, bd.name, '${itemName(bd.itemKey)} ${bd.qty}개를 한 번에 · 보유 ${user.item(bd.itemKey)}개',
                       _buyBtn(won(bd.price), user.money < bd.price ? null : () => runGuarded(context, () => vm.buyBundle(bd), ok: '${bd.name}을 샀어요'))),
-                _row('🎁', '씨앗 꾸러미', '여섯 작물 씨앗을 1개씩 (따로 사는 값의 90%)',
+                _row('🎁', '씨앗 꾸러미', '기본 여섯 작물(${seedPackCrops.map((c) => c.name).join('·')}) 씨앗을 1개씩 (따로 사는 값의 90%)',
                     _buyBtn(won(seedPackPrice()), user.money < seedPackPrice() ? null : () => runGuarded(context, vm.buySeedPack, ok: '씨앗 꾸러미를 샀어요 🎁'))),
                 const SectionTitle('농장 시설'),
                 _row('🟫', '밭 넓히기', plots.length >= maxPlots ? '최대 $maxPlots칸까지 넓혔어요' : '${plots.length}칸 → ${plots.length + plotExpandStep}칸 (최대 $maxPlots칸)',

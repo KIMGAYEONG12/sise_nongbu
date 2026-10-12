@@ -9,6 +9,7 @@ import '../ai/ai_agent.dart';
 import '../ai/gemini_llm.dart';
 import '../ai/rule_llm.dart';
 import '../core/game_rules.dart';
+import '../core/price_alert.dart';
 import '../core/progress_rules.dart';
 import '../models/models.dart';
 import '../models/server_market.dart';
@@ -26,6 +27,43 @@ final notificationProvider =
     Provider<NotificationService>((_) => throw UnimplementedError());
 final prefsProvider =
     Provider<SharedPreferences>((_) => throw UnimplementedError());
+
+// ───────────────────────── 시세 알림 ─────────────────────────
+
+/// 시세 알림(목표 가격)을 저장하는 키 (shared_preferences, 이 기기에만 저장된다)
+const priceAlertsKey = 'priceAlerts';
+
+/// 내가 걸어 둔 시세 알림들 (작물 코드 → 알림). 기기에 저장되어 앱을 껐다 켜도 남는다.
+class PriceAlertsNotifier extends Notifier<Map<String, PriceAlert>> {
+  @override
+  Map<String, PriceAlert> build() => decodeAlerts(ref.read(prefsProvider).getString(priceAlertsKey));
+
+  void _save() => ref.read(prefsProvider).setString(priceAlertsKey, encodeAlerts(state.values));
+
+  /// 알림을 걸거나 바꾼다 (다시 걸면 아직 안 울린 상태로 시작한다)
+  void set(String code, {required bool above, required double target}) {
+    state = {...state, code: PriceAlert(code: code, above: above, target: target)};
+    _save();
+  }
+
+  void clear(String code) {
+    if (!state.containsKey(code)) return;
+    state = {...state}..remove(code);
+    _save();
+  }
+
+  /// 시세가 새로 들어올 때 부른다. 조건을 채운 알림을 "울림"으로 표시하고 그 목록을 돌려준다 (한 번만 울린다).
+  List<PriceAlert> check(Map<String, AuctionPrice> prices) {
+    if (state.isEmpty) return const [];
+    final due = dueAlerts(state, {for (final e in prices.entries) e.key: e.value.pricePerKg});
+    if (due.isEmpty) return const [];
+    state = {for (final a in state.values) a.code: due.contains(a) ? a.copyWith(fired: true) : a};
+    _save();
+    return due;
+  }
+}
+
+final priceAlertsProvider = NotifierProvider<PriceAlertsNotifier, Map<String, PriceAlert>>(PriceAlertsNotifier.new);
 
 // ───────────────────────── 로그인 ─────────────────────────
 
@@ -98,16 +136,17 @@ final weatherProvider = FutureProvider<Weather?>((ref) async {
   return w;
 });
 
-/// 품목 상세 화면용: 최근 7일 시세와 거래량
+/// 품목 상세 화면용: 최근 [days]일 시세 (인자는 (작물 코드, 일 수))와 거래량
 /// 서버가 저장해 둔 값이 있으면 그것을, 없으면 앱이 API로 직접 받는다.
 final priceHistoryProvider = FutureProvider.autoDispose
-    .family<List<double?>, String>((ref, code) async {
+    .family<List<double?>, (String, int)>((ref, key) async {
+  final (code, days) = key;
   final server = ref.read(serverMarketProvider).valueOrNull;
   if (server != null && server.usable(appHasKey: auctionApiKey.isNotEmpty)) {
-    final h = server.history(code);
+    final h = server.history(code, count: days);
     if (h.any((v) => v != null)) return h;
   }
-  return ref.read(marketRepoProvider).history(code);
+  return ref.read(marketRepoProvider).history(code, days: days);
 });
 final priceVolumeProvider =
     FutureProvider.autoDispose.family<double?, String>((ref, code) async {

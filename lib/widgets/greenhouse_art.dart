@@ -272,6 +272,126 @@ class GreenhousePainter extends CustomPainter {
   }
 
 
+  /// 위성: 금박 몸체, 격자무늬 파란 태양광 날개, 접시 안테나, 반짝이는 신호.
+  /// 오른쪽 위에 떠 있으면서 지붕 쪽으로 점선 신호와 물결을 보낸다.
+  void _drawSatellite(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    Offset p(double x, double y) => Offset(x * w, y * h);
+    Paint fill(Color c) => Paint()..color = c;
+    Paint line(Color c, double lw) => Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = lw
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..color = c;
+
+    final sat = p(.86, .07);
+    final unit = w * .04;
+
+    // 지붕으로 보내는 점선 신호
+    final from = sat + Offset(-unit * .6, unit * 1.9);
+    final to = p(.6, .27);
+    final beam = Path()
+      ..moveTo(from.dx, from.dy)
+      ..lineTo(to.dx, to.dy);
+    for (final m in beam.computeMetrics()) {
+      for (var d = 0.0; d < m.length; d += 7) {
+        final a = d / m.length; // 지붕에 가까울수록 또렷하게
+        canvas.drawPath(m.extractPath(d, math.min(d + 3.5, m.length)), line(const Color(0xFFFFE066).withValues(alpha: .35 + .6 * a), 1.5));
+      }
+    }
+    // 위성 아래로 퍼지는 신호 물결
+    for (final r in const [.05, .08, .11]) {
+      canvas.drawArc(Rect.fromCenter(center: from, width: w * r * 2, height: w * r * 2), math.pi * .5, math.pi * .5, false, line(const Color(0xFFFFE066).withValues(alpha: .85 - r * 4), 1.3));
+    }
+
+    canvas.save();
+    canvas.translate(sat.dx, sat.dy);
+    canvas.rotate(-.42);
+
+    // 뒤에서 은은하게 빛나는 기운
+    canvas.drawCircle(Offset.zero, unit * 3.4, Paint()..shader = const RadialGradient(colors: [Color(0x887DF9FF), Color(0x007DF9FF)]).createShader(Rect.fromCircle(center: Offset.zero, radius: unit * 3.4)));
+
+    // 태양광 날개: 은색 뼈대 + 파란 패널(격자 + 빛 반사)
+    for (final side in const [-1.0, 1.0]) {
+      // 날개를 잇는 은색 막대
+      canvas.drawLine(Offset(side * unit * .9, 0), Offset(side * unit * 1.5, 0), line(const Color(0xFFC9D4E2), unit * .22));
+      for (var k = 0; k < 2; k++) {
+        final left = side < 0 ? -unit * (1.5 + (k + 1) * 1.9) + unit * .0 : unit * (1.5 + k * 1.9);
+        final rect = Rect.fromLTWH(left + (side < 0 ? unit * .0 : unit * .0), -unit * .95, unit * 1.8, unit * 1.9);
+        final rr = RRect.fromRectAndRadius(rect, Radius.circular(unit * .12));
+        canvas.drawRRect(rr, Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF4C8DF0), Color(0xFF1B44A8)]).createShader(rect));
+        // 격자
+        final grid = line(const Color(0x88CFE3FF), .7);
+        for (var i = 1; i < 3; i++) {
+          canvas.drawLine(Offset(rect.left + rect.width * i / 3, rect.top), Offset(rect.left + rect.width * i / 3, rect.bottom), grid);
+        }
+        for (var i = 1; i < 4; i++) {
+          canvas.drawLine(Offset(rect.left, rect.top + rect.height * i / 4), Offset(rect.right, rect.top + rect.height * i / 4), grid);
+        }
+        // 빛 반사
+        canvas.save();
+        canvas.clipRRect(rr);
+        canvas.drawPath(
+          Path()
+            ..moveTo(rect.left, rect.top + rect.height * .55)
+            ..lineTo(rect.left + rect.width * .55, rect.top)
+            ..lineTo(rect.left + rect.width * .8, rect.top)
+            ..lineTo(rect.left, rect.top + rect.height * .85)
+            ..close(),
+          fill(const Color(0x33FFFFFF)),
+        );
+        canvas.restore();
+        canvas.drawRRect(rr, line(const Color(0xFFE3ECF7), 1));
+      }
+    }
+
+    // 금박 몸체
+    final body = RRect.fromRectAndRadius(Rect.fromCenter(center: Offset.zero, width: unit * 1.8, height: unit * 1.9), Radius.circular(unit * .3));
+    canvas.drawRRect(body, Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFFFE9A0), Color(0xFFE9AE24), Color(0xFFB57B10)]).createShader(body.outerRect));
+    canvas.save();
+    canvas.clipRRect(body);
+    final crinkle = line(const Color(0x55FFFFFF), .8);
+    for (final d in const [(-.5, -.6, .4, -.1), (-.6, .1, .2, .5), (.1, -.7, .6, -.2), (-.1, .5, .6, .7)]) {
+      canvas.drawLine(Offset(d.$1 * unit, d.$2 * unit), Offset(d.$3 * unit, d.$4 * unit), crinkle);
+    }
+    canvas.drawRect(Rect.fromLTRB(-unit * .9, -unit * .95, unit * .9, -unit * .62), fill(const Color(0xFFE3E9F1)));
+    canvas.restore();
+    canvas.drawRRect(body, line(const Color(0xFF8A5A0C), 1));
+    // 렌즈(눈) + 가운데 불빛
+    canvas.drawCircle(Offset.zero, unit * .42, fill(const Color(0xFF0F2742)));
+    canvas.drawCircle(Offset.zero, unit * .3, Paint()..shader = const RadialGradient(center: Alignment(-.3, -.3), colors: [Color(0xFFB8FFFF), Color(0xFF29B6E8)]).createShader(Rect.fromCircle(center: Offset.zero, radius: unit * .3)));
+    canvas.drawCircle(Offset(-unit * .09, -unit * .1), unit * .08, fill(Colors.white));
+
+    // 위쪽 안테나 + 깜빡이는 불빛
+    canvas.drawLine(Offset(unit * .35, -unit * .95), Offset(unit * .55, -unit * 1.7), line(const Color(0xFFC9D4E2), 1.3));
+    canvas.drawCircle(Offset(unit * .55, -unit * 1.7), unit * .2, Paint()..color = const Color(0xCCFF5C7A)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
+    canvas.drawCircle(Offset(unit * .55, -unit * 1.7), unit * .11, fill(const Color(0xFFFF8FA3)));
+
+    // 아래 접시 안테나 (신호를 지붕으로 쏜다)
+    canvas.drawLine(Offset(0, unit * .95), Offset(0, unit * 1.35), line(const Color(0xFFC9D4E2), 1.4));
+    final dish = Rect.fromCenter(center: Offset(0, unit * 1.5), width: unit * 1.7, height: unit * 1.0);
+    final dishPath = Path()..addArc(dish, 0, math.pi);
+    canvas.drawPath(dishPath, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFFFFFF), Color(0xFFB4C3D4)]).createShader(dish));
+    canvas.drawPath(dishPath, line(const Color(0xFF52687C), 1));
+    canvas.drawLine(Offset(0, unit * 1.5), Offset(0, unit * 1.05), line(const Color(0xFF52687C), 1));
+    canvas.drawCircle(Offset(0, unit * 1.05), unit * .13, fill(const Color(0xFFFFD34E)));
+    canvas.restore();
+
+    // 반짝이는 별 (네 갈래)
+    for (final sp in const [(.72, .035, .018), (.95, .15, .014), (.77, .17, .012)]) {
+      final c = p(sp.$1, sp.$2), r = w * sp.$3;
+      final star = Path()
+        ..moveTo(c.dx, c.dy - r * 1.6)
+        ..quadraticBezierTo(c.dx + r * .2, c.dy - r * .2, c.dx + r * 1.6, c.dy)
+        ..quadraticBezierTo(c.dx + r * .2, c.dy + r * .2, c.dx, c.dy + r * 1.6)
+        ..quadraticBezierTo(c.dx - r * .2, c.dy + r * .2, c.dx - r * 1.6, c.dy)
+        ..quadraticBezierTo(c.dx - r * .2, c.dy - r * .2, c.dx, c.dy - r * 1.6)
+        ..close();
+      canvas.drawPath(star, fill(const Color(0xDDFFF6C2)));
+    }
+  }
+
   /// 11단계 이후의 첨단 장치들. 위성 연동 스마트팜(15단계)에는 지붕 위 위성과 신호가 나온다.
   void _drawTech(Canvas canvas, Size size, int stage, Color frame) {
     final w = size.width, h = size.height;
@@ -316,39 +436,7 @@ class GreenhousePainter extends CustomPainter {
     }
 
     // 15 위성 연동 스마트팜: 오른쪽 위에 위성이 떠 있고, 지붕으로 신호를 보낸다
-    if (stage >= 15) {
-      final sat = p(.86, .06);
-      // 신호 줄기 (점선)와 동그란 신호 물결
-      final beam = Path()..moveTo(sat.dx - w * .03, sat.dy + h * .05)..lineTo(p(.6, .27).dx, p(.6, .27).dy);
-      for (final m in beam.computeMetrics()) {
-        for (var d = 0.0; d < m.length; d += 7) {
-          canvas.drawPath(m.extractPath(d, math.min(d + 3.5, m.length)), line(const Color(0xCCFFE066), 1.4));
-        }
-      }
-      for (final r in const [.045, .075, .105]) {
-        canvas.drawArc(Rect.fromCenter(center: sat + Offset(-w * .03, h * .05), width: w * r * 2, height: w * r * 2), math.pi * .55, math.pi * .45, false, line(const Color(0x99FFE066), 1.2));
-      }
-      canvas.save();
-      canvas.translate(sat.dx, sat.dy);
-      canvas.rotate(-.5);
-      final unit = w * .042;
-      // 태양광 날개 두 장
-      for (final side in const [-1.0, 1.0]) {
-        final wing = Rect.fromLTWH(side < 0 ? -unit * 3.6 : unit * 1.0, -unit * .8, unit * 2.6, unit * 1.6);
-        canvas.drawRect(wing, fill(const Color(0xFF2A5BC0)));
-        canvas.drawRect(wing, line(Colors.white, .8));
-        canvas.drawLine(Offset(wing.center.dx, wing.top), Offset(wing.center.dx, wing.bottom), line(Colors.white70, .6));
-        canvas.drawLine(Offset(wing.left, wing.center.dy), Offset(wing.right, wing.center.dy), line(Colors.white70, .6));
-      }
-      // 몸체와 접시 안테나
-      final bodyRect = RRect.fromRectAndRadius(Rect.fromCenter(center: Offset.zero, width: unit * 2, height: unit * 1.6), Radius.circular(unit * .3));
-      canvas.drawRRect(bodyRect, fill(const Color(0xFFE8EDF3)));
-      canvas.drawRRect(bodyRect, line(const Color(0xFF52687C), 1));
-      canvas.drawCircle(Offset(0, unit * 1.3), unit * .7, fill(const Color(0xFFFFD34E)));
-      canvas.drawLine(Offset(0, unit * .8), Offset(0, unit * 1.3), line(const Color(0xFF52687C), 1));
-      canvas.drawCircle(Offset.zero, unit * .35, fill(const Color(0xFF7DF9FF)));
-      canvas.restore();
-    }
+    if (stage >= 15) _drawSatellite(canvas, size);
 
     // 16 핵융합 에너지 팜: 안쪽 가운데의 밝은 에너지 코어
     if (stage >= 16) {

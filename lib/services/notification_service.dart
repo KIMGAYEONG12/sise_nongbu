@@ -9,6 +9,8 @@ class NotificationService {
   final _local = FlutterLocalNotificationsPlugin();
   static const _details = NotificationDetails(
       android: AndroidNotificationDetails('harvest', '수확 알림', importance: Importance.high, priority: Priority.high));
+  static const _priceDetails = NotificationDetails(
+      android: AndroidNotificationDetails('price', '시세 알림', importance: Importance.high, priority: Priority.high));
 
   Future<void> init() async {
     tz.initializeTimeZones();
@@ -44,6 +46,15 @@ class NotificationService {
       );
     } catch (e) {
       if (kDebugMode) debugPrint('수확 알림 예약 실패: $e');
+    }
+  }
+
+  /// 목표 가격에 닿았다는 시세 알림을 바로 띄운다. 알림은 부가 기능이라 실패해도 게임을 막지 않는다.
+  Future<void> showPriceAlert(int id, String title, String body) async {
+    try {
+      await _local.show(1000 + id, title, body, _priceDetails);
+    } catch (e) {
+      if (kDebugMode) debugPrint('시세 알림 표시 실패: $e');
     }
   }
 

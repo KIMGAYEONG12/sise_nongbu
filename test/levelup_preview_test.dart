@@ -6,10 +6,12 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sise_nongbu/core/progress_rules.dart';
 import 'package:sise_nongbu/views/home_shell.dart';
+import 'preview_font.dart';
 
 void main() {
   for (final withReward in [true, false]) {
     testWidgets('레벨 업 창 그림 ${withReward ? '(보상 있음)' : '(보상 없음)'}', (tester) async {
+      if (Platform.environment['PREVIEW_DIR'] != null) await loadPreviewFonts();
       tester.view.physicalSize = const Size(411, 891) * 2;
       tester.view.devicePixelRatio = 2;
       addTearDown(tester.view.reset);
@@ -22,10 +24,7 @@ void main() {
       ));
       await tester.tap(find.text('열기'));
       await tester.pump(const Duration(milliseconds: 400));
-      await tester.runAsync(() async {
-        final ctx = tester.element(find.byType(Dialog));
-        await precacheImage(const AssetImage('assets/images/levelup_card.png'), ctx);
-      });
+      // 그림은 코드(벡터)로 그리므로 이미지 파일을 미리 읽을 필요가 없다
       await tester.pump(const Duration(milliseconds: 2500));
       expect(find.text('Lv.9'), findsOneWidget);
       expect(find.text('확인'), findsOneWidget);
@@ -35,7 +34,7 @@ void main() {
       if (dir != null) {
         await tester.runAsync(() async {
           final b = key.currentContext!.findRenderObject() as RenderRepaintBoundary;
-          final img = await b.toImage(pixelRatio: 1);
+          final img = await b.toImage(pixelRatio: 2);
           final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
           File('$dir/levelup_${withReward ? 'reward' : 'plain'}.png').writeAsBytesSync(bytes!.buffer.asUint8List());
         });

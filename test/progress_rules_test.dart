@@ -66,6 +66,45 @@ void main() {
     expect(seedPrice(cropOf('CABBAGE')), 10200);
   });
 
+  test('물주기는 한 밭에 10번까지, 다 줘도 최대 30% 단축 (예전 10%×3번과 같은 최대 효과)', () {
+    expect(waterMaxPerPlot, 10);
+    expect(waterCut, closeTo(0.03, 1e-9));
+    expect(waterCut * waterMaxPerPlot, closeTo(0.30, 1e-9));
+    // 물을 다 주고 성장촉진제까지 써도 성장 시간이 0 아래로 내려가지 않는다
+    expect(waterCut * waterMaxPerPlot + boosterCut, lessThan(1.0));
+  });
+
+  test('씨앗 꾸러미는 기본 6종만 담아서 값이 터무니없이 커지지 않는다', () {
+    expect(seedPackCrops.length, seedPackCropCount);
+    expect(seedPackCrops.map((c) => c.code), ['CABBAGE', 'RADISH', 'ONION', 'APPLE', 'TOMATO', 'POTATO']);
+    final alone = seedPackCrops.fold<int>(0, (a, c) => a + seedPrice(c));
+    expect(seedPackPrice(), (alone * 0.9).round());
+    expect(seedPackPrice(), lessThan(alone));
+    expect(seedPackPrice(), lessThan(100000)); // 작물이 21종으로 늘었어도 18만 원대로 뛰지 않는다
+  });
+
+  test('특별 상점: 상품 번호가 겹치지 않고 값이 낮아졌으며 모두 포인트 400 이하', () {
+    final keys = pointItems.map((e) => e.key).toList();
+    expect(keys.toSet().length, keys.length);
+    expect(pointItems.length, greaterThanOrEqualTo(9));
+    for (final i in pointItems) {
+      expect(i.cost, greaterThan(0));
+      expect(i.cost, lessThanOrEqualTo(400));
+      expect(i.name, isNotEmpty);
+      expect(i.desc, isNotEmpty);
+    }
+    int cost(String k) => pointItems.firstWhere((e) => e.key == k).cost;
+    // 예전 값(100·80·200·150)보다 싸다
+    expect(cost(pointRareSeed), lessThan(100));
+    expect(cost(pointDecor), lessThan(80));
+    expect(cost(pointVault), lessThan(200));
+    expect(cost(pointLucky), lessThan(150));
+  });
+
+  test('판매 1건당 포인트는 10P (시안의 +10P)', () {
+    expect(sellPointReward, 10);
+  });
+
   test('일일·주간 카운터는 태그가 바뀌면 새로 시작한다', () {
     var m = bumpPeriod(null, '2026-10-06', 'water');
     m = bumpPeriod(m, '2026-10-06', 'water', 2);

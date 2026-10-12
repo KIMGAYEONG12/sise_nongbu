@@ -807,9 +807,9 @@ class _GrowVisualState extends _AnimState<_GrowVisual> {
   /// 사용자가 눌러 본 단계 (0 파종 · 1 성장 · 2 수확). 눌러 보기 전에는 차례로 반짝인다.
   int? _picked;
 
-  /// 연습으로 물을 준 횟수 (실제 게임처럼 한 밭에 최대 3번)
+  /// 연습으로 물을 준 횟수 (실제 게임처럼 한 밭에 최대 $waterMaxPerPlot번)
   int _water = 0;
-  static const _waterMax = 3;
+  static const _waterMax = waterMaxPerPlot;
 
   @override
   Widget build(BuildContext context) => Column(children: [
@@ -818,10 +818,10 @@ class _GrowVisualState extends _AnimState<_GrowVisual> {
         _waterPanel(),
       ]);
 
-  /// 물주기 체험: 💧 버튼을 누르면 성장 막대가 10%씩 올라간다 (연습이라 실제 데이터는 바뀌지 않는다)
+  /// 물주기 체험: 💧 버튼을 누르면 성장 막대가 3%씩 올라간다 (연습이라 실제 데이터는 바뀌지 않는다)
   Widget _waterPanel() {
     final done = _water >= _waterMax;
-    final progress = (.4 + .1 * _water).clamp(0.0, 1.0).toDouble();
+    final progress = (.4 + waterCut * _water).clamp(0.0, 1.0).toDouble();
     return SoftCard(
       color: Colors.white,
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -862,8 +862,8 @@ class _GrowVisualState extends _AnimState<_GrowVisual> {
           Expanded(
             child: KoText(
               done
-                  ? '물을 3번 줬어요! 성장 시간이 30% 줄었어요'
-                  : '💧을 눌러 물을 주면 성장 시간이 10% 줄어요 (밭당 최대 3번)',
+                  ? '물을 $waterMaxPerPlot번 줬어요! 성장 시간이 ${(waterCut * waterMaxPerPlot * 100).round()}% 줄었어요'
+                  : '💧을 눌러 물을 주면 성장 시간이 ${(waterCut * 100).round()}% 줄어요 (밭당 최대 $waterMaxPerPlot번)',
               style: const TextStyle(
                   fontSize: 13.5,
                   height: 1.35,

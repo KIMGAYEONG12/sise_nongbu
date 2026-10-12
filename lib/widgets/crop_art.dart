@@ -27,6 +27,23 @@ class CropArt extends StatelessWidget {
   }
 }
 
+/// 작물 그림을 연두색 동그라미 안에 담은 배지 (이모지 배지 대신 쓴다)
+class CropBadge extends StatelessWidget {
+  const CropBadge(this.code, {super.key, this.size = 44, this.color});
+  final String code;
+  final double size;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: color ?? const Color(0xFFD8EDC8).withValues(alpha: .7), shape: BoxShape.circle),
+        child: CropArt(code: code, size: size * .82),
+      );
+}
+
 /// 위에서 내려다본 둥근 배추 한 포기 (겉잎 → 속잎 → 연두색 속)
 class CabbagePainter extends CustomPainter {
   const CabbagePainter({this.scale = 1});

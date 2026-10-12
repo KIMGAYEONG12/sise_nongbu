@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/game_rules.dart';
@@ -348,7 +349,7 @@ class _ActionButton extends StatelessWidget {
 /// 시안의 작물 성장 밭: 꽃이 핀 잔디 테두리 → 밝은 흙길 → 진한 흙 칸 3열, 칸마다 큰 작물.
 /// 빈 칸은 흐린 +(누르면 심기), 자라는 칸은 성장 단계 그림, 다 자란 칸은 ✨(누르면 수확 후 바로 심기).
 /// 그림 파일 없이 모두 코드(벡터)로 그려서 어떤 화면에서도 깨지지 않는다.
-class _GrowthBoard extends StatelessWidget {
+class _GrowthBoard extends StatefulWidget {
   const _GrowthBoard({required this.plots, required this.now, required this.onTap, this.selected});
   final List<Plot> plots;
   final DateTime now;
@@ -359,7 +360,24 @@ class _GrowthBoard extends StatelessWidget {
   static const _gap = 12.0;
 
   @override
-  Widget build(BuildContext context) => Container(
+  State<_GrowthBoard> createState() => _GrowthBoardState();
+}
+
+class _GrowthBoardState extends State<_GrowthBoard> with SingleTickerProviderStateMixin {
+  /// 작물이 한 번 살랑이는 시간. 컨트롤러 하나로 모든 밭의 작물을 흔들고, 화면이 보이지 않으면 저절로 멈춘다.
+  late final AnimationController _sway = AnimationController(vsync: this, duration: const Duration(milliseconds: 3600))..repeat();
+
+  @override
+  void dispose() {
+    _sway.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final plots = widget.plots, now = widget.now, onTap = widget.onTap, selected = widget.selected;
+    const cols = _GrowthBoard._cols, gap = _GrowthBoard._gap;
+    return Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           boxShadow: [BoxShadow(color: AppColors.green.withValues(alpha: .18), blurRadius: 10, offset: const Offset(0, 3))],
@@ -381,21 +399,21 @@ class _GrowthBoard extends StatelessWidget {
                 child: CustomPaint(
                   painter: const _PathDotsPainter(),
                   child: LayoutBuilder(builder: (context, box) {
-                    final tile = ((box.maxWidth - _gap * (_cols - 1)) / _cols).floorToDouble();
+                    final tile = ((box.maxWidth - gap * (cols - 1)) / cols).floorToDouble();
                     final tileH = (tile * .9).floorToDouble();
                     final rows = <Widget>[];
-                    for (var r = 0; r * _cols < plots.length; r++) {
+                    for (var r = 0; r * cols < plots.length; r++) {
                       final cells = <Widget>[];
-                      for (var c = 0; c < _cols; c++) {
-                        final i = r * _cols + c;
-                        if (c > 0) cells.add(const SizedBox(width: _gap));
+                      for (var c = 0; c < cols; c++) {
+                        final i = r * cols + c;
+                        if (c > 0) cells.add(const SizedBox(width: gap));
                         cells.add(SizedBox(
                           width: tile,
                           height: tileH,
-                          child: i < plots.length ? _SoilTile(plot: plots[i], now: now, selected: selected == plots[i].index, onTap: () => onTap(plots[i])) : null,
+                          child: i < plots.length ? _SoilTile(plot: plots[i], now: now, selected: selected == plots[i].index, sway: _sway, onTap: () => onTap(plots[i])) : null,
                         ));
                       }
-                      if (r > 0) rows.add(const SizedBox(height: _gap));
+                      if (r > 0) rows.add(const SizedBox(height: gap));
                       rows.add(Row(mainAxisSize: MainAxisSize.min, children: cells));
                     }
                     return Center(child: Column(mainAxisSize: MainAxisSize.min, children: rows));
@@ -406,6 +424,7 @@ class _GrowthBoard extends StatelessWidget {
           ),
         ),
       );
+  }
 }
 
 /// 밭 둘레의 잔디: 초록 바탕에 풀잎과 작은 꽃
@@ -473,11 +492,14 @@ class _PathDotsPainter extends CustomPainter {
 
 /// 진한 흙 칸 하나 + 큰 작물
 class _SoilTile extends StatelessWidget {
-  const _SoilTile({required this.plot, required this.now, required this.selected, required this.onTap});
+  const _SoilTile({required this.plot, required this.now, required this.selected, required this.onTap, required this.sway});
   final Plot plot;
   final DateTime now;
   final bool selected;
   final VoidCallback onTap;
+
+  /// 0~1을 되풀이하는 흔들림 시간 (밭마다 시작 위치를 달리해서 제각각 살랑인다)
+  final Animation<double> sway;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
@@ -490,7 +512,8 @@ class _SoilTile extends StatelessWidget {
           crop = Icon(Icons.add_rounded, color: Colors.white.withValues(alpha: .55), size: size * .4);
         } else {
           // 성장 단계: 새싹 → 어린 작물 → 다 자란 작물
-          crop = CropArt(code: spec.code, size: size * .86, stage: ready ? 1.0 : progress);
+          final art = CropArt(code: spec.code, size: size * .86, stage: ready ? 1.0 : progress);
+          crop = SwayingCrop(animation: sway, phase: plot.index, stage: ready ? 1.0 : progress, child: art);
         }
         return GestureDetector(
           onTap: onTap,
@@ -512,6 +535,41 @@ class _SoilTile extends StatelessWidget {
           ),
         );
       });
+}
+
+/// 바람에 살랑이는 작물. 밑동(아래 가운데)을 기준으로 좌우로 아주 조금 기울고 숨 쉬듯 살짝 커졌다 작아진다.
+/// 새싹은 더 작게, 다 자란 작물은 조금 더 크게 흔들려서 자란 정도가 느껴진다.
+class SwayingCrop extends StatelessWidget {
+  const SwayingCrop({super.key, required this.animation, required this.phase, required this.stage, required this.child});
+  final Animation<double> animation;
+
+  /// 밭 번호. 밭마다 흔들리는 박자가 다르다.
+  final int phase;
+
+  /// 성장 진행률 0.0~1.0
+  final double stage;
+  final Widget child;
+
+  /// 흔들림 기울기(라디안). 가장 크게 기울어도 약 3도라서 "살짝" 움직이는 정도다.
+  static double angleAt(double t, int phase, double stage) {
+    final amp = stage < .34 ? .022 : (stage < .67 ? .034 : .048);
+    return math.sin((t + phase * .137) * math.pi * 2) * amp;
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: animation,
+        child: child,
+        builder: (_, kid) {
+          final t = animation.value;
+          final breathe = 1 + .012 * math.sin((t * 2 + phase * .21) * math.pi * 2);
+          return Transform.scale(
+            scale: breathe,
+            alignment: Alignment.bottomCenter,
+            child: Transform.rotate(angle: angleAt(t, phase, stage), alignment: Alignment.bottomCenter, child: kid),
+          );
+        },
+      );
 }
 
 /// 흙 칸 안쪽의 부드러운 흙 알갱이 무늬

@@ -61,15 +61,16 @@ class MarketRepository {
   /// 최근 [days]일의 kg당 시세(오래된 날 → 오늘). 그날 데이터가 없으면 null.
   Future<List<double?>> history(String cropCode, {int days = 7}) async {
     final now = DateTime.now();
-    final out = <double?>[];
-    for (var i = days - 1; i >= 0; i--) {
+    // 날마다 따로 조회하므로 동시에 요청해서 기간이 길어도 빨리 뜬다
+    Future<double?> one(int i) async {
       try {
-        out.add(weightedPrice(await _src.rows(cropCode, now.subtract(Duration(days: i)))));
+        return weightedPrice(await _src.rows(cropCode, now.subtract(Duration(days: i))));
       } catch (_) {
-        out.add(null);
+        return null;
       }
     }
-    return out;
+
+    return Future.wait([for (var i = days - 1; i >= 0; i--) one(i)]);
   }
 
   /// [date] 하루 동안의 총 경매 거래량(kg). 조회에 실패하면 null.

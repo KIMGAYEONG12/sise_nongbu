@@ -207,28 +207,19 @@ class _FarmHero extends StatelessWidget {
         final field = Rect.fromLTRB(imgLeft + _field.left * k, imgTop + _field.top * k, imgLeft + _field.right * k, imgTop + _field.bottom * k);
 
         return Stack(clipBehavior: Clip.hardEdge, children: [
-          // 하늘: 그림이 시작되는 높이에서 그림 윗부분과 같은 연한 하늘색이 되도록 이어 준다 (흐릿하게 섞지 않고 또렷하게 시작)
+          // 하늘: 맨 위는 맑은 하늘색, 그림 쪽으로 내려오면 그림 맨 윗줄(아주 옅은 하늘·구름색)과 같은 색으로 이어진다
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: const [Color(0xFF7CCDF3), Color(0xFFA8E4FB), Color(0xFFC0F2FE), Color(0xFFC0F2FE)],
-                  stops: [0, ((seam / h) * .5).clamp(0.0, 1.0).toDouble(), (seam / h).clamp(0.0, 1.0).toDouble(), 1],
+                  colors: const [Color(0xFF72C6F1), Color(0xFF9DE0FA), Color(0xFFBDEFFD), Color(0xFFC9F4FE), Color(0xFFC9F4FE)],
+                  stops: [0, ((seam / h) * .45).clamp(0.0, 1.0).toDouble(), ((seam / h) * .8).clamp(0.0, 1.0).toDouble(), (seam / h).clamp(0.0, 1.0).toDouble(), 1],
                 ),
               ),
             ),
           ),
-          // 그림 속 산과 같은 색의 먼 산등성이: 하늘이 그림 위로 이어져서 한 장의 풍경처럼 보인다
-          if (seam > 40)
-            Positioned(
-              left: 0,
-              top: seam - math.min(seam, 150.0),
-              width: w,
-              height: math.min(seam, 150.0),
-              child: const IgnorePointer(child: CustomPaint(painter: _SkyHillsPainter())),
-            ),
           Positioned(left: -20, top: topInset + 58, child: const _Cloud(width: 130)),
           Positioned(right: -10, top: topInset + 8, child: const _Cloud(width: 110)),
           Positioned(right: 60, top: topInset + 125, child: const _Cloud(width: 84)),
@@ -243,13 +234,19 @@ class _FarmHero extends StatelessWidget {
             top: seam,
             width: imgW,
             height: imgH,
-            // 윗가장자리 8%만 하늘색(그림 속 하늘과 같은 색)으로 살짝 이어져서 하늘과 배경이 하나로 보인다
+            // 윗가장자리 20%는 하늘색에 서서히 녹아서 나무 윗부분이 딱 잘린 것처럼 보이지 않는다 (아래 구름이 이음새를 한 번 더 덮는다)
             child: ShaderMask(
               blendMode: BlendMode.dstIn,
-              shaderCallback: (r) => const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.white], stops: [0, .08]).createShader(r),
+              shaderCallback: (r) => const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.white], stops: [0, .2]).createShader(r),
               child: Image.asset(AppImages.farmScene, fit: BoxFit.fill, filterQuality: FilterQuality.high),
             ),
           ),
+          // 하늘과 그림이 만나는 이음새를 가로지르는 구름: 그림 위에 걸쳐 놓아서 띠가 없이 한 장의 풍경으로 이어진다
+          if (seam > 30) ...[
+            Positioned(left: -26, top: seam - 22, child: const _Cloud(width: 168)),
+            Positioned(right: -18, top: seam + 4, child: const _Cloud(width: 142)),
+            Positioned(left: w * .38, top: seam - 8, child: const _Cloud(width: 96)),
+          ],
           // 연못에서 헤엄치는 물고기 (농장 탭을 보고 있을 때만 움직인다)
           Positioned.fromRect(
             rect: Rect.fromLTRB(imgLeft + _pond.left * k, imgTop + _pond.top * k, imgLeft + _pond.right * k, imgTop + _pond.bottom * k),
@@ -297,33 +294,6 @@ class _FarmHero extends StatelessWidget {
             ),
         ]);
       });
-}
-
-/// 하늘 아래쪽(그림 윗가장자리 바로 위)에 깔리는 먼 산 두 겹. 위로 갈수록 하늘색에 녹고, 그림 속 산과 같은 청록색이다.
-class _SkyHillsPainter extends CustomPainter {
-  const _SkyHillsPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width, h = size.height;
-    void ridge(double base, double amp, double phase, double freq, Color color) {
-      final path = Path()..moveTo(0, h);
-      for (var x = 0.0; x <= w; x += 4) {
-        final y = h * base - amp * (math.sin(x / w * math.pi * freq + phase) * .6 + math.sin(x / w * math.pi * freq * 2.3 + phase * 1.7) * .4);
-        path.lineTo(x, y);
-      }
-      path.lineTo(w, h);
-      path.close();
-      final top = h * (base - .25);
-      canvas.drawPath(path, Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [color.withValues(alpha: 0), color.withValues(alpha: .9)]).createShader(Rect.fromLTRB(0, top, w, h)));
-    }
-
-    ridge(.55, h * .13, 0.6, 3.2, const Color(0xFF9FDDF6)); // 먼 산
-    ridge(.78, h * .09, 2.1, 4.4, const Color(0xFF86D6E8)); // 가까운 산 (그림 속 산 색)
-  }
-
-  @override
-  bool shouldRepaint(_SkyHillsPainter old) => false;
 }
 
 class _Cloud extends StatelessWidget {

@@ -9,7 +9,7 @@
 // 저장 형태 (market/prices)
 //   updatedAt : 서버 저장 시각
 //   CABBAGE   : { price, prev, asOf: '2026-10-07', prevDate, volumeKg }   ← 시세판에 쓰는 값
-//   days      : { '2026-10-07': { done: true, CABBAGE: { p, v }, ... }, ... }  ← 최근 14일 (품목 상세 7일 그래프용)
+//   days      : { '2026-10-07': { done: true, CABBAGE: { p, v }, ... }, ... }  ← 최근 30일 (품목 상세 7·14·30일 그래프용)
 
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
@@ -51,7 +51,7 @@ const CROPS = {
   GARLIC: ['12', '09'], // 조미채소류 > 마늘
   BROCCOLI: ['13', '06'], // 양채류 > 브로콜리
 };
-const KEEP_DAYS = 14; // 저장해 두는 날짜 수
+const KEEP_DAYS = 30; // 저장해 두는 날짜 수 (품목 상세의 30일 그래프까지)
 const RECENT_DAYS = 2; // 오늘·어제는 거래가 계속 들어올 수 있어 매번 다시 받는다 (그 전 날짜는 한 번 받으면 재사용)
 const PAGE = 1000;
 

@@ -11,6 +11,7 @@ import 'package:sise_nongbu/viewmodels/view_models.dart';
 import 'package:sise_nongbu/views/farm_page.dart';
 import 'package:sise_nongbu/widgets/crop_art.dart';
 import 'package:sise_nongbu/widgets/farm_life.dart';
+import 'preview_font.dart';
 
 void main() {
   test('로봇은 길을 따라 한 바퀴를 돌고 처음 자리로 돌아온다', () {
@@ -31,6 +32,7 @@ void main() {
 
   final shot = GlobalKey();
   testWidgets('심은 작물이 흙 위에서 보이고 로봇과 함께 에러 없이 움직인다', (tester) async {
+    if (Platform.environment['PREVIEW_DIR'] != null) await loadPreviewFonts();
     tester.view.physicalSize = const Size(411, 891) * 2;
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
@@ -63,7 +65,7 @@ void main() {
     if (dir != null) {
       await tester.runAsync(() async {
         final b = shot.currentContext!.findRenderObject() as RenderRepaintBoundary;
-        final img = await b.toImage(pixelRatio: 1);
+        final img = await b.toImage(pixelRatio: 2);
         final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
         File('$dir/farm_life.png').writeAsBytesSync(bytes!.buffer.asUint8List());
       });

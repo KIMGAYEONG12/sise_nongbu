@@ -53,7 +53,7 @@ Future<void> showSoldDialog(BuildContext context, List<String> cropCodes, List<S
     );
 
 /// 판매할 작물 선택 (시안): 창고의 수확물을 골라 현재 시세로 한꺼번에 출하한다.
-/// 아래 "예상 수익" 카드에 총 판매금액 · 게임머니 · Point 가 나온다.
+/// 아래 "예상 수익" 카드에 총 판매금액 · 판매이익 · Point 가 나온다.
 class SellPage extends ConsumerStatefulWidget {
   const SellPage({super.key});
   @override
@@ -126,53 +126,84 @@ class _SellPageState extends ConsumerState<SellPage> {
                 if (lots.isEmpty)
                   const Padding(padding: EdgeInsets.all(40), child: Center(child: Text('판매할 작물이 없어요', style: TextStyle(color: AppColors.sub)))),
                 for (final l in lots)
-                  Builder(builder: (_) {
-                    final c = cropOf(l.cropCode);
-                    final p = prices[l.cropCode];
-                    final on = _picked.contains(l.id);
-                    return SoftCard(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      color: Colors.white,
-                      padding: const EdgeInsets.fromLTRB(12, 10, 14, 10),
-                      onTap: p == null ? null : () => setState(() => on ? _picked.remove(l.id) : _picked.add(l.id)),
-                      child: Row(children: [
-                        SizedBox(width: 52, height: 52, child: CropArt(code: c.code, size: 52)),
-                        const SizedBox(width: 12),
-                        Text(c.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.ink)),
-                        const SizedBox(width: 12),
-                        Text('${l.kg.toStringAsFixed(l.kg == l.kg.roundToDouble() ? 0 : 1)}kg', style: const TextStyle(fontSize: 12.5, color: AppColors.sub)),
-                        const Spacer(),
-                        Text(p == null ? '시세 없음' : won(amountOf(l)), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15.5, color: AppColors.greenDark)),
-                        SizedBox(
-                          width: 26,
-                          child: on ? const Icon(Icons.check_rounded, color: AppColors.green, size: 22) : null,
-                        ),
-                      ]),
-                    );
-                  }),
-                const SizedBox(height: 4),
-                // 시안: 예상 수익 카드 (총 판매금액 / 게임머니 / Point)
-                SoftCard(
-                  color: Colors.white,
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                  _LotRow(
+                    lot: l,
+                    amount: prices[l.cropCode] == null ? null : amountOf(l),
+                    selected: _picked.contains(l.id),
+                    onTap: prices[l.cropCode] == null ? null : () => setState(() => _picked.contains(l.id) ? _picked.remove(l.id) : _picked.add(l.id)),
+                  ),
+                const SizedBox(height: 2),
+                // 시안: 예상 수익 카드 (총 판매금액 / 판매이익 / Point)
+                Container(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+                  decoration: _cardDecoration(),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('예상 수익', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15.5, color: AppColors.ink)),
+                    const Text('예상 수익', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: Color(0xFF111111))),
+                    const SizedBox(height: 12),
+                    _Row(icon: const Text('🌿', style: TextStyle(fontSize: 18, height: 1)), label: '총 판매금액', value: won(total), bold: true),
+                    const Divider(height: 22, color: AppColors.line),
+                    _Row(icon: const Text('💧', style: TextStyle(fontSize: 18, height: 1)), label: '판매이익', value: '+${won(total)}', color: AppColors.green),
                     const SizedBox(height: 10),
-                    _Row(icon: const Text('🌿', style: TextStyle(fontSize: 15, height: 1)), label: '총 판매금액', value: won(total), bold: true),
-                    const Divider(height: 18, color: AppColors.line),
-                    _Row(icon: const Text('💧', style: TextStyle(fontSize: 15, height: 1)), label: '게임머니', value: '+${won(total)}', color: AppColors.green),
-                    const SizedBox(height: 8),
-                    _Row(icon: const Text('⭐', style: TextStyle(fontSize: 15, height: 1)), label: 'Point', value: '+${points}P', color: AppColors.greenDark),
+                    _Row(icon: const Text('⭐', style: TextStyle(fontSize: 18, height: 1)), label: 'Point', value: '+${points}P', color: const Color(0xFF2057B5)),
                   ]),
                 ),
               ]),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
-              child: GreenButton(label: '판매하기', loading: _busy, onPressed: chosen.isEmpty ? null : () => _sell(chosen, total)),
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+              child: _SellButton(loading: _busy, onTap: chosen.isEmpty ? null : () => _sell(chosen, total)),
             ),
           ]),
         ),
+      ),
+    );
+  }
+}
+
+BoxDecoration _cardDecoration({bool selected = false}) => BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(22),
+      border: Border.all(color: selected ? AppColors.green : const Color(0xFFE3ECD9), width: selected ? 2 : 1.2),
+      boxShadow: [BoxShadow(color: AppColors.green.withValues(alpha: .10), blurRadius: 10, offset: const Offset(0, 3))],
+    );
+
+/// 시안의 작물 한 줄: 큰 작물 그림 · 이름 · 무게 · 오른쪽 초록 금액. 고른 작물은 초록 테두리와 체크 표시.
+class _LotRow extends StatelessWidget {
+  const _LotRow({required this.lot, required this.amount, required this.selected, required this.onTap});
+  final Lot lot;
+
+  /// 현재 시세로 계산한 판매 금액 (시세가 없으면 null)
+  final int? amount;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = cropOf(lot.cropCode);
+    final kg = lot.kg.toStringAsFixed(lot.kg == lot.kg.roundToDouble() ? 0 : 1);
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+        decoration: _cardDecoration(selected: selected),
+        child: Row(children: [
+          SizedBox(width: 62, height: 62, child: CropArt(code: c.code, size: 62)),
+          const SizedBox(width: 14),
+          Text(c.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 19, color: Color(0xFF111111))),
+          const SizedBox(width: 14),
+          Text('${kg}kg', style: const TextStyle(fontSize: 14, color: Color(0xFF55655A), fontWeight: FontWeight.w600)),
+          const Spacer(),
+          Text(amount == null ? '시세 없음' : won(amount!), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: AppColors.greenDark)),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 24,
+            child: selected
+                ? const Icon(Icons.check_circle_rounded, color: AppColors.green, size: 24)
+                : const Icon(Icons.radio_button_unchecked_rounded, color: Color(0xFFC9D4CC), size: 24),
+          ),
+        ]),
       ),
     );
   }
@@ -187,9 +218,39 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(children: [
         icon,
-        const SizedBox(width: 8),
-        Text(label, style: const TextStyle(fontSize: 13.5, color: Color(0xFF3D4A40), fontWeight: FontWeight.w600)),
+        const SizedBox(width: 10),
+        Text(label, style: const TextStyle(fontSize: 15, color: Color(0xFF2B3A30), fontWeight: FontWeight.w700)),
         const Spacer(),
-        Text(value, style: TextStyle(fontSize: bold ? 17 : 14.5, fontWeight: FontWeight.w900, color: color ?? AppColors.ink)),
+        Text(value, style: TextStyle(fontSize: bold ? 18 : 16, fontWeight: FontWeight.w900, color: color ?? const Color(0xFF111111))),
       ]);
+}
+
+/// 시안의 큰 "판매하기" 버튼: 진한 초록 그라데이션 알약
+class _SellButton extends StatelessWidget {
+  const _SellButton({required this.onTap, required this.loading});
+  final VoidCallback? onTap;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null && !loading;
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Opacity(
+        opacity: onTap == null ? .45 : 1,
+        child: Container(
+          height: 58,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(29),
+            gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF3AA652), Color(0xFF14702F)]),
+            boxShadow: [BoxShadow(color: const Color(0xFF14702F).withValues(alpha: .35), blurRadius: 10, offset: const Offset(0, 4))],
+          ),
+          child: loading
+              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.6, color: Colors.white))
+              : const Text('판매하기', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: Colors.white)),
+        ),
+      ),
+    );
+  }
 }

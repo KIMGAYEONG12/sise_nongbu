@@ -15,10 +15,21 @@ class PointShopBody extends ConsumerWidget {
   Future<void> _buy(BuildContext context, WidgetRef ref, PointItem item) async {
     String? code;
     var msg = '${withJosa(item.name, '을', '를')} 받았어요';
-    if (item.key == pointRareSeed) {
-      final c = crops[Random().nextInt(crops.length)];
-      code = c.code;
-      msg = '${c.emoji} ${c.name} 씨앗 3개를 받았어요!';
+    switch (item.key) {
+      case pointRareSeed:
+        final c = crops[Random().nextInt(crops.length)];
+        code = c.code;
+        msg = '${c.emoji} ${c.name} 씨앗 3개를 받았어요!';
+      case pointWaterPack:
+        msg = '💧 물통 10개를 받았어요!';
+      case pointBoosterPack:
+        msg = '⚡ 성장촉진제 2개를 받았어요!';
+      case pointSeedBox:
+        msg = '🎁 기본 작물 씨앗 $seedPackCropCount종을 받았어요!';
+      case pointCoinBag:
+        msg = '💰 ${won(coinBagMoney)}을 받았어요!';
+      case pointFarmBook:
+        msg = '📘 경험치 $farmBookExp을 얻었어요!';
     }
     await runGuarded(context, () => ref.read(farmViewModelProvider).buyPointItem(item, cropCode: code), ok: msg);
   }

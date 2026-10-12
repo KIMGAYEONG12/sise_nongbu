@@ -7,7 +7,7 @@ import 'models.dart';
 /// 문서 모양
 ///   updatedAt : 서버가 저장한 시각
 ///   CABBAGE   : { price, prev, asOf: '2026-10-07', prevDate, volumeKg }
-///   days      : { '2026-10-07': { CABBAGE: { p, v }, ... }, ... }   (최근 14일, 한국 날짜)
+///   days      : { '2026-10-07': { CABBAGE: { p, v }, ... }, ... }   (최근 30일, 한국 날짜)
 class ServerMarket {
   const ServerMarket(this.prices, this.updatedAt, this.days);
 

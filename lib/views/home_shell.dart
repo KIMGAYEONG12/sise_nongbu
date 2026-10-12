@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/progress_rules.dart';
+import '../models/models.dart';
 import '../viewmodels/view_models.dart';
 import '../core/game_rules.dart' show cropOf;
 import '../widgets/greenhouse_art.dart' show greenhouseNames, greenhouseTier;
 import '../widgets/common.dart';
+import '../widgets/level_up_art.dart';
 import 'farm_page.dart';
 import 'inventory_page.dart';
 import 'market_page.dart';
 import 'my_page.dart';
+import 'price_alert_ui.dart';
 import 'shop_page.dart';
 
 /// 하단 탭: 시세판 | 농장 | 창고 | 상점 | MY  (정보 화면은 농장·MY의 설정 아이콘에서 연다)
@@ -35,6 +38,8 @@ class HomeShell extends ConsumerWidget {
       final from = _levelOf(before), to = _levelOf(after);
       if (to > from) _celebrateLevelUp(context, ref, from, to, levelInfo((after['exp'] as num?)?.toInt() ?? 0));
     });
+    // 시세가 새로 들어올 때 목표 가격에 닿은 시세 알림이 있으면 알려 준다 (앱이 켜져 있는 동안)
+    ref.listen<AsyncValue<Map<String, AuctionPrice>>>(marketViewModelProvider, (_, next) => fireDueAlerts(context, ref, next.valueOrNull));
     return Scaffold(
       body: GameBackground(
         child: SafeArea(
@@ -146,8 +151,8 @@ class _LevelUpDialogState extends State<_LevelUpDialog> with SingleTickerProvide
                       final w = box.maxWidth, h = box.maxHeight;
                       Rect at(double l, double tp, double r, double b) => Rect.fromLTRB(l / _artW * w, tp / _artH * h, r / _artW * w, b / _artH * h);
                       return Stack(clipBehavior: Clip.hardEdge, children: [
-                        // 시안의 일러스트 카드 (농부 · 나무 간판 "LEVEL UP!" · 풀숲과 꽃)
-                        Positioned.fill(child: Image.asset(AppImages.levelupCard, fit: BoxFit.fill, filterQuality: FilterQuality.high)),
+                        // 일러스트 카드 (농부 · 나무 간판 "LEVEL UP!" · 풀숲과 꽃): 코드로 그린 벡터라 아무리 커져도 선명하다
+                        const Positioned.fill(child: LevelUpCardArt()),
                         // 시안 그림 속 "Lv.4" 리본 자리에 실제 레벨을 덮어 그린다
                         Positioned.fromRect(
                           rect: at(106, 226, 252, 264),
