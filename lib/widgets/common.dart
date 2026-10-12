@@ -27,7 +27,7 @@ class AppImages {
 
   /// 튜토리얼 2장에서 움직이는 손가락 (tut_plant.jpg에서 오려 낸 그림)
   static const tutHand = 'assets/images/tut_hand.png';
-  static const farmScene = 'assets/images/farm_scene.jpg';
+  static const farmScene = 'assets/images/farm_scene_hd.jpg'; // 압축 노이즈를 줄여 곱게 다듬은 농장 그림 (원본 farm_scene.jpg와 같은 크기)
 
   /// 레벨 업 창 위쪽 일러스트 (시안에서 오려 낸 그림)
   static const levelupHero = 'assets/images/levelup_hero.png';

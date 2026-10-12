@@ -277,7 +277,7 @@ class GreenhousePainter extends CustomPainter {
     // 이름표
     final name = this.name ?? greenhouseNames[t];
     final tp = TextPainter(
-      text: TextSpan(text: name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF1B4D2B))),
+      text: TextSpan(text: name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF1B4D2B))),
       textDirection: TextDirection.ltr,
     )..layout();
     final tag = RRect.fromRectAndRadius(Rect.fromCenter(center: p(.5, -.04), width: tp.width + 18, height: tp.height + 8), const Radius.circular(12));
