@@ -363,7 +363,7 @@ class MoneyPill extends StatelessWidget {
   final int money;
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         // 하늘·구름 위에서도 잘 보이도록 불투명한 흰 바탕 + 진한 큰 글씨
         decoration: BoxDecoration(
           color: Colors.white,
@@ -372,9 +372,9 @@ class MoneyPill extends StatelessWidget {
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .12), blurRadius: 6, offset: const Offset(0, 2))],
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const CoinIcon(size: 24),
-          const SizedBox(width: 7),
-          Text('${commaNum(money)} P', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF111111))),
+          const CoinIcon(size: 18),
+          const SizedBox(width: 5),
+          Text('${commaNum(money)} P', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF111111))),
         ]),
       );
 }
