@@ -273,7 +273,7 @@ class _FarmHero extends StatelessWidget {
             top: imgTop,
             width: imgW,
             height: imgH,
-            child: FarmLife(k: k, active: fishActive, plots: plots),
+            child: FarmLife(k: k, active: fishActive, plots: plots, robot: greenhouses == 0),
           ),
           // 프로필·날씨
           Positioned(left: 16, right: 6, top: topInset + 8, child: header),

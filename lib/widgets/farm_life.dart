@@ -7,7 +7,7 @@ import 'crop_art.dart';
 /// 부모가 농장 그림과 같은 크기·위치로 놓고, [k]는 그림 원본(936×714) 1px가 화면에서 차지하는 크기다.
 /// [active]가 false이면(농장 탭이 아닐 때) 멈춰서 배터리와 메모리를 아낀다.
 class FarmLife extends StatefulWidget {
-  const FarmLife({super.key, required this.k, required this.active, required this.plots, this.now});
+  const FarmLife({super.key, required this.k, required this.active, required this.plots, this.now, this.robot = true});
   final double k;
   final bool active;
 
@@ -16,6 +16,9 @@ class FarmLife extends StatefulWidget {
 
   /// 테스트에서 시간을 고정할 때만 쓴다 (평소에는 null)
   final DateTime? now;
+
+  /// 밖을 순찰하는 로봇을 보일지. 하우스를 지으면 로봇이 하우스 안으로 들어가서 false가 된다.
+  final bool robot;
 
   /// 그림 속 흙 밭 세 곳의 가운데 (원본 픽셀)
   static const patches = [Offset(352, 596), Offset(470, 628), Offset(585, 676)];
@@ -124,17 +127,18 @@ class _FarmLifeState extends State<FarmLife> with SingleTickerProviderStateMixin
                     ),
                   ),
                 ),
-              // 순찰하는 최첨단 로봇
-              Positioned(
-                left: rp.dx * k - robotSize / 2,
-                top: rp.dy * k - robotSize * .95,
-                width: robotSize,
-                height: robotSize,
-                child: Transform.scale(
-                  scaleX: goingLeft ? -1 : 1,
-                  child: CustomPaint(painter: FarmRobotPainter(t: t, watering: watering)),
+              // 순찰하는 최첨단 로봇 (하우스가 있으면 하우스 안에서 일하므로 여기서는 보이지 않는다)
+              if (widget.robot)
+                Positioned(
+                  left: rp.dx * k - robotSize / 2,
+                  top: rp.dy * k - robotSize * .95,
+                  width: robotSize,
+                  height: robotSize,
+                  child: Transform.scale(
+                    scaleX: goingLeft ? -1 : 1,
+                    child: CustomPaint(painter: FarmRobotPainter(t: t, watering: watering)),
+                  ),
                 ),
-              ),
             ]);
           },
         ),

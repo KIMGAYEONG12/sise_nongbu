@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'farm_life.dart' show FarmRobotPainter;
 
 /// 레벨에 따라 바뀌는 하우스 모양 (0 비닐하우스 · 1 유리 온실 · 2 스마트 온실 · 3 황금 온실 · 4 오토메이션 스마트팜 · 5 AI 퀀텀 팜).
 /// 레벨이 오를수록 더 좋은 시설로 바뀐다.
@@ -267,6 +268,10 @@ class GreenhousePainter extends CustomPainter {
     // 11단계(AI 퀀텀 팜)부터는 단계가 오를 때마다 첨단 장치가 하나씩 더 붙는다 (앞 단계 장치는 그대로 유지)
     if (stage >= 11) _drawTech(canvas, size, stage, frame, a);
 
+    // 하우스 안에서 작물에 물을 주는 농장 로봇 (하우스를 지으면 밖을 순찰하던 로봇이 안으로 들어온다).
+    // 에너지 코어 같은 장치보다 앞에 그려서 로봇이 가려지지 않는다.
+    _drawRobot(canvas, size, a2, base);
+
     // 이름표
     final name = this.name ?? greenhouseNames[t];
     final tp = TextPainter(
@@ -279,6 +284,23 @@ class GreenhousePainter extends CustomPainter {
     tp.paint(canvas, Offset(tag.center.dx - tp.width / 2, tag.center.dy - tp.height / 2));
   }
 
+
+  /// 하우스 안을 왼쪽·오른쪽으로 오가며 작물에 물을 주는 로봇. 오른쪽으로 갈 때 물을 뿌리고, 방향을 바꿀 때 몸을 돌린다.
+  void _drawRobot(Canvas canvas, Size size, double a2, double base) {
+    final w = size.width, h = size.height;
+    final rw = w * .2, rh = h * .34;
+    final s = math.sin(a2); // -1(왼쪽 끝) ~ 1(오른쪽 끝)
+    final goingRight = math.cos(a2) >= 0;
+    final cx = w * (.5 + .27 * s);
+    canvas.save();
+    canvas.translate(cx - rw / 2, h * (base - .005) - rh);
+    if (!goingRight) {
+      canvas.translate(rw, 0);
+      canvas.scale(-1, 1); // 왼쪽으로 갈 때는 몸을 돌린다
+    }
+    FarmRobotPainter(t: a2 / (math.pi * 2), watering: goingRight).paint(canvas, Size(rw, rh));
+    canvas.restore();
+  }
 
   /// 위성: 금박 몸체, 격자무늬 파란 태양광 날개, 접시 안테나, 반짝이는 신호.
   /// 오른쪽 위에 떠 있으면서 지붕 쪽으로 점선 신호와 물결을 보낸다.
