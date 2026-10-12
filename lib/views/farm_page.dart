@@ -468,7 +468,7 @@ class _GreenhouseSheet extends ConsumerWidget {
           const SizedBox(height: 10),
           Text(greenhouseStageName(stage), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.ink)),
           const SizedBox(height: 4),
-          Text('하우스를 한 채 더 지으면 커지면서 ${withJosa(nextName, '으로', '로')} 바뀌어요', style: const TextStyle(fontSize: 13.5, color: AppColors.sub, fontWeight: FontWeight.w600)),
+          KoText('하우스를 한 채 더 지으면 커지면서 ${withJosa(nextName, '으로', '로')} 바뀌어요', textAlign: TextAlign.center, style: const TextStyle(fontSize: 13.5, color: AppColors.sub, fontWeight: FontWeight.w600)),
           const SizedBox(height: 14),
           SoftCard(
             color: Colors.white,
