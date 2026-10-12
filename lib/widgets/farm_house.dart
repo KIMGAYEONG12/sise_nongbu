@@ -27,6 +27,7 @@ class FarmHousePainter extends CustomPainter {
     _walls(canvas);
     _chimney(canvas);
     _roof(canvas);
+    _gable(canvas);
     _dormer(canvas);
     _windowsAndDoor(canvas);
     _bushes(canvas);
@@ -131,6 +132,37 @@ class FarmHousePainter extends CustomPainter {
     canvas.drawPath(roof, _s(const Color(0xFF8E3420), 2));
   }
 
+  /// 오른쪽에 앞으로 튀어나온 박공(삼각 지붕): 시안처럼 집이 ㄱ자로 보이게 한다.
+  void _gable(Canvas canvas) {
+    // 박공 아래 벽(앞으로 나온 쪽은 더 밝게)
+    final wall = Path()
+      ..moveTo(252, 262)
+      ..lineTo(252, 176)
+      ..lineTo(330, 100)
+      ..lineTo(424, 176)
+      ..lineTo(424, 262)
+      ..close();
+    canvas.drawPath(wall, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFFFBF0), Color(0xFFF3E8D2)]).createShader(const Rect.fromLTRB(252, 100, 424, 262)));
+    canvas.drawPath(wall, _s(const Color(0x66A9885A), 1.6));
+    // 박공 지붕(주황 테두리 두 줄)
+    final roofL = Path()..moveTo(236, 182)..lineTo(330, 88)..lineTo(330, 100)..lineTo(252, 182)..close();
+    final roofR = Path()..moveTo(330, 88)..lineTo(440, 182)..lineTo(424, 182)..lineTo(330, 100)..close();
+    for (final p in [roofL, roofR]) {
+      canvas.drawPath(p, _f(const Color(0xFFE2603B)));
+      canvas.drawPath(p, _s(const Color(0xFF8E3420), 1.8));
+    }
+    canvas.drawLine(const Offset(236, 182), const Offset(330, 88), _s(const Color(0xFFB9482A), 4));
+    canvas.drawLine(const Offset(330, 88), const Offset(440, 182), _s(const Color(0xFFB9482A), 4));
+    // 박공 안의 둥근 창
+    canvas.drawCircle(const Offset(330, 140), 15, _f(const Color(0xFF6B4423)));
+    final glass = Rect.fromCircle(center: const Offset(330, 140), radius: 12);
+    canvas.drawOval(glass, Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFD6F0FF), Color(0xFF7FC4EE)]).createShader(glass));
+    canvas.drawLine(const Offset(330, 128), const Offset(330, 152), _s(const Color(0xFFFFF8EA), 2));
+    canvas.drawLine(const Offset(318, 140), const Offset(342, 140), _s(const Color(0xFFFFF8EA), 2));
+    // 박공 아래 처마 그림자
+    canvas.drawRect(const Rect.fromLTRB(252, 178, 424, 186), _f(const Color(0x22000000)));
+  }
+
   /// 지붕창: 작은 삼각 지붕이 달린 창
   void _dormer(Canvas canvas) {
     const cx = 232.0;
@@ -180,8 +212,8 @@ class FarmHousePainter extends CustomPainter {
   void _windowsAndDoor(Canvas canvas) {
     _window(canvas, const Rect.fromLTRB(78, 172, 118, 214));
     _window(canvas, const Rect.fromLTRB(150, 172, 190, 214));
-    _window(canvas, const Rect.fromLTRB(322, 184, 362, 224));
-    _window(canvas, const Rect.fromLTRB(386, 184, 420, 224));
+    _window(canvas, const Rect.fromLTRB(284, 196, 320, 232));
+    _window(canvas, const Rect.fromLTRB(352, 196, 388, 232));
 
     // 나무 문 (위가 둥근 아치) + 문 위 작은 차양
     const door = Rect.fromLTRB(226, 190, 272, 262);
