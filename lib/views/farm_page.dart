@@ -8,6 +8,7 @@ import '../services/weather_service.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
 import '../widgets/greenhouse_art.dart';
+import '../widgets/farm_house.dart';
 import '../widgets/farm_life.dart';
 import '../widgets/pond_fish.dart';
 import 'about_page.dart';
@@ -253,6 +254,11 @@ class _FarmHero extends StatelessWidget {
           // 하늘과 그림이 만나는 곳의 숲 가장자리: 잘린 나무 윗부분을 둥근 덤불 선으로 자연스럽게 마무리한다 (그림 아님, 코드로 그린 또렷한 도형)
           if (seam > 12)
             Positioned(left: 0, right: 0, top: seam - 14, height: math.max(40.0, imgH * .12), child: const IgnorePointer(child: CustomPaint(painter: _TreeLinePainter()))),
+          // 집: 그림 파일 속 흐린 집 위에 코드로 그린 선명한 집을 같은 자리에 덮는다 (시안의 주황 지붕 시골집)
+          Positioned.fromRect(
+            rect: Rect.fromLTRB(imgLeft + FarmHouseArt.srcRect.left * k, imgTop + FarmHouseArt.srcRect.top * k, imgLeft + FarmHouseArt.srcRect.right * k, imgTop + FarmHouseArt.srcRect.bottom * k),
+            child: const IgnorePointer(child: FarmHouseArt()),
+          ),
           // 연못에서 헤엄치는 물고기 (농장 탭을 보고 있을 때만 움직인다)
           Positioned.fromRect(
             rect: Rect.fromLTRB(imgLeft + _pond.left * k, imgTop + _pond.top * k, imgLeft + _pond.right * k, imgTop + _pond.bottom * k),
