@@ -272,7 +272,7 @@ class _FarmHero extends StatelessWidget {
             child: FarmLife(k: k, active: fishActive, plots: plots, robot: greenhouses == 0),
           ),
           // 프로필·날씨
-          Positioned(left: 16, right: 6, top: topInset + 8, child: header),
+          Positioned(left: 16, right: 6, top: topInset + 2, child: header),
           // 그림 속 밭: 눌러서 작물 관리로 (화면에는 아무것도 덧그리지 않는다)
           Positioned.fromRect(
             rect: field,

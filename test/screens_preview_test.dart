@@ -304,12 +304,12 @@ void main() {
   group('작물 알림', () {
     testWidgets('수확·파종 알림은 작물 그림 없이 문구 끝의 이모티콘만 보인다', (tester) async {
       await tester.pumpWidget(MaterialApp(
-        home: Builder(builder: (c) => Scaffold(body: Center(child: ElevatedButton(onPressed: () => showCropMsg(c, 'WATERMELON', '🍉 수박을 수확했어요!'), child: const Text('열기'))))),
+        home: Builder(builder: (c) => Scaffold(body: Center(child: ElevatedButton(onPressed: () => showCropMsg(c, 'WATERMELON', '수박🍉을 수확했어요!'), child: const Text('열기'))))),
       ));
       await tester.tap(find.text('열기'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
-      expect(find.text('🍉 수박을 수확했어요!'), findsOneWidget);
+      expect(find.text('수박🍉을 수확했어요!'), findsOneWidget);
       expect(find.descendant(of: find.byType(SnackBar), matching: find.byType(CropArt)), findsNothing); // 왼쪽 그림은 없다
       expect(tester.takeException(), isNull);
     });

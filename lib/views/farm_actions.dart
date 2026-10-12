@@ -43,7 +43,7 @@ Future<void> showPlantSheet(BuildContext context, WidgetRef ref, Plot plot) {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     onTap: () {
                       Navigator.pop(sheetContext);
-                      runGuarded(context, () => ref.read(farmViewModelProvider).plant(plot.index, c), ok: '${c.emoji} ${withJosa(c.name, '을', '를')} 심었어요!', okCrop: c.code);
+                      runGuarded(context, () => ref.read(farmViewModelProvider).plant(plot.index, c), ok: '${withJosa(c.name, '을', '를').replaceFirst(c.name, '${c.name}${c.emoji}')} 심었어요!', okCrop: c.code);
                     },
                     child: Row(children: [
                       CropBadge(c.code),
@@ -78,7 +78,7 @@ Future<void> harvestPlot(BuildContext context, WidgetRef ref, Plot plot) async {
     final kg = await ref.read(farmViewModelProvider).harvest(plot);
     if (!context.mounted) return;
     final spec = cropOf(cropCode);
-    showCropMsg(context, cropCode, '${spec.emoji} ${withJosa(spec.name, '을', '를')} 수확했어요!');
+    showCropMsg(context, cropCode, '${withJosa(spec.name, '을', '를').replaceFirst(spec.name, '${spec.name}${spec.emoji}')} 수확했어요!');
     await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => HarvestResultPage(cropCode: cropCode, kg: kg)));
   } catch (e) {
     if (context.mounted) showMsg(context, errMsg(e));

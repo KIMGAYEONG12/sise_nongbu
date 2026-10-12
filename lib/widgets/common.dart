@@ -366,7 +366,7 @@ class MoneyPill extends StatelessWidget {
   final int money;
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        padding: const EdgeInsets.fromLTRB(8, 2, 8, 4),
         // 하늘·구름 위에서도 잘 보이도록 불투명한 흰 바탕 + 진한 큰 글씨
         decoration: BoxDecoration(
           color: Colors.white,

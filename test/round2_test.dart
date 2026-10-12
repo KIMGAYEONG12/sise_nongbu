@@ -267,7 +267,7 @@ void main() {
       ));
       await tester.pump();
       await tester.pump();
-      expect(find.text('🟣 무화과를 수확했습니다!'), findsOneWidget);
+      expect(find.text('무화과🍆를 수확했습니다!'), findsOneWidget);
       expect(find.text('+$harvestExp EXP'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
