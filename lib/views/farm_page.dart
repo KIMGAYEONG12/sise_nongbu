@@ -80,16 +80,22 @@ class FarmPage extends ConsumerWidget {
                 const FarmerAvatar(size: 60),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(user.nickname, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20))),
-                    const SizedBox(height: 3),
-                    // 칭호가 길어도 "…"로 잘리지 않게: 자리가 모자라면 글자가 조금 작아져서 끝까지 보인다
-                    FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text('Lv. ${lv.level}  ·  ${farmerTitles[user.titleIndex].emoji} ${farmerTitles[user.titleIndex].name}', maxLines: 1, style: const TextStyle(fontSize: 14, color: Color(0xFF2B3A30), fontWeight: FontWeight.w700))),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    // 윗줄: 닉네임 · 톱니바퀴
+                    Row(children: [
+                      Expanded(child: Text(user.nickname, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20)))),
+                      IconButton(visualDensity: VisualDensity.compact, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 40, height: 32), onPressed: () => _push(context, const AboutPage()), icon: const Icon(Icons.settings_outlined, color: AppColors.ink, size: 28)),
+                    ]),
+                    const SizedBox(height: 2),
+                    // 아랫줄: 레벨·칭호(자리가 모자라면 글자가 줄어 끝까지 보인다) 와 포인트 알약이 같은 높이에 나란히
+                    Row(children: [
+                      Expanded(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text('Lv. ${lv.level}  ·  ${farmerTitles[user.titleIndex].emoji} ${farmerTitles[user.titleIndex].name}', maxLines: 1, style: const TextStyle(fontSize: 14, color: Color(0xFF2B3A30), fontWeight: FontWeight.w700)))),
+                      const SizedBox(width: 14), // 칭호와 포인트 사이 간격
+                      MoneyPill(money: user.money),
+                      const SizedBox(width: 4),
+                    ]),
                   ]),
                 ),
-                // 포인트 알약은 "Lv. 15 · 농업 명인" 줄에 맞춘다 (닉네임 줄만큼 아래로)
-                Padding(padding: const EdgeInsets.only(top: 34), child: MoneyPill(money: user.money)),
-                IconButton(onPressed: () => _push(context, const AboutPage()), icon: const Icon(Icons.settings_outlined, color: AppColors.ink, size: 28)),
               ]),
               const SizedBox(height: 10),
               _WeatherCard(weather: ref.watch(weatherProvider)),
