@@ -87,7 +87,8 @@ class FarmPage extends ConsumerWidget {
                     FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text('Lv. ${lv.level}  ·  ${farmerTitles[user.titleIndex].emoji} ${farmerTitles[user.titleIndex].name}', maxLines: 1, style: const TextStyle(fontSize: 14, color: Color(0xFF2B3A30), fontWeight: FontWeight.w700))),
                   ]),
                 ),
-                MoneyPill(money: user.money),
+                // 포인트 알약은 "Lv. 15 · 농업 명인" 줄에 맞춘다 (닉네임 줄만큼 아래로)
+                Padding(padding: const EdgeInsets.only(top: 22), child: MoneyPill(money: user.money)),
                 IconButton(onPressed: () => _push(context, const AboutPage()), icon: const Icon(Icons.settings_outlined, color: AppColors.ink, size: 28)),
               ]),
               const SizedBox(height: 10),
