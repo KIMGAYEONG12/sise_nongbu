@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'crop_art.dart';
 
 /// 시안(연두 파스텔 + 짙은 초록 버튼) 색상
 class AppColors {
@@ -126,17 +125,14 @@ void showMsg(BuildContext context, String msg) {
     ..showSnackBar(SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating));
 }
 
-/// 앞에 작물 그림이 붙는 알림. 이모지(🥬 같은 글자 그림)가 아니라 코드로 그린 작물 그림을 보여 준다. 예) 배추 그림 + "수확했어요!"
+/// 작물 알림 (수확·파종). 작물 그림은 붙이지 않고, 문구 끝의 이모티콘만 보여 준다. 예) "수박을 수확했어요! 🍉"
+/// [cropCode]는 호출하는 쪽과 맞추기 위해 남겨 둔 값이고 화면에는 쓰지 않는다 (이모티콘은 문구에 이미 들어 있다).
 void showCropMsg(BuildContext context, String cropCode, String msg) {
   if (!context.mounted) return;
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(
-      content: Row(children: [
-        CropArt(code: cropCode, size: 30),
-        const SizedBox(width: 10),
-        Expanded(child: Text(msg)),
-      ]),
+      content: Text(msg, maxLines: 2, overflow: TextOverflow.ellipsis),
       behavior: SnackBarBehavior.floating,
     ));
 }
