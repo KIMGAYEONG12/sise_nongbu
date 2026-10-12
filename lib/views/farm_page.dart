@@ -88,7 +88,7 @@ class FarmPage extends ConsumerWidget {
                   ]),
                 ),
                 // 포인트 알약은 "Lv. 15 · 농업 명인" 줄에 맞춘다 (닉네임 줄만큼 아래로)
-                Padding(padding: const EdgeInsets.only(top: 22), child: MoneyPill(money: user.money)),
+                Padding(padding: const EdgeInsets.only(top: 34), child: MoneyPill(money: user.money)),
                 IconButton(onPressed: () => _push(context, const AboutPage()), icon: const Icon(Icons.settings_outlined, color: AppColors.ink, size: 28)),
               ]),
               const SizedBox(height: 10),
