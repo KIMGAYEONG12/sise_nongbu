@@ -18,6 +18,43 @@ class LevelUpCardArt extends StatelessWidget {
   Widget build(BuildContext context) => RepaintBoundary(child: CustomPaint(painter: LevelUpCardPainter(layer: layer), size: Size.infinite));
 }
 
+/// 보상 카드의 초록 새싹 잎 (시안의 "희귀 씨앗" 그림). 이모지가 아니라 코드로 그려서 선명하다.
+class LevelUpLeaf extends StatelessWidget {
+  const LevelUpLeaf({super.key, this.size = 44});
+  final double size;
+  @override
+  Widget build(BuildContext context) => CustomPaint(size: Size.square(size), painter: const _LeafPainter());
+}
+
+class _LeafPainter extends CustomPainter {
+  const _LeafPainter();
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    void leaf(double angle, Color a, Color b) {
+      canvas.save();
+      canvas.translate(w * .5, w * .86);
+      canvas.rotate(angle);
+      final path = Path()
+        ..moveTo(0, 0)
+        ..cubicTo(-w * .34, -w * .2, -w * .3, -w * .66, 0, -w * .8)
+        ..cubicTo(w * .3, -w * .66, w * .34, -w * .2, 0, 0)
+        ..close();
+      canvas.drawPath(path, Paint()..shader = LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [a, b]).createShader(Rect.fromLTWH(-w * .3, -w * .8, w * .6, w * .8)));
+      canvas.drawPath(path, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.2..color = const Color(0xFF2E7D32));
+      canvas.drawLine(Offset.zero, Offset(0, -w * .66), Paint()..strokeWidth = 1.2..color = const Color(0x88E8FFD0));
+      canvas.restore();
+    }
+
+    leaf(-.55, const Color(0xFF3FA33A), const Color(0xFF8FE05A));
+    leaf(.55, const Color(0xFF3FA33A), const Color(0xFF8FE05A));
+    leaf(0, const Color(0xFF2F8F3E), const Color(0xFFA6EE6A));
+  }
+
+  @override
+  bool shouldRepaint(_LeafPainter old) => false;
+}
+
 /// 계속 떨어지는 색종이 (이모지 글자가 아니라 코드로 그린 별·조각·점이라 어떤 기기에서도 깨지지 않는다)
 class LevelUpConfetti extends StatefulWidget {
   const LevelUpConfetti({super.key});
@@ -262,6 +299,12 @@ class LevelUpCardPainter extends CustomPainter {
   // ───────────────────────── 소 (시안 왼쪽 아래에서 빼꼼) ─────────────────────────
 
   void _cow(Canvas canvas) {
+    // 시안처럼 농부 왼쪽 어깨 옆, 간판 바로 위에 크게 있다 (간판에 가려지지 않는다)
+    canvas.save();
+    canvas.translate(-8, 22);
+    canvas.translate(46, 136);
+    canvas.scale(1.18);
+    canvas.translate(-46, -136);
     const c = Offset(46, 136);
     // 귀
     for (final dx in const [-27.0, 27.0]) {
@@ -300,6 +343,7 @@ class LevelUpCardPainter extends CustomPainter {
       ..strokeWidth = 1.2
       ..strokeCap = StrokeCap.round
       ..color = const Color(0xFFA24C5A));
+    canvas.restore();
   }
 
   // ───────────────────────── 농부 ─────────────────────────

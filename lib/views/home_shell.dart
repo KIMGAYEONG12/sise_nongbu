@@ -177,7 +177,7 @@ class _LevelUpDialogState extends State<_LevelUpDialog> with SingleTickerProvide
                         ),
                         // 글이 들어가는 흰 안내 판 (그림 속 예전 글자를 덮고 실제 내용을 보여 준다)
                         Positioned.fromRect(
-                          rect: at(36, 268, 318, 486),
+                          rect: at(44, 278, 310, 486),
                           child: Opacity(
                             opacity: fade,
                             child: Container(
@@ -236,7 +236,7 @@ class _LevelUpDialogState extends State<_LevelUpDialog> with SingleTickerProvide
       return Row(children: [
         Expanded(child: _rewardCard(null, '${commaNum(r.points)}P', sub: '포인트', leading: _coin())),
         const SizedBox(width: 10),
-        Expanded(child: _rewardCard('🌱', '희귀 씨앗 ×${r.seedCount}', sub: seed.name)),
+        Expanded(child: _rewardCard(null, '희귀 씨앗 ×${r.seedCount}', sub: seed.name, leading: const LevelUpLeaf(size: 44))),
       ]);
     }
     return Row(children: [
