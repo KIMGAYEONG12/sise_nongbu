@@ -92,7 +92,9 @@ class GreenhousePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
     final t = tier.clamp(0, greenhouseMaxTier);
-    final a = anim?.value ?? 0.0; // 움직임 시간 0~1
+    // 움직임 시간 0~1. 위성·작물·불빛은 한 바퀴에 3번 되풀이(빠름), 로봇은 한 바퀴에 한 번(느림)
+    final slow = anim?.value ?? 0.0;
+    final a = (slow * 3) % 1.0;
     final a2 = a * math.pi * 2;
     Offset p(double x, double y) => Offset(x * w, y * h);
     Paint fill(Color c) => Paint()..color = c;
@@ -270,7 +272,7 @@ class GreenhousePainter extends CustomPainter {
 
     // 하우스 안에서 작물에 물을 주는 농장 로봇 (하우스를 지으면 밖을 순찰하던 로봇이 안으로 들어온다).
     // 에너지 코어 같은 장치보다 앞에 그려서 로봇이 가려지지 않는다.
-    _drawRobot(canvas, size, a2, base);
+    _drawRobot(canvas, size, slow * math.pi * 2, base);
 
     // 이름표
     final name = this.name ?? greenhouseNames[t];
@@ -288,10 +290,10 @@ class GreenhousePainter extends CustomPainter {
   /// 하우스 안을 왼쪽·오른쪽으로 오가며 작물에 물을 주는 로봇. 오른쪽으로 갈 때 물을 뿌리고, 방향을 바꿀 때 몸을 돌린다.
   void _drawRobot(Canvas canvas, Size size, double a2, double base) {
     final w = size.width, h = size.height;
-    final rw = w * .2, rh = h * .34;
+    final rw = w * .14, rh = h * .24; // 작은 로봇 (예전의 70%)
     final s = math.sin(a2); // -1(왼쪽 끝) ~ 1(오른쪽 끝)
     final goingRight = math.cos(a2) >= 0;
-    final cx = w * (.5 + .27 * s);
+    final cx = w * (.5 + .25 * s);
     canvas.save();
     canvas.translate(cx - rw / 2, h * (base - .005) - rh);
     if (!goingRight) {
@@ -543,8 +545,8 @@ class GreenhouseView extends StatefulWidget {
 }
 
 class _GreenhouseViewState extends State<GreenhouseView> with SingleTickerProviderStateMixin {
-  /// 한 바퀴 시간 (이 안에서 위성이 한 번 떠다니고, 작물이 한 번 살랑인다)
-  static const loop = Duration(seconds: 6);
+  /// 한 바퀴 시간. 위성·작물은 이 안에서 3번 움직이고(6초마다 한 번), 로봇은 천천히 한 번 오간다.
+  static const loop = Duration(seconds: 18);
   late final AnimationController _c = AnimationController(vsync: this, duration: loop);
 
   @override
