@@ -131,8 +131,8 @@ void showMsg(BuildContext context, String msg) {
     ..showSnackBar(SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating));
 }
 
-/// 작물 알림 (수확·파종). 작물 그림은 붙이지 않고, 문구 끝의 이모티콘만 보여 준다. 예) "수박을 수확했어요! 🍉"
-/// [cropCode]는 호출하는 쪽과 맞추기 위해 남겨 둔 값이고 화면에는 쓰지 않는다 (이모티콘은 문구에 이미 들어 있다).
+/// 작물 알림 (수확·파종). 그림이나 이모티콘 없이 글만 보여 준다. 예) "수박을 수확했습니다!"
+/// [cropCode]는 호출하는 쪽과 맞추기 위해 남겨 둔 값이고 화면에는 쓰지 않는다.
 void showCropMsg(BuildContext context, String cropCode, String msg) {
   if (!context.mounted) return;
   ScaffoldMessenger.of(context)

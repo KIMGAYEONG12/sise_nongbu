@@ -78,7 +78,7 @@ Future<void> harvestPlot(BuildContext context, WidgetRef ref, Plot plot) async {
     final kg = await ref.read(farmViewModelProvider).harvest(plot);
     if (!context.mounted) return;
     final spec = cropOf(cropCode);
-    showCropMsg(context, cropCode, '${withJosa(spec.name, '을', '를')} 수확했어요!');
+    showCropMsg(context, cropCode, '${withJosa(spec.name, '을', '를')} 수확했습니다!');
     await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => HarvestResultPage(cropCode: cropCode, kg: kg)));
   } catch (e) {
     if (context.mounted) showMsg(context, errMsg(e));
