@@ -21,6 +21,7 @@ import 'mission_page.dart';
 import 'news_page.dart';
 import 'point_shop_page.dart';
 import 'trade_history_page.dart';
+import '../widgets/weather_icon.dart';
 
 export '../widgets/greenhouse_art.dart' show GreenhousePainter, greenhouseTier;
 
@@ -396,10 +397,11 @@ class _WeatherCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = weather.valueOrNull;
     return SoftCard(
-      color: Colors.white.withValues(alpha: .92),
+      color: Colors.white.withValues(alpha: .97),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(children: [
-        Text(w?.emoji ?? '🌤️', style: const TextStyle(fontSize: 40, height: 1)),
+        // 날씨 그림은 이모티콘 글자가 아니라 코드로 그린 벡터 (기기 글꼴과 상관없이 맑음은 노란 해로 또렷하게 나온다)
+        WeatherIcon(label: w?.label ?? '대체로 맑음', size: 46),
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
