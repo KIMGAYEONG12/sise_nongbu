@@ -18,6 +18,7 @@ class ShopPage extends ConsumerStatefulWidget {
 
 class _ShopPageState extends ConsumerState<ShopPage> {
   int _tab = 0;
+  int _cat = 0; // 포인트 상점 안의 갈래
 
   Widget _buyBtn(String label, VoidCallback? onTap) => SizedBox(
         height: 36,
@@ -67,16 +68,24 @@ class _ShopPageState extends ConsumerState<ShopPage> {
       Expanded(
         child: _tab == 1
             ? const PointShopBody()
-            : ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), children: [
+            : Column(children: [
+                // 상점 안 갈래: 씨앗 / 아이템 / 묶음 상품(10% 할인) / 농장 시설 (카드 크기는 모두 같다)
+                Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 4), child: PillTabs(labels: const ['씨앗', '아이템', '묶음 10%', '농장 시설'], index: _cat, onChanged: (v) => setState(() => _cat = v))),
+                Expanded(child: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), children: [
+                if (_cat == 0) ...[
                 const SectionTitle('씨앗'),
                 for (final c in crops)
                   _row(c.emoji, '${c.name} 씨앗', '보유 ${user.item(seedKey(c.code))}개 · 파종비(${won(c.seedCost)})보다 15% 저렴',
                       _buyBtn(won(seedPrice(c)), user.money < seedPrice(c) ? null : () => runGuarded(context, () => vm.buySeed(c), ok: '${c.name} 씨앗을 샀어요')),
                       cropCode: c.code),
+                ],
+                if (_cat == 1) ...[
                 const SectionTitle('성장 아이템'),
                 for (final i in consumables)
                   _row(i.emoji, i.name, '${i.desc}\n보유 ${user.item(i.key)}개',
                       _buyBtn(won(i.price), user.money < i.price ? null : () => runGuarded(context, () => vm.buyConsumable(i), ok: '${withJosa(i.name, '을', '를')} 샀어요'))),
+                ],
+                if (_cat == 2) ...[
                 // 묶음 상품: 같은 아이템을 여러 개 사면 10% 싸다
                 const SectionTitle('묶음 상품 (10% 할인)'),
                 for (final bd in bundles)
@@ -84,6 +93,8 @@ class _ShopPageState extends ConsumerState<ShopPage> {
                       _buyBtn(won(bd.price), user.money < bd.price ? null : () => runGuarded(context, () => vm.buyBundle(bd), ok: '${bd.name}을 샀어요'))),
                 _row('🎁', '씨앗 꾸러미', '기본 여섯 작물(${seedPackCrops.map((c) => c.name).join('·')}) 씨앗을 1개씩 (따로 사는 값의 90%)',
                     _buyBtn(won(seedPackPrice()), user.money < seedPackPrice() ? null : () => runGuarded(context, vm.buySeedPack, ok: '씨앗 꾸러미를 샀어요 🎁'))),
+                ],
+                if (_cat == 3) ...[
                 const SectionTitle('농장 시설'),
                 _row('🟫', '밭 넓히기', plots.length >= maxPlots ? '최대 $maxPlots칸까지 넓혔어요' : '${plots.length}칸 → ${plots.length + plotExpandStep}칸 (최대 $maxPlots칸)',
                     _buyBtn(expandCost == null ? '최대' : won(expandCost), expandCost == null || user.money < expandCost ? null : () => runGuarded(context, vm.expandPlots, ok: '밭을 넓혔어요 🌾'))),
@@ -93,6 +104,8 @@ class _ShopPageState extends ConsumerState<ShopPage> {
                     _buyBtn(won(ghCost), user.money < ghCost ? null : () => runGuarded(context, vm.buyGreenhouse, ok: '하우스를 지었어요 🏠'))),
                 _row('📦', '창고 넓히기', user.warehouseLevel >= maxWarehouseLevel ? '최대로 넓혔어요 (${user.warehouseCapKg}kg)' : '${user.warehouseCapKg}kg → ${user.warehouseCapKg + warehouseStepKg}kg',
                     _buyBtn(user.warehouseLevel >= maxWarehouseLevel ? '최대' : won(warehouseCost(user.warehouseLevel)), user.warehouseLevel >= maxWarehouseLevel || user.money < warehouseCost(user.warehouseLevel) ? null : () => runGuarded(context, vm.expandWarehouse, ok: '창고를 넓혔어요 📦'))),
+                ],
+              ])),
               ]),
       ),
     ]);
