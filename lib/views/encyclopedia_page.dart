@@ -4,6 +4,7 @@ import '../core/game_rules.dart';
 import '../core/progress_rules.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
+import '../widgets/crop_art.dart';
 import 'farm_actions.dart';
 import 'price_detail_page.dart';
 
@@ -34,7 +35,7 @@ class _EncyclopediaPageState extends ConsumerState<EncyclopediaPage> {
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                EmojiBadge(c.emoji, size: 60),
+                CropBadge(c.code, size: 60),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -102,7 +103,7 @@ class _EncyclopediaPageState extends ConsumerState<EncyclopediaPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         onTap: () => _detail(c),
                         child: Row(children: [
-                          EmojiBadge(c.emoji, size: 44),
+                          CropBadge(c.code, size: 44),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [

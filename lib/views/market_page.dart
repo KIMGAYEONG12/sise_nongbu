@@ -4,6 +4,7 @@ import '../core/game_rules.dart';
 import '../core/progress_rules.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
+import '../widgets/crop_art.dart';
 import 'news_page.dart';
 import 'price_detail_page.dart';
 
@@ -88,7 +89,7 @@ class MarketPage extends ConsumerWidget {
                                 builder: (_) =>
                                     PriceDetailPage(cropCode: c.code))),
                         child: Row(children: [
-                          EmojiBadge(c.emoji, size: 52),
+                          CropBadge(c.code, size: 52),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(

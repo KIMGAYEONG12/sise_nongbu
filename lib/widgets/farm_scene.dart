@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/game_rules.dart';
 import '../models/models.dart';
 import 'common.dart';
+import 'crop_art.dart';
 
 /// 하늘·산·언덕으로 이루어진 시안 풍의 농장 배경 (이미지 파일 없이 코드로 그린다)
 class ScenePainter extends CustomPainter {
@@ -155,12 +156,13 @@ class PlotTile extends StatelessWidget {
       content = Icon(Icons.add_rounded, color: Colors.white.withValues(alpha: .8), size: size * .42);
     } else if (ready) {
       content = Stack(alignment: Alignment.center, children: [
-        Text(spec.emoji, style: TextStyle(fontSize: size * .52, height: 1)),
+        CropArt(code: spec.code, size: size * .64),
         Positioned(top: 2, right: 4, child: Text('✨', style: TextStyle(fontSize: size * .22))),
       ]);
     } else {
-      final emoji = progress < .34 ? '🌱' : (progress < .67 ? '🌿' : spec.emoji);
-      content = Text(emoji, style: TextStyle(fontSize: size * (progress < .67 ? .42 : .4), height: 1));
+      content = progress < .67
+          ? Text(progress < .34 ? '🌱' : '🌿', style: TextStyle(fontSize: size * .42, height: 1))
+          : CropArt(code: spec.code, size: size * .56);
     }
     final border = ready
         ? Border.all(color: const Color(0xFFFFD54F), width: 3)

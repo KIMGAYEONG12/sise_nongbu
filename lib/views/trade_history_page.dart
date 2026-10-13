@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/game_rules.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
+import '../widgets/crop_art.dart';
 
 /// 거래 기록: 판매 내역과 누적 수익
 class TradeHistoryPage extends ConsumerWidget {
@@ -32,7 +33,7 @@ class TradeHistoryPage extends ConsumerWidget {
                         SoftCard(
                           margin: const EdgeInsets.only(bottom: 8),
                           child: Row(children: [
-                            EmojiBadge(cropOf(t.cropCode).emoji, size: 44),
+                            CropBadge(t.cropCode, size: 44),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

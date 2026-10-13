@@ -393,8 +393,7 @@ class _PriceCardState extends _AnimState<_PriceCard> {
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(10)),
                         child: Row(children: [
-                          Text(c.emoji,
-                              style: const TextStyle(fontSize: 26, height: 1)),
+                          SizedBox(width: 30, child: CropArt(code: c.code, size: 30)),
                           const SizedBox(width: 12),
                           SizedBox(
                               width: 56,
@@ -525,7 +524,7 @@ class _PlantVisualState extends _AnimState<_PlantVisual> {
                           horizontal: 12, vertical: 10),
                       onTap: () => Navigator.pop(sheet, c),
                       child: Row(children: [
-                        EmojiBadge(c.emoji),
+                        CropBadge(c.code),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -634,12 +633,9 @@ class _PlantVisualState extends _AnimState<_PlantVisual> {
                                                       k *
                                                       .55,
                                                   height: 1)),
-                                          Text(_planted[i]!.emoji,
-                                              style: TextStyle(
-                                                  fontSize: _plots[i].height *
-                                                      k *
-                                                      .32,
-                                                  height: 1)),
+                                          CropArt(
+                                              code: _planted[i]!.code,
+                                              size: _plots[i].height * k * .45),
                                         ]),
                                   ),
                                 ),
