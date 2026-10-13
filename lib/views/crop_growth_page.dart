@@ -163,7 +163,7 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
             PageHeader(
               title: '작물 성장',
               center: false,
-              leading: spec == null ? const Text('🌿', style: TextStyle(fontSize: 24, height: 1)) : CropArt(code: spec.code, size: 30),
+              leading: spec == null ? const Icon(Icons.eco_rounded, size: 26, color: AppColors.green) : CropArt(code: spec.code, size: 30),
               onBack: () => Navigator.of(context).pop(),
             ),
             Expanded(
@@ -175,7 +175,7 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
                       ? const Padding(
                           padding: EdgeInsets.symmetric(vertical: 10),
                           child: Row(children: [
-                            Text('🌱', style: TextStyle(fontSize: 30)),
+                            Icon(Icons.eco_rounded, size: 32, color: AppColors.green),
                             SizedBox(width: 10),
                             Expanded(child: Text('심어진 작물이 없어요.\n여기나 아래 빈 밭(+)을 눌러 작물을 심어보세요!', style: TextStyle(height: 1.4))),
                           ]),
@@ -204,14 +204,15 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
                 const SizedBox(height: 12),
                 // 시안: 물주기(파랑) · 영양제(초록) · 성장촉진제(연베이지) · 미션(노랑). 보유 수는 오른쪽 위 작은 숫자
                 Row(children: [
-                  _ActionButton(emoji: '💧', label: '물주기', tint: const Color(0xFFE3F1FB), count: user.item(itemWater), onTap: () => _use(sel, itemWater)),
+                  _ActionButton(icon: Icons.water_drop_rounded, iconColor: const Color(0xFF4DB3F0), label: '물주기', tint: const Color(0xFFE3F1FB), count: user.item(itemWater), onTap: () => _use(sel, itemWater)),
                   const SizedBox(width: 8),
-                  _ActionButton(emoji: '🌿', label: '영양제', tint: const Color(0xFFE7F4E0), count: user.item(itemFertilizer), onTap: () => _use(sel, itemFertilizer)),
+                  _ActionButton(icon: Icons.spa_rounded, iconColor: const Color(0xFF5BAA3C), label: '영양제', tint: const Color(0xFFE7F4E0), count: user.item(itemFertilizer), onTap: () => _use(sel, itemFertilizer)),
                   const SizedBox(width: 8),
-                  _ActionButton(emoji: '🧴', label: '성장촉진제', tint: const Color(0xFFF4EEE8), count: user.item(itemBooster), onTap: () => _use(sel, itemBooster)),
+                  _ActionButton(icon: Icons.bolt_rounded, iconColor: const Color(0xFFF2A81D), label: '성장촉진제', tint: const Color(0xFFF4EEE8), count: user.item(itemBooster), onTap: () => _use(sel, itemBooster)),
                   const SizedBox(width: 8),
                   _ActionButton(
-                    emoji: '📋',
+                    icon: Icons.assignment_rounded,
+                    iconColor: const Color(0xFFC9852E),
                     label: '미션',
                     tint: const Color(0xFFFFF1CC),
                     badge: '$dailyDone/${dailyMissions.length}',
@@ -223,7 +224,7 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
                   onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const MissionPage())),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [
-                      const Text('🌰', style: TextStyle(fontSize: 18)),
+                      const Icon(Icons.flag_rounded, size: 20, color: Color(0xFFF39A1E)),
                       const SizedBox(width: 6),
                       Text('오늘의 미션 $dailyDone/${dailyMissions.length}', style: const TextStyle(fontWeight: FontWeight.w800)),
                     ]),
@@ -297,8 +298,10 @@ class _GrowthHeader extends StatelessWidget {
 
 /// 시안의 아이템 버튼: 연한 색 카드에 큰 아이콘과 이름. 보유 수는 오른쪽 위 작은 동그라미.
 class _ActionButton extends StatelessWidget {
-  const _ActionButton({required this.emoji, required this.label, required this.onTap, this.count, this.badge, this.tint = Colors.white});
-  final String emoji, label;
+  const _ActionButton({required this.icon, required this.iconColor, required this.label, required this.onTap, this.count, this.badge, this.tint = Colors.white});
+  final IconData icon;
+  final Color iconColor;
+  final String label;
   final Color tint;
   final int? count;
   final String? badge;
@@ -323,7 +326,7 @@ class _ActionButton extends StatelessWidget {
                   boxShadow: [BoxShadow(color: AppColors.green.withValues(alpha: .08), blurRadius: 8, offset: const Offset(0, 2))],
                 ),
                 child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Opacity(opacity: empty ? .6 : 1, child: Text(emoji, style: const TextStyle(fontSize: 34, height: 1.1))),
+                  Opacity(opacity: empty ? .6 : 1, child: Icon(icon, size: 38, color: iconColor)),
                   const SizedBox(height: 8),
                   Text(label, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppColors.ink)),
                 ]),
@@ -530,7 +533,7 @@ class _SoilTile extends StatelessWidget {
             child: Stack(alignment: Alignment.center, clipBehavior: Clip.none, children: [
               const Positioned.fill(child: CustomPaint(painter: _SoilPainter())),
               crop,
-              if (ready) Positioned(top: -4, right: -2, child: Text('✨', style: TextStyle(fontSize: size * .22, height: 1))),
+              if (ready) Positioned(top: -4, right: -2, child: Icon(Icons.auto_awesome_rounded, size: size * .24, color: const Color(0xFFFFD34E))),
             ]),
           ),
         );
@@ -559,7 +562,8 @@ class SwayingCrop extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
         animation: animation,
-        child: child,
+        // 작물 그림은 한 번만 그려 두고(RepaintBoundary) 위치·기울기만 바꾼다. 프레임마다 다시 그리면 글자(이모지)로 그린 작물이 깜빡이고 다른 그림이 사라진다.
+        child: RepaintBoundary(child: child),
         builder: (_, kid) {
           final t = animation.value;
           final breathe = 1 + .012 * math.sin((t * 2 + phase * .21) * math.pi * 2);

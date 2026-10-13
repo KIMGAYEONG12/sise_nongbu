@@ -268,7 +268,7 @@ class GreenhousePainter extends CustomPainter {
     canvas.drawCircle(p(cx + .02, .72), w * .008, fill(const Color(0xFFE0A800)));
 
     // 11단계(AI 퀀텀 팜)부터는 단계가 오를 때마다 첨단 장치가 하나씩 더 붙는다 (앞 단계 장치는 그대로 유지)
-    if (stage >= 11) _drawTech(canvas, size, stage, frame, a);
+    if (stage >= 11) _drawTech(canvas, size, stage, frame, a, slow);
 
     // 하우스 안에서 작물에 물을 주는 농장 로봇 (하우스를 지으면 밖을 순찰하던 로봇이 안으로 들어온다).
     // 에너지 코어 같은 장치보다 앞에 그려서 로봇이 가려지지 않는다.
@@ -461,7 +461,7 @@ class GreenhousePainter extends CustomPainter {
   }
 
   /// 11단계 이후의 첨단 장치들. 위성 연동 스마트팜(15단계)에는 지붕 위 위성과 신호가 나온다.
-  void _drawTech(Canvas canvas, Size size, int stage, Color frame, double a) {
+  void _drawTech(Canvas canvas, Size size, int stage, Color frame, double a, double slow) {
     final a2 = a * math.pi * 2;
     final w = size.width, h = size.height;
     Offset p(double x, double y) => Offset(x * w, y * h);
@@ -519,34 +519,54 @@ class GreenhousePainter extends CustomPainter {
       canvas.drawCircle(p(.5, .66), w * .05 * core, line(const Color(0xAAFFD34E), 1.2));
     }
 
-    // 17 우주 정거장 팜: 하우스를 감싸는 궤도 고리
+    // 우주 단계(17단계~)의 장식은 모두 살짝씩 움직인다. a는 한 바퀴에 3번, slow는 한 번 되풀이하는 시간이라
+    // 되풀이 지점에서 튀지 않는다.
+
+    // 17 우주 정거장 팜: 하우스를 감싸는 궤도 고리, 그 위를 두 개의 점이 천천히 돈다 (뒤로 갈 때는 작고 흐리게)
     if (stage >= 17) {
       final ring = Rect.fromCenter(center: p(.5, .56), width: w * 1.08, height: h * .26);
       canvas.drawOval(ring, line(const Color(0x99C9D6E8), 1.6));
-      canvas.drawCircle(Offset(ring.left, ring.center.dy), w * .016, fill(const Color(0xFFE8EDF3)));
-      canvas.drawCircle(Offset(ring.right, ring.center.dy), w * .016, fill(const Color(0xFFE8EDF3)));
+      for (var k = 0; k < 2; k++) {
+        final th = slow * math.pi * 2 + k * math.pi;
+        final depth = .5 + .5 * math.sin(th); // 0(뒤) ~ 1(앞)
+        final dot = Offset(ring.center.dx + math.cos(th) * ring.width / 2, ring.center.dy + math.sin(th) * ring.height / 2);
+        canvas.drawCircle(dot, w * (.011 + .007 * depth), fill(const Color(0xFFE8EDF3).withValues(alpha: .55 + .45 * depth)));
+      }
+      // 반짝이는 작은 별
+      var sn = 0;
+      for (final s in const [(.06, .2), (.93, .1), (.38, .03), (.7, .05)]) {
+        final tw = .5 + .5 * math.sin(a2 + sn * 1.7);
+        canvas.drawCircle(p(s.$1, s.$2), w * (.004 + .004 * tw), fill(Colors.white.withValues(alpha: .35 + .6 * tw)));
+        sn++;
+      }
     }
 
-    // 18 은하 바이오 돔: 왼쪽 위 나선 은하
+    // 18 은하 바이오 돔: 왼쪽 위 나선 은하가 아주 천천히 돈다
     if (stage >= 18) {
+      final spin = slow * math.pi * 2;
       for (var i = 0; i < 18; i++) {
-        final a = i * .55, r = w * (.01 + i * .004);
-        canvas.drawCircle(p(.12, .1) + Offset(math.cos(a) * r, math.sin(a) * r * .7), w * .006, fill(Colors.white.withValues(alpha: .35 + i / 40)));
+        final ang = i * .55 + spin, r = w * (.01 + i * .004);
+        canvas.drawCircle(p(.12, .1) + Offset(math.cos(ang) * r, math.sin(ang) * r * .7), w * .006, fill(Colors.white.withValues(alpha: .35 + i / 40)));
       }
     }
 
-    // 19 초광속 양자 농장: 옆으로 흐르는 광속 줄무늬
+    // 19 초광속 양자 농장: 옆으로 흐르는 광속 줄무늬 (줄마다 시간차를 두고 흘러가며 사라진다)
     if (stage >= 19) {
+      var li = 0;
       for (final y in const [.4, .5, .6]) {
-        canvas.drawLine(p(-.02, y), p(.1, y), line(const Color(0x887DF9FF), 1.4));
+        final f = (a + li / 3) % 1.0;
+        final x0 = -.02 + .08 * f;
+        canvas.drawLine(p(x0, y), p(x0 + .12, y), line(const Color(0xFF7DF9FF).withValues(alpha: .15 + .6 * math.sin(f * math.pi)), 1.4));
+        li++;
       }
     }
 
-    // 20 우주 문명 농장: 고리가 있는 행성
+    // 20 우주 문명 농장: 고리가 있는 행성이 둥실 떠다니고 고리가 살짝 반짝인다
     if (stage >= 20) {
-      final pl = p(.2, .04);
+      final pl = p(.2 + math.sin(a2) * .008, .04 + math.cos(a2) * .012);
       canvas.drawCircle(pl, w * .035, fill(const Color(0xFFFF9A5C)));
-      canvas.drawOval(Rect.fromCenter(center: pl, width: w * .1, height: h * .03), line(const Color(0xCCFFE0B0), 1.2));
+      canvas.drawCircle(pl.translate(-w * .01, -w * .01), w * .012, fill(const Color(0x55FFFFFF)));
+      canvas.drawOval(Rect.fromCenter(center: pl, width: w * .1, height: h * .03), line(const Color(0xFFFFE0B0).withValues(alpha: .65 + .3 * math.sin(a2 * 2)), 1.2));
     }
   }
 

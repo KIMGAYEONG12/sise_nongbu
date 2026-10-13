@@ -241,11 +241,16 @@ void main() {
       await savePreview(tester, _shot, 'sell_all');
     });
 
-    testWidgets('창고에서 작물을 눌러 들어오면 그 작물만 골라져 있다', (tester) async {
+    testWidgets('창고에서 작물을 눌러 들어오면 그 작물만 보이고, 자동으로 골라지지는 않는다', (tester) async {
       await _open(tester, const SellPage(initialCrop: 'RADISH'), overrides: [lotsProvider.overrideWith((ref) => Stream.value(lots))]);
       await tester.pump();
-      expect(find.text('+${sellPointReward}P'), findsOneWidget); // 무 한 건만 골라져 있다
-      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+      expect(find.text('무'), findsOneWidget);
+      expect(find.text('배추'), findsNothing);
+      expect(find.byIcon(Icons.check_circle_rounded), findsNothing); // 아무것도 안 골라져 있다
+      expect(find.text('+0P'), findsNWidgets(2));
+      await tester.tap(find.text('무'));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget); // 직접 누르면 골라진다
       expect(tester.takeException(), isNull);
     });
   });
