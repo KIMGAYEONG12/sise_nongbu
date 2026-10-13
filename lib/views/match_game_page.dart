@@ -117,7 +117,8 @@ class MatchSave {
           ? [for (final c in rawCrops) '$c']
           : matchCrops.take(lv.kinds).toList();
       if (!validMatchCrops(crops)) return null;
-      if (PairBoard.restore(lv.size, lv.size, crops.length, cells) == null) {
+      final (gr, gc) = matchGridFor(lv.size * lv.size, crops.length);
+      if (PairBoard.restore(gr, gc, crops.length, cells) == null) {
         return null;
       }
       final left = (raw['left'] as num).toInt();
@@ -191,8 +192,10 @@ class MatchGamePage extends ConsumerStatefulWidget {
 class _MatchGamePageState extends ConsumerState<MatchGamePage> {
   int _level = 0;
   MatchLevel get _lv => matchLevels[_level];
-  int get _rows => _lv.size;
-  int get _cols => _lv.size;
+  /// 판 크기: 고른 작물 종류 수에 맞춰 칸이 모두 차고 작물마다 같은 수가 되도록 정한다
+  (int, int) get _grid => matchGridFor(_lv.size * _lv.size, _crops.length);
+  int get _rows => _grid.$1;
+  int get _cols => _grid.$2;
 
   /// 이번 게임에서 맞출 작물 (직접 고를 수 있다. 난이도를 바꾸면 그 난이도의 기본 작물로 돌아간다)
   late List<String> _crops = matchCrops.take(_lv.kinds).toList();
@@ -304,7 +307,8 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
     final s = _saved;
     if (s == null) return;
     final lv = matchLevels[s.level];
-    final b = PairBoard.restore(lv.size, lv.size, s.crops.length, s.cells);
+    final (gr, gc) = matchGridFor(lv.size * lv.size, s.crops.length);
+    final b = PairBoard.restore(gr, gc, s.crops.length, s.cells);
     if (b == null) {
       setState(() => _saved = null);
       MatchSaveStore.clear();
@@ -784,10 +788,10 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
                 ),
                 child: Column(children: [
                   Text(matchLevels[i].emoji,
-                      style: const TextStyle(fontSize: 22)),
+                      style: const TextStyle(fontSize: 20)),
                   Text(matchLevels[i].name,
                       style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 13,
                           fontWeight: FontWeight.w900,
                           color: _level == i
                               ? Colors.white
@@ -808,7 +812,7 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
         const SizedBox(height: 4),
         const Text('작물 매칭',
             style: TextStyle(
-                fontSize: 28,
+                fontSize: 24,
                 fontWeight: FontWeight.w900,
                 color: Color(0xFF000000))),
         const SizedBox(height: 10),
@@ -837,7 +841,7 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
         _cropPicker(),
         const SizedBox(height: 10),
         KoText(
-          '작물 ${_crops.length}종 · ${lv.size}×${lv.size}칸 · ${lv.seconds ~/ 60}분 ${lv.seconds % 60 == 0 ? '' : '${lv.seconds % 60}초 '}\n'
+          '작물 ${_crops.length}종 · ${_rows * _cols}칸 (작물마다 똑같은 수) · ${lv.seconds ~/ 60}분 ${lv.seconds % 60 == 0 ? '' : '${lv.seconds % 60}초 '}\n'
           '같은 작물 두 칸을 눌러 짝을 맞춰요. 한 판을 다 맞추면 다음 판!\n'
           '${lv.hintAfter == 0 ? '처음 한 쌍만 노란 힌트가 나와요' : lv.hintAfter == null ? '힌트 없음 (점수 ×${lv.bonus})' : '${lv.hintAfter}초 가만히 있으면 힌트 (점수 ×${lv.bonus})'}\n'
           '오늘 시세가 오른 작물(▲)을 맞추면 점수가 최대 2배!',

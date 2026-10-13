@@ -271,3 +271,29 @@ class PairBoard {
     return null;
   }
 }
+
+/// 작물 매칭 판의 (줄 수, 칸 수). 칸이 [target]개쯤 되면서 모든 칸이 짝으로 꽉 차고, 작물 [kinds]종이 똑같은 수(짝수 개)로
+/// 나오도록 전체 칸 수가 `2 × 종류 수`로 나누어떨어지는 크기를 고른다. (예: 4종 → 6줄×4칸 = 24칸, 작물마다 6칸)
+/// 비슷하면 정사각형에 가깝고 세로로 긴 판을 고른다 (폰은 세로가 길다).
+(int, int) matchGridFor(int target, int kinds) {
+  if (kinds < 1) return (2, 2);
+  (int, int)? best;
+  var bestScore = 1 << 30;
+  void search(int minRows, int maxRows, int minCols, int maxCols) {
+    for (var rows = minRows; rows <= maxRows; rows++) {
+      for (var cols = minCols; cols <= maxCols; cols++) {
+        final n = rows * cols;
+        if (n % (2 * kinds) != 0) continue;
+        final score = (n - target).abs() * 100 + (rows - cols).abs() * 10 + (rows < cols ? 1 : 0);
+        if (score < bestScore) {
+          bestScore = score;
+          best = (rows, cols);
+        }
+      }
+    }
+  }
+
+  search(4, 8, 4, 6);
+  if (best == null) search(2, 12, 2, 8); // 아주 많은 종류도 판을 만들 수 있게 넓게 찾는다
+  return best ?? (kinds, 2);
+}

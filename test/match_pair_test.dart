@@ -33,6 +33,38 @@ void main() {
       }
     });
 
+    test('판 크기는 작물 종류에 맞춰져서 칸이 모두 차고, 작물마다 똑같은 짝수 개이며 하나도 남지 않는다', () {
+      for (final target in [24, 36]) {
+        for (var kinds = 3; kinds <= 6; kinds++) {
+          final (rows, cols) = matchGridFor(target, kinds);
+          expect((rows * cols) % (2 * kinds), 0, reason: '$kinds종 · $target칸 → $rows×$cols');
+          expect(cols, inInclusiveRange(4, 6));
+          expect(rows, inInclusiveRange(4, 8));
+          for (var seed = 0; seed < 10; seed++) {
+            final b = PairBoard(rows, cols, kinds, Random(seed));
+            expect(b.cells.every((v) => v >= 0), isTrue, reason: '빈칸이 없다');
+            final count = <int, int>{};
+            for (final v in b.cells) {
+              count[v] = (count[v] ?? 0) + 1;
+            }
+            expect(count.length, kinds);
+            expect(count.values.toSet().length, 1, reason: '작물마다 개수가 같다');
+            expect(count.values.first.isEven, isTrue);
+            // 모든 작물을 짝지어 끝까지 맞출 수 있다
+            var guard = 0;
+            for (var h = b.findHint(); h != null && guard < 1000; h = b.findHint(), guard++) {
+              expect(b.match(h.$1, h.$2), isTrue);
+            }
+            expect(b.cleared, isTrue);
+          }
+        }
+      }
+      // 대표 크기: 쉬움 4종 → 24칸, 5종 → 20칸, 보통 3종 → 36칸
+      expect(matchGridFor(24, 4), (6, 4));
+      expect(matchGridFor(24, 5), (5, 4));
+      expect(matchGridFor(36, 3), (6, 6));
+    });
+
     test('같은 작물끼리만 맞고, 다른 작물·같은 칸·빈 칸은 안 맞는다', () {
       final b = PairBoard(2, 2, 2);
       b.cells.setAll(0, [0, 1, 0, 1]);
@@ -59,7 +91,8 @@ void main() {
     });
 
     test('저장 글이 깨졌거나 규칙에 안 맞으면 이어 하기를 쓰지 않는다', () {
-      final b = PairBoard(5, 5, 4, Random(1));
+      final (gr, gc) = matchGridFor(25, 4); // 쉬움(25칸 목표)에서 4종이면 6줄×4칸
+      final b = PairBoard(gr, gc, 4, Random(1));
       final ok = MatchSave(level: 0, stage: 2, score: 120, left: 90, streak: 1, cells: b.cells, crops: matchCrops.take(4).toList());
       final back = MatchSave.fromJson(ok.toJson())!;
       expect([back.level, back.stage, back.score, back.left, back.streak], [0, 2, 120, 90, 1]);
@@ -159,12 +192,14 @@ void cropPickerTests() {
 
   test('고른 작물이 저장에 남고, 작물 목록이 없는 예전 저장은 기본 작물로 읽는다', () {
     final crops = ['POTATO', 'TOMATO', 'APPLE'];
-    final b = PairBoard(5, 5, crops.length, Random(2));
+    final (gr, gc) = matchGridFor(25, crops.length);
+    final b = PairBoard(gr, gc, crops.length, Random(2));
     final save = MatchSave(level: 0, stage: 1, score: 0, left: 60, streak: 0, cells: b.cells, crops: crops);
     expect(MatchSave.fromJson(save.toJson())!.crops, crops);
     final old = Map<String, dynamic>.from(save.toJson())..remove('crops');
     expect(MatchSave.fromJson(old)!.crops, matchCrops.take(4).toList()); // 목록이 없으면 난이도 기본 작물
-    final b4 = PairBoard(5, 5, 4, Random(2));
+    final (gr4, gc4) = matchGridFor(25, 4);
+    final b4 = PairBoard(gr4, gc4, 4, Random(2));
     final old4 = Map<String, dynamic>.from(MatchSave(level: 0, stage: 1, score: 0, left: 60, streak: 0, cells: b4.cells, crops: matchCrops.take(4).toList()).toJson())..remove('crops');
     expect(MatchSave.fromJson(old4)!.crops, matchCrops.take(4).toList());
   });

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sise_nongbu/core/match_logic.dart';
 import 'package:sise_nongbu/models/models.dart';
 import 'package:sise_nongbu/viewmodels/view_models.dart';
 import 'package:sise_nongbu/views/match_game_page.dart';
@@ -30,8 +31,8 @@ void main() {
         await tester.pump(const Duration(milliseconds: 300));
         expect(find.text('시작하기'), findsNothing);
         // 짝 맞추기 판: size×size 칸 (칸 수가 홀수면 가운데 한 칸은 비어 있다) + 위쪽 시세 배율 안내(작물 종류마다 1개)
-        final maxPairs = (level.size * level.size) ~/ 2; // 홀수 칸이면 가운데는 빈칸
-        final tiles = (maxPairs ~/ level.kinds) * level.kinds * 2; // 작물마다 같은 수의 짝 (남는 칸은 빈칸)
+        final (gr, gc) = matchGridFor(level.size * level.size, level.kinds); // 작물 종류에 맞춰 칸이 모두 차는 크기
+        final tiles = gr * gc;
         expect(find.byType(CropArt), findsNWidgets(tiles + level.kinds));
         await tester.tap(find.byType(CropArt).last);
         await tester.pump();
@@ -77,7 +78,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('시작하기'));
     await tester.pump(const Duration(milliseconds: 300));
-    // 5×5 판에서 5종이면 작물마다 2짝씩 20칸 + 위쪽 시세 배율 안내 5개
+    // 5종이면 5줄×4칸 = 20칸(작물마다 4칸) + 위쪽 시세 배율 안내 5개
     expect(find.byType(CropArt), findsNWidgets(20 + 5));
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
