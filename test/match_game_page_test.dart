@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sise_nongbu/core/game_rules.dart' show cropOf;
 import 'package:sise_nongbu/core/match_logic.dart';
 import 'package:sise_nongbu/models/models.dart';
 import 'package:sise_nongbu/viewmodels/view_models.dart';
@@ -83,4 +84,27 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
+
+  for (final size in const [Size(360, 640), Size(411, 891), Size(320, 600)]) {
+    testWidgets('작물 고르기 목록은 줄마다 개수가 고르고, 마지막 줄에 작물 하나만 혼자 남지 않는다 (${size.width.toInt()}폭)', (tester) async {
+      tester.view.physicalSize = size * 3;
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(ProviderScope(
+        overrides: [userDataProvider.overrideWithValue(const UserData({}))],
+        child: const MaterialApp(home: MatchGamePage()),
+      ));
+      await tester.pump();
+      // 칩의 이름 글자가 놓인 높이가 같으면 같은 줄이다
+      final ys = [for (final code in matchCrops) tester.getTopLeft(find.text(cropOf(code).name)).dy];
+      final perRow = <int>[];
+      for (final y in ys) {
+        perRow.add(ys.where((o) => (o - y).abs() < 1).length);
+      }
+      expect(tester.takeException(), isNull);
+      expect(perRow.reduce((a, b) => a < b ? a : b), greaterThan(1), reason: '한 줄에 하나만 있는 작물이 없다');
+      final most = perRow.reduce((a, b) => a > b ? a : b), least = perRow.reduce((a, b) => a < b ? a : b);
+      expect(most - least, lessThanOrEqualTo(1), reason: '줄마다 개수 차이가 1개 이하');
+    });
+  }
 }

@@ -700,19 +700,30 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
   Widget _cropPicker() => Column(mainAxisSize: MainAxisSize.min, children: [
         Text('플레이할 작물 고르기 (${_crops.length}종 · 3~6종)',
             style: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w900,
                 color: Color(0xFF000000))),
         const SizedBox(height: 6),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (final code in matchCrops)
-              SizedBox(width: 56, child: _cropChip(code)),
-          ],
-        ),
+        // 한 줄에 들어가는 만큼으로 줄 수를 정한 뒤, 줄마다 개수를 고르게 나눠서 마지막 줄에 작물 하나만 덩그러니 남지 않게 한다
+        LayoutBuilder(builder: (context, box) {
+          const chip = 56.0, gap = 6.0;
+          final n = matchCrops.length;
+          final perRow = ((box.maxWidth + gap) / (chip + gap)).floor().clamp(1, n).toInt();
+          final rows = (n / perRow).ceil();
+          final base = n ~/ rows, extra = n % rows; // 앞의 [extra]줄이 하나씩 더 많다
+          var i = 0;
+          return Column(mainAxisSize: MainAxisSize.min, children: [
+            for (var r = 0; r < rows; r++) ...[
+              if (r > 0) const SizedBox(height: gap),
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                for (var k = 0; k < base + (r < extra ? 1 : 0); k++) ...[
+                  if (k > 0) const SizedBox(width: gap),
+                  SizedBox(width: chip, child: _cropChip(matchCrops[i++])),
+                ],
+              ]),
+            ],
+          ]);
+        }),
       ]);
 
   Widget _cropChip(String code) {
@@ -812,7 +823,7 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
         const SizedBox(height: 4),
         const Text('작물 매칭',
             style: TextStyle(
-                fontSize: 24,
+                fontSize: 20,
                 fontWeight: FontWeight.w900,
                 color: Color(0xFF000000))),
         const SizedBox(height: 10),
