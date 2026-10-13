@@ -86,7 +86,7 @@ void main() {
   });
 
   for (final size in const [Size(360, 640), Size(411, 891), Size(320, 600)]) {
-    testWidgets('작물 고르기 목록은 줄마다 개수가 고르고, 마지막 줄에 작물 하나만 혼자 남지 않는다 (${size.width.toInt()}폭)', (tester) async {
+    testWidgets('작물 고르기 목록은 모든 줄의 개수가 똑같다 (${size.width.toInt()}폭)', (tester) async {
       tester.view.physicalSize = size * 3;
       tester.view.devicePixelRatio = 3;
       addTearDown(tester.view.reset);
@@ -104,7 +104,24 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(perRow.reduce((a, b) => a < b ? a : b), greaterThan(1), reason: '한 줄에 하나만 있는 작물이 없다');
       final most = perRow.reduce((a, b) => a > b ? a : b), least = perRow.reduce((a, b) => a < b ? a : b);
-      expect(most - least, lessThanOrEqualTo(1), reason: '줄마다 개수 차이가 1개 이하');
+      expect(most, least, reason: '모든 줄의 작물 개수가 똑같다 (21종은 3의 배수 줄 또는 7의 배수 줄)');
     });
   }
+
+  test('작물 고르기 줄 구성: 약수가 있으면 모든 줄이 같고, 없으면 차이가 1개 이하', () {
+    for (final width in [260.0, 300.0, 330.0, 360.0, 400.0, 500.0]) {
+      final l = matchPickerLayout(21, width);
+      expect(l.rows.reduce((a, b) => a + b), 21);
+      expect(l.rows.toSet().length, 1, reason: '21종 · $width폭 → ${l.rows}');
+      expect(l.chip, inInclusiveRange(46, 84));
+    }
+    expect(matchPickerLayout(21, 300).rows, List<int>.filled(7, 3)); // 좁으면 3칸 × 7줄
+    expect(matchPickerLayout(21, 400).rows, List<int>.filled(3, 7)); // 넓으면 7칸 × 3줄
+    expect(matchPickerLayout(20, 330).rows, List<int>.filled(4, 5)); // 20종이면 5칸 × 4줄
+    for (final n in [1, 2, 7, 13, 23, 29]) {
+      final l = matchPickerLayout(n, 330);
+      expect(l.rows.reduce((a, b) => a + b), n);
+      expect(l.rows.reduce((a, b) => a > b ? a : b) - l.rows.reduce((a, b) => a < b ? a : b), lessThanOrEqualTo(1), reason: '$n종 → ${l.rows}');
+    }
+  });
 }
