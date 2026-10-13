@@ -15,6 +15,7 @@ import 'package:sise_nongbu/views/news_page.dart';
 import 'package:sise_nongbu/views/point_shop_page.dart';
 import 'package:sise_nongbu/views/price_detail_page.dart';
 import 'package:sise_nongbu/views/sell_page.dart';
+import 'package:sise_nongbu/views/shop_page.dart';
 import 'package:sise_nongbu/widgets/common.dart';
 import 'package:sise_nongbu/widgets/crop_art.dart';
 import 'preview_font.dart';
@@ -210,7 +211,8 @@ void main() {
   });
 
   group('판매할 작물 선택', () {
-    final lots = [Lot('1', 'CABBAGE', 20, _day), Lot('2', 'RADISH', 15, _day), Lot('3', 'ONION', 12, _day)];
+    final now = DateTime.now(); // 신선도가 날짜에 따라 변하므로 방금 수확한 것으로 둔다
+    final lots = [Lot('1', 'CABBAGE', 20, now), Lot('2', 'RADISH', 15, now), Lot('3', 'ONION', 12, now)];
     testWidgets('작물 그림·무게·금액, 예상 수익(총 판매금액·판매이익·Point)이 시안처럼 나온다', (tester) async {
       await _open(tester, const SellPage(), overrides: [lotsProvider.overrideWith((ref) => Stream.value(lots))]);
       expect(find.text('판매할 작물 선택'), findsOneWidget);
@@ -237,6 +239,14 @@ void main() {
       expect(find.text('선택 해제'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await savePreview(tester, _shot, 'sell_all');
+    });
+
+    testWidgets('창고에서 작물을 눌러 들어오면 그 작물만 골라져 있다', (tester) async {
+      await _open(tester, const SellPage(initialCrop: 'RADISH'), overrides: [lotsProvider.overrideWith((ref) => Stream.value(lots))]);
+      await tester.pump();
+      expect(find.text('+${sellPointReward}P'), findsOneWidget); // 무 한 건만 골라져 있다
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
   });
 
@@ -285,18 +295,21 @@ void main() {
       await _open(tester, const PointShopPage(), overrides: [
         userDataProvider.overrideWithValue(const UserData({'points': 3045, 'money': 64787})),
       ]);
+      // 포인트 상점과 같은 카드(ShopRow): 이름은 KoText(낱말마다 따로 그림)라서 위젯의 글로 찾는다
+      Finder named(String name) => find.byWidgetPredicate((w) => w is KoText && w.data == name);
+      expect(find.byType(ShopRow), findsWidgets);
       for (final item in pointItems.take(5)) {
-        expect(find.text(item.name), findsOneWidget);
+        expect(named(item.name), findsOneWidget);
         expect(find.text('${item.cost}P'), findsWidgets);
       }
-      expect(find.text('희귀 씨앗'), findsOneWidget);
+      expect(named('희귀 씨앗'), findsOneWidget);
       expect(find.text('40P'), findsWidgets);
       expect(find.text('모든 아이템을 살 수 있어요!'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await savePreview(tester, _shot, 'point_shop');
       // 아래로 내리면 새 상품들이 나온다
-      await tester.scrollUntilVisible(find.text('농부 교본'), 300, scrollable: find.byType(Scrollable).first);
-      expect(find.text('농부 교본'), findsOneWidget);
+      await tester.scrollUntilVisible(named('농부 교본'), 300, scrollable: find.byType(Scrollable).first);
+      expect(named('농부 교본'), findsOneWidget);
       await savePreview(tester, _shot, 'point_shop_bottom');
     });
   });
@@ -304,12 +317,12 @@ void main() {
   group('작물 알림', () {
     testWidgets('수확·파종 알림은 작물 그림 없이 문구 끝의 이모티콘만 보인다', (tester) async {
       await tester.pumpWidget(MaterialApp(
-        home: Builder(builder: (c) => Scaffold(body: Center(child: ElevatedButton(onPressed: () => showCropMsg(c, 'WATERMELON', '수박🍉을 수확했어요!'), child: const Text('열기'))))),
+        home: Builder(builder: (c) => Scaffold(body: Center(child: ElevatedButton(onPressed: () => showCropMsg(c, 'WATERMELON', '수박을 수확했어요!'), child: const Text('열기'))))),
       ));
       await tester.tap(find.text('열기'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
-      expect(find.text('수박🍉을 수확했어요!'), findsOneWidget);
+      expect(find.text('수박을 수확했어요!'), findsOneWidget);
       expect(find.descendant(of: find.byType(SnackBar), matching: find.byType(CropArt)), findsNothing); // 왼쪽 그림은 없다
       expect(tester.takeException(), isNull);
     });

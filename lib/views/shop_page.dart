@@ -20,39 +20,9 @@ class _ShopPageState extends ConsumerState<ShopPage> {
   int _tab = 0;
   int _cat = 0; // 포인트 상점 안의 갈래
 
-  Widget _buyBtn(String label, VoidCallback? onTap) => SizedBox(
-        height: 36,
-        child: ElevatedButton(
-          onPressed: onTap,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.green,
-            foregroundColor: Colors.white,
-            disabledBackgroundColor: AppColors.line,
-            disabledForegroundColor: AppColors.sub,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          ),
-          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-        ),
-      );
+  Widget _buyBtn(String label, VoidCallback? onTap) => ShopBuyButton(label, onTap);
 
-  Widget _row(String emoji, String title, String sub, Widget action, {String? cropCode}) => SoftCard(
-        margin: const EdgeInsets.only(bottom: 10),
-        child: Row(children: [
-          if (cropCode != null) CropBadge(cropCode, size: 50) else EmojiBadge(emoji, size: 50),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              KoText(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-              const SizedBox(height: 2),
-              KoText(sub, style: const TextStyle(fontSize: 12, color: AppColors.sub, height: 1.3)),
-            ]),
-          ),
-          const SizedBox(width: 8),
-          action,
-        ]),
-      );
+  Widget _row(String emoji, String title, String sub, Widget action, {String? cropCode}) => ShopRow(emoji: emoji, title: title, sub: sub, action: action, cropCode: cropCode);
 
   @override
   Widget build(BuildContext context) {
@@ -110,4 +80,55 @@ class _ShopPageState extends ConsumerState<ShopPage> {
       ),
     ]);
   }
+}
+
+/// 상점 카드 오른쪽의 초록 구매 버튼 (포인트 상점·특별 상점이 같이 쓴다)
+class ShopBuyButton extends StatelessWidget {
+  const ShopBuyButton(this.label, this.onTap, {super.key});
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        height: 36,
+        child: ElevatedButton(
+          onPressed: onTap,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.green,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: AppColors.line,
+            disabledForegroundColor: AppColors.sub,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          ),
+          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+        ),
+      );
+}
+
+/// 상점 카드 한 줄: 그림 · 이름과 설명 · 오른쪽 버튼 (크기는 모든 상점이 같다)
+class ShopRow extends StatelessWidget {
+  const ShopRow({super.key, required this.emoji, required this.title, required this.sub, required this.action, this.cropCode});
+  final String emoji, title, sub;
+  final Widget action;
+  final String? cropCode;
+
+  @override
+  Widget build(BuildContext context) => SoftCard(
+        margin: const EdgeInsets.only(bottom: 10),
+        child: Row(children: [
+          if (cropCode != null) CropBadge(cropCode!, size: 50) else EmojiBadge(emoji, size: 50),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              KoText(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+              const SizedBox(height: 2),
+              KoText(sub, style: const TextStyle(fontSize: 12, color: AppColors.sub, height: 1.3)),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          action,
+        ]),
+      );
 }

@@ -259,7 +259,7 @@ void main() {
   });
 
   group('수확 완료 화면', () {
-    testWidgets('"무화과를 수확했습니다!" 옆에 이모티콘이 붙는다', (tester) async {
+    testWidgets('"무화과를 수확했습니다!"에는 이모티콘이 붙지 않는다', (tester) async {
       await _screen(tester);
       await tester.pumpWidget(ProviderScope(
         overrides: [marketViewModelProvider.overrideWith(_FakeMarket.new), userDataProvider.overrideWithValue(const UserData({'exp': 9100}))],
@@ -267,7 +267,7 @@ void main() {
       ));
       await tester.pump();
       await tester.pump();
-      expect(find.text('무화과🫐를 수확했습니다!'), findsOneWidget);
+      expect(find.text('무화과를 수확했습니다!'), findsOneWidget);
       expect(find.text('+$harvestExp EXP'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });

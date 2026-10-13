@@ -39,7 +39,7 @@ class HarvestResultPage extends ConsumerWidget {
                 ]),
               ),
               const SizedBox(height: 8),
-              Text('${withJosa(c.name, '을', '를').replaceFirst(c.name, '${c.name}${c.emoji}')} 수확했습니다!', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              Text('${withJosa(c.name, '을', '를')} 수확했습니다!', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
               const Spacer(),
               // 경험치: 이번에 얻은 경험치와 현재 레벨 진행 막대
               SoftCard(

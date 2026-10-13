@@ -55,7 +55,10 @@ Future<void> showSoldDialog(BuildContext context, List<String> cropCodes, List<S
 /// 판매할 작물 선택 (시안): 창고의 수확물을 골라 현재 시세로 한꺼번에 출하한다.
 /// 아래 "예상 수익" 카드에 총 판매금액 · 판매이익 · Point 가 나온다.
 class SellPage extends ConsumerStatefulWidget {
-  const SellPage({super.key});
+  const SellPage({super.key, this.initialCrop});
+
+  /// 창고에서 작물을 눌러 들어왔을 때: 이 작물의 수확물이 처음부터 골라져 있다
+  final String? initialCrop;
   @override
   ConsumerState<SellPage> createState() => _SellPageState();
 }
@@ -63,6 +66,8 @@ class SellPage extends ConsumerStatefulWidget {
 class _SellPageState extends ConsumerState<SellPage> {
   final _picked = <String>{};
   bool _busy = false;
+
+  bool _initialApplied = false;
 
   Future<void> _sell(List<Lot> chosen, int total) async {
     setState(() => _busy = true);
@@ -97,6 +102,13 @@ class _SellPageState extends ConsumerState<SellPage> {
     final lots = ref.watch(lotsProvider).valueOrNull ?? const <Lot>[];
     final prices = ref.watch(marketViewModelProvider).valueOrNull ?? const <String, AuctionPrice>{};
     final now = DateTime.now();
+
+    // 창고에서 작물을 눌러 들어왔으면, 창고 목록이 도착하는 대로 그 작물의 수확물을 한 번만 골라 둔다
+    final initial = widget.initialCrop;
+    if (!_initialApplied && initial != null && lots.isNotEmpty) {
+      _initialApplied = true;
+      _picked.addAll(lots.where((l) => l.cropCode == initial).map((l) => l.id));
+    }
 
     int amountOf(Lot l) {
       final p = prices[l.cropCode];

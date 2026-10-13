@@ -68,6 +68,8 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
           title: c.name,
           sub: est == null ? '시세 없음' : '예상 ${won(est)}',
           trailing: '${kg.toStringAsFixed(0)}kg',
+          // 작물을 누르면 그 작물이 골라진 판매 화면으로 간다
+          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => SellPage(initialCrop: e.key))),
         ));
       }
     }
@@ -155,12 +157,15 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
 
 /// 창고 목록 한 줄: 그림 · 이름(+작은 설명) · 오른쪽 수량
 class _InvRow extends StatelessWidget {
-  const _InvRow({required this.leading, required this.title, required this.trailing, this.sub});
+  const _InvRow({required this.leading, required this.title, required this.trailing, this.sub, this.onTap});
   final Widget leading;
   final String title, trailing;
   final String? sub;
+  final VoidCallback? onTap;
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 9),
         child: Row(children: [
           SizedBox(width: 40, child: Center(child: leading)),
@@ -172,6 +177,7 @@ class _InvRow extends StatelessWidget {
             ]),
           ),
           Text(trailing, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+          if (onTap != null) const Icon(Icons.chevron_right_rounded, color: AppColors.sub, size: 20),
         ]),
-      );
+      ));
 }

@@ -508,13 +508,13 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
               ),
               // 오늘 시세에 따른 작물별 점수 배율 (오른 작물을 맞추면 점수가 더 높다)
               _legend(),
-              // 방금 한 행동에 대한 안내 (글씨 크게)
+              // 방금 한 행동에 대한 안내
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 child: Text(_tip ?? ' ',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                        fontSize: 17,
+                        fontSize: 13,
                         fontWeight: FontWeight.w900,
                         color: AppColors.greenDark)),
               ),
@@ -659,7 +659,7 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
                       fontWeight: FontWeight.w700)),
               Text(value,
                   style: const TextStyle(
-                      fontSize: 26,
+                      fontSize: 20,
                       fontWeight: FontWeight.w900,
                       color: Color(0xFF000000))),
             ]),
@@ -843,7 +843,7 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
           '오늘 시세가 오른 작물(▲)을 맞추면 점수가 최대 2배!',
           textAlign: TextAlign.center,
           style: const TextStyle(
-              fontSize: 15,
+              fontSize: 12.5,
               height: 1.5,
               color: Color(0xFF000000),
               fontWeight: FontWeight.w600),

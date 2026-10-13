@@ -197,6 +197,7 @@ class MatchBoard {
 /// 짝 맞추기 판: 같은 작물 두 칸을 차례로 누르면 둘 다 사라지고, 판이 모두 비면 다음 판으로 넘어간다.
 /// (양배추는 양배추끼리, 토마토는 토마토끼리, 감자는 감자끼리)
 /// 칸 수가 홀수(예: 5×5)면 가운데 한 칸은 비워 두어서 항상 모든 칸을 짝지을 수 있다.
+/// 작물은 종류마다 같은 수의 짝으로 나오고, 나누어떨어지지 않는 만큼의 칸은 비워 둔다.
 class PairBoard {
   PairBoard(this.rows, this.cols, this.kinds, [Random? rng])
       : _rng = rng ?? Random(),
@@ -233,9 +234,13 @@ class PairBoard {
     final slots = <int>[for (var i = 0; i < total; i++) i];
     if (total.isOdd) slots.remove(total ~/ 2); // 가운데 칸은 비운다
     slots.shuffle(_rng);
-    // 모든 작물이 고르게 나오도록 짝을 돌아가며 나눠 준다
+    // 모든 작물이 똑같은 수(짝수 개)로 나오도록, 짝 수를 작물 종류 수의 배수로 맞춘다.
+    // 나누어떨어지지 않아 남는 칸은 빈칸으로 둔다 (어느 작물도 혼자 남지 않는다).
+    final maxPairs = slots.length ~/ 2;
+    final perKind = maxPairs ~/ kinds;
+    final pairs = perKind > 0 ? perKind * kinds : maxPairs; // 종류가 칸보다 많은 아주 작은 판은 돌아가며 나눈다
     final start = _rng.nextInt(kinds);
-    for (var p = 0; p < slots.length ~/ 2; p++) {
+    for (var p = 0; p < pairs; p++) {
       final kind = (start + p) % kinds;
       cells[slots[p * 2]] = kind;
       cells[slots[p * 2 + 1]] = kind;

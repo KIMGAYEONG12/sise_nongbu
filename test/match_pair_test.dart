@@ -13,17 +13,22 @@ import 'package:sise_nongbu/views/match_game_page.dart';
 void main() {
   cropPickerTests();
   group('PairBoard', () {
-    test('모든 작물이 짝수 개라서 항상 전부 짝지을 수 있다 (홀수 칸이면 가운데는 빈칸)', () {
+    test('모든 작물이 똑같은 짝수 개라서 하나도 남지 않고 전부 짝지을 수 있다 (홀수 칸이면 가운데는 빈칸)', () {
       for (final size in [5, 6]) {
-        for (var seed = 0; seed < 20; seed++) {
-          final b = PairBoard(size, size, 4, Random(seed));
-          final count = <int, int>{};
-          for (final v in b.cells) {
-            if (v >= 0) count[v] = (count[v] ?? 0) + 1;
+        for (var kinds = 3; kinds <= 6; kinds++) {
+          for (var seed = 0; seed < 20; seed++) {
+            final b = PairBoard(size, size, kinds, Random(seed));
+            final count = <int, int>{};
+            for (final v in b.cells) {
+              if (v >= 0) count[v] = (count[v] ?? 0) + 1;
+            }
+            expect(count.length, kinds, reason: '모든 작물이 나온다');
+            expect(count.values.toSet().length, 1, reason: '작물마다 개수가 같다');
+            expect(count.values.first.isEven, isTrue);
+            final maxPairs = (size * size) ~/ 2;
+            expect(b.remaining, (maxPairs ~/ kinds) * kinds * 2);
+            if (size.isOdd) expect(b.cells[size * size ~/ 2], -1);
           }
-          expect(count.values.every((n) => n.isEven), isTrue);
-          expect(b.remaining, size * size - (size.isOdd ? 1 : 0));
-          if (size.isOdd) expect(b.cells[size * size ~/ 2], -1);
         }
       }
     });

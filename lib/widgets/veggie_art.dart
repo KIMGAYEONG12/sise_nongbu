@@ -52,10 +52,12 @@ class VeggiePainter extends CustomPainter {
   /// 무화과: 보랏빛 물방울 모양 열매 + 줄기 + 작은 잎 + 아래쪽 꽃눈
   void _fig(Canvas canvas, Offset c, double r) {
     final body = Path()
-      ..moveTo(c.dx, c.dy - r * .78)
-      ..cubicTo(c.dx + r * .22, c.dy - r * .62, c.dx + r * .98, c.dy - r * .1, c.dx + r * .78, c.dy + r * .5)
-      ..cubicTo(c.dx + r * .62, c.dy + r * .98, c.dx - r * .62, c.dy + r * .98, c.dx - r * .78, c.dy + r * .5)
-      ..cubicTo(c.dx - r * .98, c.dy - r * .1, c.dx - r * .22, c.dy - r * .62, c.dx, c.dy - r * .78)
+      // 윗부분은 좁고 아래로 갈수록 통통해지는 배(눈물) 모양 — 둥근 양파·마늘과 구별된다
+      ..moveTo(c.dx, c.dy - r * .86)
+      ..cubicTo(c.dx + r * .16, c.dy - r * .86, c.dx + r * .26, c.dy - r * .5, c.dx + r * .58, c.dy - r * .1)
+      ..cubicTo(c.dx + r * .98, c.dy + r * .38, c.dx + r * .8, c.dy + r * .94, c.dx, c.dy + r * .94)
+      ..cubicTo(c.dx - r * .8, c.dy + r * .94, c.dx - r * .98, c.dy + r * .38, c.dx - r * .58, c.dy - r * .1)
+      ..cubicTo(c.dx - r * .26, c.dy - r * .5, c.dx - r * .16, c.dy - r * .86, c.dx, c.dy - r * .86)
       ..close();
     final rect = Rect.fromCircle(center: c, radius: r);
     canvas.drawPath(body, _grad(rect, const [Color(0xFFB77CCB), Color(0xFF6B3A86), Color(0xFF3F1F58)]));
@@ -67,10 +69,10 @@ class VeggiePainter extends CustomPainter {
       canvas.drawLine(Offset(c.dx + r * dx, c.dy - r * .3), Offset(c.dx + r * dx * 1.2, c.dy + r * .62), _line(const Color(0x33FFFFFF), math.max(.8, r * .03)));
     }
     // 꽃눈
-    canvas.drawCircle(c.translate(0, r * .9), r * .07, Paint()..color = const Color(0xFFE9B8D8));
+    canvas.drawCircle(c.translate(0, r * .82), r * .09, Paint()..color = const Color(0xFFE9B8D8));
     // 줄기와 잎
-    canvas.drawLine(Offset(c.dx, c.dy - r * .78), Offset(c.dx + r * .06, c.dy - r * 1.02), _line(const Color(0xFF5A8F2E), math.max(2, r * .09)));
-    _leafBlade(canvas, Offset(c.dx + r * .06, c.dy - r * .98), -.7, r * .5, r * .22, const [Color(0xFF7FC450), Color(0xFF3F8F2E)]);
+    canvas.drawLine(Offset(c.dx, c.dy - r * .84), Offset(c.dx + r * .06, c.dy - r * 1.04), _line(const Color(0xFF5A8F2E), math.max(2.5, r * .12)));
+    _leafBlade(canvas, Offset(c.dx + r * .06, c.dy - r * 1.0), -.7, r * .5, r * .22, const [Color(0xFF7FC450), Color(0xFF3F8F2E)]);
   }
 
   Paint _grad(Rect rect, List<Color> colors, {Alignment begin = Alignment.topLeft, Alignment end = Alignment.bottomRight}) =>

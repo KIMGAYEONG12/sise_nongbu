@@ -30,7 +30,8 @@ void main() {
         await tester.pump(const Duration(milliseconds: 300));
         expect(find.text('시작하기'), findsNothing);
         // 짝 맞추기 판: size×size 칸 (칸 수가 홀수면 가운데 한 칸은 비어 있다) + 위쪽 시세 배율 안내(작물 종류마다 1개)
-        final tiles = level.size * level.size - (level.size.isOdd ? 1 : 0);
+        final maxPairs = (level.size * level.size) ~/ 2; // 홀수 칸이면 가운데는 빈칸
+        final tiles = (maxPairs ~/ level.kinds) * level.kinds * 2; // 작물마다 같은 수의 짝 (남는 칸은 빈칸)
         expect(find.byType(CropArt), findsNWidgets(tiles + level.kinds));
         await tester.tap(find.byType(CropArt).last);
         await tester.pump();
@@ -76,8 +77,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('시작하기'));
     await tester.pump(const Duration(milliseconds: 300));
-    // 5×5 판은 24칸 + 위쪽 시세 배율 안내 5개
-    expect(find.byType(CropArt), findsNWidgets(24 + 5));
+    // 5×5 판에서 5종이면 작물마다 2짝씩 20칸 + 위쪽 시세 배율 안내 5개
+    expect(find.byType(CropArt), findsNWidgets(20 + 5));
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
