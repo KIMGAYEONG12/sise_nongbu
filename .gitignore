@@ -55,3 +55,6 @@ node_modules/
 # API 키가 들어 있는 파일은 올리지 않는다
 env.json
 .env.local
+
+# 카톡 등으로 옮기려고 꺼내 둔 APK
+*.apk
