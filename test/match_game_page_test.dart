@@ -86,7 +86,7 @@ void main() {
   });
 
   for (final size in const [Size(360, 640), Size(411, 891), Size(320, 600)]) {
-    testWidgets('작물 고르기 목록은 4칸씩 놓이고 난이도 버튼 줄과 폭이 같다 (${size.width.toInt()}폭)', (tester) async {
+    testWidgets('작물 고르기 목록은 3개씩 놓여 한 개도 남지 않고, 난이도 버튼 줄과 폭이 같다 (${size.width.toInt()}폭)', (tester) async {
       tester.view.physicalSize = size * 3;
       tester.view.devicePixelRatio = 3;
       addTearDown(tester.view.reset);
@@ -102,7 +102,7 @@ void main() {
         perRow.add(ys.where((o) => (o - y).abs() < 1).length);
       }
       expect(tester.takeException(), isNull);
-      expect(perRow.reduce((a, b) => a > b ? a : b), 4, reason: '한 줄에 최대 4칸');
+      expect(perRow.every((n) => n == 3), isTrue, reason: '모든 줄이 3개씩 (21종 = 3칸 × 7줄): $perRow');
       // 첫 칩의 왼쪽 끝이 '쉬움' 버튼의 왼쪽 끝과 같다
       final chipLeft = tester.getTopLeft(find.ancestor(of: find.text(cropOf(matchCrops.first).name), matching: find.byType(GestureDetector)).first).dx;
       final easyLeft = tester.getTopLeft(find.ancestor(of: find.text('쉬움'), matching: find.byType(GestureDetector)).first).dx;
@@ -110,14 +110,17 @@ void main() {
     });
   }
 
-  test('작물 고르기 줄 구성: 4칸씩, 남는 작물은 마지막 줄', () {
+  test('작물 고르기 줄 구성: 3개씩 놓고 한 개도 남기지 않는다', () {
     for (final width in [260.0, 300.0, 330.0, 360.0, 400.0, 500.0]) {
       final l = matchPickerLayout(21, width);
-      expect(l.rows, [4, 4, 4, 4, 4, 1]);
-      expect(l.chip * 4 + 8 * 3, closeTo(width, 0.001)); // 4칸 + 칸 사이 틈이 폭을 꽉 채운다
+      expect(l.rows, List<int>.filled(7, 3)); // 21종 = 3칸 × 7줄
+      expect(l.chip * 3 + 8 * 2, closeTo(width, 0.001)); // 3칸 + 칸 사이 틈이 폭을 꽉 채운다
     }
-    expect(matchPickerLayout(20, 330).rows, List<int>.filled(5, 4));
     expect(matchPickerLayout(0, 330).rows, isEmpty);
+    // 3으로 나누어떨어지지 않으면 나누어떨어지는 칸 수를 쓴다 (모든 줄이 같은 개수)
+    expect(matchPickerLayout(20, 330).rows, List<int>.filled(5, 4));
+    expect(matchPickerLayout(25, 330).rows, List<int>.filled(5, 5));
+    expect(matchPickerLayout(28, 330).rows, List<int>.filled(7, 4));
     for (final n in [1, 2, 7, 13, 23, 29]) {
       expect(matchPickerLayout(n, 330).rows.reduce((a, b) => a + b), n);
     }

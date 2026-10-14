@@ -704,7 +704,7 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
                 fontWeight: FontWeight.w900,
                 color: Color(0xFF000000))),
         const SizedBox(height: 6),
-        // 4칸씩, 난이도 버튼 줄과 같은 폭으로 놓는다
+        // 3개씩, 난이도 버튼 줄과 같은 폭으로 놓는다 (한 개도 남지 않는다)
         LayoutBuilder(builder: (context, box) {
           const gap = 8.0;
           final layout = matchPickerLayout(matchCrops.length, box.maxWidth);
@@ -816,11 +816,11 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
       final lv = _lv;
       final s = _saved;
       return Column(mainAxisSize: MainAxisSize.min, children: [
-        const Text('🧩', style: TextStyle(fontSize: 56)),
+        const Text('🧩', style: TextStyle(fontSize: 46)),
         const SizedBox(height: 4),
         const Text('작물 매칭',
             style: TextStyle(
-                fontSize: 20,
+                fontSize: 17,
                 fontWeight: FontWeight.w900,
                 color: Color(0xFF000000))),
         const SizedBox(height: 10),
@@ -928,9 +928,19 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
 }
 
 /// 작물 고르기 목록의 줄 구성. 작물 [n]개를 폭 [width]에 나눠 놓는다.
-/// 항상 4칸씩 놓고, 칩은 쉬움·보통·어려움 줄과 같은 폭(양쪽 끝이 맞음)을 꽉 채운다. 남는 작물은 마지막 줄 왼쪽부터 놓는다.
+/// 3개씩 놓는다 (21종이면 3칸 × 7줄이라 한 개도 남지 않는다). 3으로 나누어떨어지지 않으면 나누어떨어지는 4·5·6·7칸을 쓰고,
+/// 그래도 없으면 3칸에 마지막 줄만 덜 채운다. 칩은 쉬움·보통·어려움 줄과 같은 폭(양쪽 끝이 맞음)을 꽉 채운다.
 ({List<int> rows, double chip}) matchPickerLayout(int n, double width) {
-  const cols = 4, gap = 8.0;
+  const gap = 8.0;
+  var cols = 3;
+  if (n % 3 != 0) {
+    for (final c in const [4, 5, 6, 7]) {
+      if (n % c == 0) {
+        cols = c;
+        break;
+      }
+    }
+  }
   final chip = (width - gap * (cols - 1)) / cols;
   return (rows: [for (var left = n; left > 0; left -= cols) left < cols ? left : cols], chip: chip);
 }
