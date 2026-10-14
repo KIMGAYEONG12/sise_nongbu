@@ -64,7 +64,7 @@ void main() {
     await tester.tap(find.text('수확')); // 수확 카드
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('수확: 다 자라면'), findsOneWidget);
-    // 물주기 체험: 40% → 물을 줄 때마다 3%씩 올라간다 (한 밭에 최대 10번)
+    // 물주기 체험: 40% → 물을 줄 때마다 3%씩 올라간다 (연습은 10번)
     await tester.pump(const Duration(milliseconds: 700));
     expect(find.text('40%'), findsOneWidget);
     await tester.tap(find.text('물주기'));

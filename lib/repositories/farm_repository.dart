@@ -18,6 +18,7 @@ class FarmRepository {
   Future<void> ensureUser({String? nickname}) => _db.ensureUser(nickname: nickname);
   Future<void> setNickname(String name) => _db.setNickname(name);
   Future<void> setTitle(int? index) => _db.setTitle(index);
+  Future<void> setAvatar(bool boy) => _db.setAvatar(boy);
   Future<void> resetMoney() => _db.resetMoney();
 
   /// 예전 성장 시간으로 심겨 있는 작물을 새 시간에 맞추고, 수확 알림도 다시 예약한다. 바뀐 밭 수를 돌려준다.
@@ -84,7 +85,6 @@ class FarmRepository {
   Future<void> donateToFund(int amount) => _db.donateToFund(amount);
   Future<void> claimFundMilestone(FundMilestone m) => _db.claimFundMilestone(m);
   Future<bool> gameReward(int score) => _db.gameReward(score);
-  Future<void> sendFeedback(String text) => _db.sendFeedback(text);
 
   Future<String?> fcmToken() => _noti.fcmToken();
 }

@@ -44,7 +44,6 @@ void main() {
     expect(greenhouseCostFor(4), 60000);
     expect(greenhouseCostFor(5), 70000); // 5채 뒤에도 더 지을 수 있다
     expect(greenhouseCostFor(20), 220000);
-    expect(fertilizerMaxBonus, closeTo(2.0, 1e-9));
   });
 
   test('레벨 업 보상은 레벨이 높을수록 커진다', () {
@@ -66,12 +65,22 @@ void main() {
     expect(seedPrice(cropOf('CABBAGE')), 10200);
   });
 
-  test('물주기는 한 밭에 10번까지, 다 줘도 최대 30% 단축 (예전 10%×3번과 같은 최대 효과)', () {
-    expect(waterMaxPerPlot, 10);
+  test('물주기는 한 번에 3% 단축 (횟수 제한 없음), 튜토리얼 연습은 10번', () {
     expect(waterCut, closeTo(0.03, 1e-9));
-    expect(waterCut * waterMaxPerPlot, closeTo(0.30, 1e-9));
-    // 물을 다 주고 성장촉진제까지 써도 성장 시간이 0 아래로 내려가지 않는다
-    expect(waterCut * waterMaxPerPlot + boosterCut, lessThan(1.0));
+    expect(tutorialWaterCount, 10);
+    expect(waterCut * tutorialWaterCount, closeTo(0.30, 1e-9));
+  });
+
+  test('미션은 기간마다 id·종류가 겹치지 않는다', () {
+    final all = [...dailyMissions, ...weeklyMissions];
+    expect(all.map((m) => m.id).toSet().length, all.length);
+    expect(dailyMissions.map((m) => m.key).toSet().length, dailyMissions.length);
+    expect(weeklyMissions.map((m) => m.key).toSet().length, weeklyMissions.length);
+  });
+
+  test('업적은 이름과 (조건·목표) 조합이 겹치지 않는다', () {
+    expect(achievements.map((a) => a.title).toSet().length, achievements.length);
+    expect(achievements.map((a) => '${a.statKey}:${a.target}').toSet().length, achievements.length);
   });
 
   test('씨앗 꾸러미는 기본 6종만 담아서 값이 터무니없이 커지지 않는다', () {

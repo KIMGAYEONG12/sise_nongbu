@@ -12,6 +12,7 @@ import 'achievement_page.dart';
 import 'encyclopedia_page.dart';
 import 'news_page.dart';
 import 'point_shop_page.dart';
+import 'profile_sheet.dart';
 import 'support_page.dart';
 import 'trade_history_page.dart';
 
@@ -175,7 +176,8 @@ class MyPage extends ConsumerWidget {
       ],
       // 시안: 큰 아바타 + 닉네임 + Lv + 경험치 막대
       Row(children: [
-        const FarmerAvatar(size: 84),
+        // 아바타를 누르면 캐릭터(여자 아이 / 남자 아이)를 고를 수 있다
+        GestureDetector(onTap: () => showProfileSheet(context, showMyButton: false), child: FarmerAvatar(size: 84, boy: user.isBoy)),
         const SizedBox(width: 16),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

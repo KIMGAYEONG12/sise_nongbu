@@ -297,6 +297,8 @@ class FarmViewModel {
   Future<void> buySeedPack() => _repo.buySeedPack(seedPackPrice());
   /// 칭호 장착 (null이면 자동)
   Future<void> setTitle(int? index) => _repo.setTitle(index);
+  /// 프로필 캐릭터 (남자 아이 / 여자 아이)
+  Future<void> setAvatar(bool boy) => _repo.setAvatar(boy);
   Future<void> buyPointItem(PointItem i, {String? cropCode}) =>
       _repo.buyPointItem(i.key, cropCode: cropCode);
 
@@ -308,7 +310,6 @@ class FarmViewModel {
   Future<void> donate(int amount) => _repo.donateToFund(amount);
   Future<void> claimFund(FundMilestone m) => _repo.claimFundMilestone(m);
   Future<bool> gameReward(int score) => _repo.gameReward(score);
-  Future<void> sendFeedback(String text) => _repo.sendFeedback(text);
 }
 
 final farmViewModelProvider = Provider((ref) => FarmViewModel(ref));

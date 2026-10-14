@@ -92,6 +92,9 @@ class UserData {
   /// 장착한 칭호 번호 (farmerTitles의 위치). 고르지 않았으면 null이고, 레벨에 맞는 가장 높은 칭호를 쓴다.
   int? get titleIdx => raw['titleIdx'] is num ? (raw['titleIdx'] as num).toInt() : null;
 
+  /// 프로필 캐릭터: 남자 아이를 고르면 true (기본은 여자 아이)
+  bool get isBoy => raw['avatar'] == 'boy';
+
   /// 지금 쓰는 칭호 번호 (장착한 것이 있으면 그것, 아니면 레벨에 맞는 칭호)
   int get titleIndex => effectiveTitleIndex(level.level, titleIdx);
   int get fundGiven => _i('fundGiven');

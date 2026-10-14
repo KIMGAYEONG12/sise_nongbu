@@ -22,6 +22,7 @@ import 'news_page.dart';
 import 'point_shop_page.dart';
 import 'trade_history_page.dart';
 import '../widgets/weather_icon.dart';
+import 'profile_sheet.dart';
 
 export '../widgets/greenhouse_art.dart' show GreenhousePainter, greenhouseTier;
 
@@ -77,24 +78,34 @@ class FarmPage extends ConsumerWidget {
             topInset: topInset,
             header: Column(mainAxisSize: MainAxisSize.min, children: [
               // 시안: 노란 원 안의 농부 아바타 · 닉네임 · Lv · 금화 알약 · 톱니바퀴
+              // 아바타·닉네임·레벨을 누르면 프로필 창(캐릭터 고르기)이 열린다
               Row(children: [
-                const FarmerAvatar(size: 60),
-                const SizedBox(width: 10),
                 Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                    // 윗줄: 닉네임 · 톱니바퀴
-                    Row(children: [
-                      Expanded(child: Text(user.nickname, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20)))),
-                      IconButton(visualDensity: VisualDensity.compact, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 40, height: 32), onPressed: () => _push(context, const AboutPage()), icon: const Icon(Icons.settings_outlined, color: AppColors.ink, size: 28)),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => showProfileSheet(context),
+                    child: Row(children: [
+                      FarmerAvatar(size: 60, boy: user.isBoy),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                          Text(user.nickname, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF1C2B20))),
+                          const SizedBox(height: 4),
+                          // 아랫줄: 레벨·칭호(자리가 모자라면 글자가 줄어 끝까지 보인다) 와 포인트 알약이 같은 높이에 나란히
+                          Row(children: [
+                            Flexible(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text('Lv. ${lv.level}  ·  ${farmerTitles[user.titleIndex].emoji} ${farmerTitles[user.titleIndex].name}', maxLines: 1, style: const TextStyle(fontSize: 14, color: Color(0xFF2B3A30), fontWeight: FontWeight.w700)))),
+                            const SizedBox(width: 10), // 칭호와 포인트 사이 간격 (알약이 칭호 바로 옆에 붙는다)
+                            MoneyPill(money: user.money),
+                          ]),
+                        ]),
+                      ),
                     ]),
-                    const SizedBox(height: 2),
-                    // 아랫줄: 레벨·칭호(자리가 모자라면 글자가 줄어 끝까지 보인다) 와 포인트 알약이 같은 높이에 나란히
-                    Row(children: [
-                      Flexible(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text('Lv. ${lv.level}  ·  ${farmerTitles[user.titleIndex].emoji} ${farmerTitles[user.titleIndex].name}', maxLines: 1, style: const TextStyle(fontSize: 14, color: Color(0xFF2B3A30), fontWeight: FontWeight.w700)))),
-                      const SizedBox(width: 10), // 칭호와 포인트 사이 간격 (알약이 칭호 바로 옆에 붙는다)
-                      MoneyPill(money: user.money),
-                    ]),
-                  ]),
+                  ),
+                ),
+                // 톱니바퀴: 오른쪽 위 구름에 겹치지 않게 아랫줄(레벨·포인트) 높이로 내려 두었다
+                Padding(
+                  padding: const EdgeInsets.only(top: 26, left: 4),
+                  child: IconButton(visualDensity: VisualDensity.compact, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 40, height: 36), onPressed: () => _push(context, const AboutPage()), icon: const Icon(Icons.settings_outlined, color: AppColors.ink, size: 28)),
                 ),
               ]),
               const SizedBox(height: 10),
@@ -236,7 +247,8 @@ class _FarmHero extends StatelessWidget {
             ),
           ),
           Positioned(left: -20, top: topInset + 58, child: const _Cloud(width: 130)),
-          Positioned(right: -10, top: topInset + 8, child: const _Cloud(width: 110)),
+          // 오른쪽 위 구름: 톱니바퀴와 겹치지 않게 위로 올려 두었다
+          Positioned(right: -10, top: topInset - 26, child: const _Cloud(width: 110)),
           Positioned(right: 60, top: topInset + 125, child: const _Cloud(width: 84)),
           // 날씨 카드와 그림 사이 하늘이 넓을 때 채워 주는 구름
           if (imgTop - (topInset + 150) > 70) ...[

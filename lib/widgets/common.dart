@@ -537,11 +537,11 @@ class SectionTitle extends StatelessWidget {
       );
 }
 
-/// 프로필 아바타: 스플래시에 나오는 밀짚모자 쓴 여자 아이를 코드(벡터)로 그렸다.
-/// 그림 파일이 아니라서 아무리 키워도 도트처럼 깨지지 않고 선명하다.
+/// 프로필 아바타: 여자 아이는 튜토리얼 그림에서 오려 낸 농부, 남자 아이는 코드(벡터)로 그린 농부.
 class FarmerAvatar extends StatelessWidget {
-  const FarmerAvatar({super.key, this.size = 56});
+  const FarmerAvatar({super.key, this.size = 56, this.boy = false});
   final double size;
+  final bool boy;
   @override
   Widget build(BuildContext context) => Container(
         width: size,
@@ -552,14 +552,20 @@ class FarmerAvatar extends StatelessWidget {
           border: Border.all(color: Colors.white, width: size * .06),
           boxShadow: [BoxShadow(color: const Color(0xFFE0A800).withValues(alpha: .3), blurRadius: 8, offset: const Offset(0, 2))],
         ),
-        child: ClipOval(child: Image.asset(AppImages.avatarGirl, width: size, height: size, fit: BoxFit.cover, alignment: const Alignment(-.2, -.3), filterQuality: FilterQuality.high)),
+        child: ClipOval(
+          child: boy
+              ? CustomPaint(size: Size.square(size), painter: const FarmerAvatarPainter(boy: true))
+              : Image.asset(AppImages.avatarGirl, width: size, height: size, fit: BoxFit.cover, alignment: const Alignment(-.2, -.3), filterQuality: FilterQuality.high),
+        ),
       );
 }
 
-/// 밀짚모자(파란 띠)를 쓴 갈색 머리 여자 아이 (스플래시 그림의 농부).
+/// 밀짚모자를 쓴 농부 아이. 기본은 갈색 긴 머리 여자 아이(파란 띠),
+/// [boy]면 짧은 머리 남자 아이(빨간 띠, 주황 셔츠).
 /// 작은 크기에서도 얼굴이 또렷하게 보이도록 얼굴·눈·모자를 크게 그렸다.
-class GirlAvatarPainter extends CustomPainter {
-  const GirlAvatarPainter();
+class FarmerAvatarPainter extends CustomPainter {
+  const FarmerAvatarPainter({this.boy = false});
+  final bool boy;
 
   static const _skin = Color(0xFFFFDDBE);
   static const _hair = Color(0xFF7B4A28);
@@ -581,21 +587,26 @@ class GirlAvatarPainter extends CustomPainter {
       ..color = c;
 
     // 몸: 흰 셔츠 위에 파란 멜빵바지
-    canvas.drawOval(Rect.fromCenter(center: p(.5, 1.06), width: .96 * s, height: .6 * s), fill(const Color(0xFFFFFBF2)));
+    canvas.drawOval(Rect.fromCenter(center: p(.5, 1.06), width: .96 * s, height: .6 * s), fill(boy ? const Color(0xFFFF8A4C) : const Color(0xFFFFFBF2)));
     canvas.drawRRect(RRect.fromRectAndCorners(r(.3, .86, .7, 1.1), topLeft: Radius.circular(.07 * s), topRight: Radius.circular(.07 * s)), fill(const Color(0xFF3F74CF)));
     canvas.drawRect(r(.31, .8, .39, .92), fill(const Color(0xFF3F74CF)));
     canvas.drawRect(r(.61, .8, .69, .92), fill(const Color(0xFF3F74CF)));
     canvas.drawCircle(p(.35, .91), .016 * s, fill(const Color(0xFFFFD34E)));
     canvas.drawCircle(p(.65, .91), .016 * s, fill(const Color(0xFFFFD34E)));
 
-    // 뒤 머리 (얼굴 양옆으로 내려온다)
-    final back = Path()
-      ..moveTo(.2 * s, .46 * s)
-      ..quadraticBezierTo(.14 * s, .8 * s, .26 * s, .86 * s)
-      ..lineTo(.74 * s, .86 * s)
-      ..quadraticBezierTo(.86 * s, .8 * s, .8 * s, .46 * s)
-      ..close();
-    canvas.drawPath(back, fill(_hairDark));
+    if (boy) {
+      // 짧은 뒤 머리 (귀 위까지만)
+      canvas.drawOval(Rect.fromCenter(center: p(.5, .5), width: .56 * s, height: .44 * s), fill(_hairDark));
+    } else {
+      // 뒤 머리 (얼굴 양옆으로 내려온다)
+      final back = Path()
+        ..moveTo(.2 * s, .46 * s)
+        ..quadraticBezierTo(.14 * s, .8 * s, .26 * s, .86 * s)
+        ..lineTo(.74 * s, .86 * s)
+        ..quadraticBezierTo(.86 * s, .8 * s, .8 * s, .46 * s)
+        ..close();
+      canvas.drawPath(back, fill(_hairDark));
+    }
 
     // 목
     canvas.drawRRect(RRect.fromRectAndRadius(r(.43, .7, .57, .84), Radius.circular(.03 * s)), fill(const Color(0xFFF6C79F)));
@@ -609,15 +620,28 @@ class GirlAvatarPainter extends CustomPainter {
     canvas.drawCircle(p(.255, .58), .034 * s, fill(_skin));
     canvas.drawCircle(p(.745, .58), .034 * s, fill(_skin));
 
-    // 앞머리 (이마를 덮고 양옆으로 갈라진다)
-    final bangs = Path()
-      ..moveTo(.25 * s, .55 * s)
-      ..quadraticBezierTo(.24 * s, .3 * s, .5 * s, .3 * s)
-      ..quadraticBezierTo(.76 * s, .3 * s, .75 * s, .55 * s)
-      ..quadraticBezierTo(.7 * s, .44 * s, .6 * s, .43 * s)
-      ..quadraticBezierTo(.52 * s, .5 * s, .46 * s, .43 * s)
-      ..quadraticBezierTo(.34 * s, .45 * s, .25 * s, .55 * s)
-      ..close();
+    // 앞머리: 여자 아이는 이마를 덮고 양옆으로 갈라지고, 남자 아이는 짧고 삐죽삐죽하다
+    final bangs = boy
+        ? (Path()
+          ..moveTo(.26 * s, .5 * s)
+          ..quadraticBezierTo(.25 * s, .3 * s, .5 * s, .3 * s)
+          ..quadraticBezierTo(.75 * s, .3 * s, .74 * s, .5 * s)
+          ..lineTo(.68 * s, .43 * s)
+          ..lineTo(.63 * s, .47 * s)
+          ..lineTo(.57 * s, .42 * s)
+          ..lineTo(.51 * s, .47 * s)
+          ..lineTo(.45 * s, .42 * s)
+          ..lineTo(.39 * s, .47 * s)
+          ..lineTo(.33 * s, .43 * s)
+          ..close())
+        : (Path()
+          ..moveTo(.25 * s, .55 * s)
+          ..quadraticBezierTo(.24 * s, .3 * s, .5 * s, .3 * s)
+          ..quadraticBezierTo(.76 * s, .3 * s, .75 * s, .55 * s)
+          ..quadraticBezierTo(.7 * s, .44 * s, .6 * s, .43 * s)
+          ..quadraticBezierTo(.52 * s, .5 * s, .46 * s, .43 * s)
+          ..quadraticBezierTo(.34 * s, .45 * s, .25 * s, .55 * s)
+          ..close());
     canvas.drawPath(bangs, fill(_hair));
 
     // 눈썹 · 눈 (크고 동그랗게, 반짝이는 하이라이트)
@@ -656,7 +680,7 @@ class GirlAvatarPainter extends CustomPainter {
       ..lineTo(.737 * s, .35 * s)
       ..quadraticBezierTo(.5 * s, .4 * s, .263 * s, .35 * s)
       ..close();
-    canvas.drawPath(band, fill(const Color(0xFF3B70D2)));
+    canvas.drawPath(band, fill(boy ? const Color(0xFFD9473A) : const Color(0xFF3B70D2)));
     // 밀짚 결
     for (final x in [.38, .46, .54, .62]) {
       canvas.drawLine(p(x, .12), p(x - (.5 - x) * .25, .27), edge(const Color(0x33C99A4B), .008));
@@ -670,7 +694,7 @@ class GirlAvatarPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(GirlAvatarPainter old) => false;
+  bool shouldRepaint(FarmerAvatarPainter old) => old.boy != boy;
 }
 
 /// 글자를 한 줄 입력받는 대화상자. 취소하면 null.

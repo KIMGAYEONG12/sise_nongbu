@@ -90,13 +90,12 @@ const itemWater = 'water';
 const itemFertilizer = 'fertilizer';
 const itemBooster = 'booster';
 
-/// 물주기: 한 번에 전체 성장 시간의 3% 단축, 한 밭에 최대 10번 (모두 주면 30% 단축 — 예전 "10%씩 3번"과 같은 최대 효과)
+/// 물주기: 한 번에 전체 성장 시간의 3% 단축. 한 밭에 주는 횟수 제한은 없다.
 const waterCut = 0.03;
-const waterMaxPerPlot = 10;
+/// 튜토리얼 연습에서 물을 주는 횟수 (실제 게임에는 횟수 제한이 없다)
+const tutorialWaterCount = 10;
 const boosterCut = 0.30; // 성장촉진제: 전체 성장 시간의 30% 단축
-const fertilizerBonus = 0.20; // 영양제: 수확량 +20%
-const fertilizerMaxPerPlot = 10; // 한 밭에 최대 10번
-const fertilizerMaxBonus = fertilizerBonus * fertilizerMaxPerPlot;
+const fertilizerBonus = 0.20; // 영양제: 수확량 +20% (횟수 제한 없음)
 
 String seedKey(String cropCode) => 'seed_$cropCode';
 
@@ -107,8 +106,8 @@ class ShopItem {
 }
 
 const consumables = [
-  ShopItem(itemWater, '물통', '💧', 500, '물주기 1회 · 성장 시간 3% 단축 (밭당 최대 10회)'),
-  ShopItem(itemFertilizer, '영양제', '🧪', 1500, '수확량 +20% (밭당 최대 10회)'),
+  ShopItem(itemWater, '물통', '💧', 500, '물주기 1회 · 성장 시간 3% 단축 (횟수 제한 없음)'),
+  ShopItem(itemFertilizer, '영양제', '🧪', 1500, '수확량 +20% (횟수 제한 없음)'),
   ShopItem(itemBooster, '성장촉진제', '⚡', 3000, '성장 시간 30% 단축 (횟수 제한 없음)'),
 ];
 
@@ -254,6 +253,8 @@ const dailyMissions = [
   MissionDef('d_plant', '작물 2번 파종하기', '🌱', 'plant', 2, 20, false),
   MissionDef('d_harvest', '작물 1개 수확하기', '🧺', 'harvest', 1, 20, false),
   MissionDef('d_shop', '농장 상점 이용하기', '🛒', 'shop', 1, 30, false),
+  MissionDef('d_sell', '작물 1번 판매하기', '💰', 'sell', 1, 25, false),
+  MissionDef('d_game', '작물 매칭 1번 하기', '🧩', 'game', 1, 20, false),
 ];
 
 const weeklyMissions = [
@@ -261,6 +262,8 @@ const weeklyMissions = [
   MissionDef('w_sell', '작물 5번 판매하기', '💰', 'sell', 5, 100, true),
   MissionDef('w_plant', '작물 15번 파종하기', '🌱', 'plant', 15, 80, true),
   MissionDef('w_game', '작물 매칭 3번 하기', '🧩', 'game', 3, 50, true),
+  MissionDef('w_water', '작물에 물 20회 주기', '💧', 'water', 20, 80, true),
+  MissionDef('w_shop', '농장 상점 5번 이용하기', '🛒', 'shop', 5, 70, true),
 ];
 
 MissionDef? missionById(String id) {
@@ -306,6 +309,16 @@ const achievements = [
   AchievementDef('puzzle5', '퍼즐 중독', '작물 매칭을 5번 완료해요', '🧠', '특별', 50, 'stats.game', 5),
   AchievementDef('puzzle20', '매칭의 신', '작물 매칭을 20번 완료해요', '🏅', '특별', 120, 'stats.game', 20),
   AchievementDef('helper100k', '마을의 영웅', '마을 공동기금에 합계 100,000P를 기부해요', '🦸', '특별', 120, 'stats.donate', 100000),
+  AchievementDef('plant100', '씨앗의 달인', '작물을 100번 파종해요', '🌾', '일반', 100, 'stats.plant', 100),
+  AchievementDef('water100', '물뿌리개 장인', '물주기를 100번 해요', '🚿', '일반', 100, 'stats.water', 100),
+  AchievementDef('fertilizer50', '비료 박사', '영양제를 50번 써요', '🧪', '일반', 90, 'stats.fertilizer', 50),
+  AchievementDef('booster50', '초고속 농부', '성장촉진제를 50번 써요', '🚀', '일반', 100, 'stats.booster', 50),
+  AchievementDef('harvest_kg2000', '2톤 트럭', '수확량을 합쳐서 2,000kg을 모아요', '🚛', '일반', 150, 'stats.harvestKg', 2000),
+  AchievementDef('sell100', '시장의 큰손', '작물을 100번 판매해요', '🏪', '도전', 150, 'stats.sell', 100),
+  AchievementDef('good_sell50', '시세의 신', '시세가 오른 날 작물을 50번 판매해요', '📊', '도전', 200, 'stats.goodSell', 50),
+  AchievementDef('rich5m', '농업 재벌', '보유 자금 5,000,000P를 달성해요', '🏦', '도전', 250, 'money', 5000000),
+  AchievementDef('shop50', 'VIP 손님', '상점에서 50번 구매해요', '🎫', '특별', 100, 'stats.shop', 50),
+  AchievementDef('puzzle50', '매칭 전설', '작물 매칭을 50번 완료해요', '🌟', '특별', 200, 'stats.game', 50),
 ];
 
 AchievementDef? achievementById(String id) {

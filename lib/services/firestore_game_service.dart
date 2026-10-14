@@ -122,6 +122,9 @@ class FirestoreGameService {
 
   Future<void> setNickname(String name) => _user.update({'nickname': name.trim(), 'updatedAt': FieldValue.serverTimestamp()});
 
+  /// 프로필 캐릭터 고르기 ('girl' 또는 'boy')
+  Future<void> setAvatar(bool boy) => _user.update({'avatar': boy ? 'boy' : 'girl', 'updatedAt': FieldValue.serverTimestamp()});
+
   /// 칭호 장착 ([index]가 null이면 자동: 레벨에 맞는 가장 높은 칭호). 아직 얻지 못한 칭호는 장착할 수 없다.
   Future<void> setTitle(int? index) => _tx((tx) async {
         final u = (await tx.get(_user)).data()!;
@@ -272,7 +275,7 @@ class FirestoreGameService {
         final u = (await tx.get(_user)).data()!;
         final total = price * qty;
         final money = _int(u['money']);
-        if (money < total) throw StateError('포인트가 부족합니다');
+        if (money < total) throw StateError('오늘 상품을 다 썼습니다!');
         final have = _int(_asMap(u['items'])?[key]);
         tx.update(_user, {
           'money': money - total,
@@ -306,7 +309,6 @@ class FirestoreGameService {
           final cut = key == itemWater ? waterCut : boosterCut;
           if (key == itemWater) {
             final watered = _int(pm['watered']);
-            if (watered >= waterMaxPerPlot) throw StateError('물은 한 밭에 $waterMaxPerPlot번까지 줄 수 있어요');
             plotUpd['watered'] = watered + 1;
             userUpd['stats.water'] = FieldValue.increment(1);
             userUpd['exp'] = _int(u['exp']) + 2 * expBoost;
@@ -321,7 +323,6 @@ class FirestoreGameService {
           plotUpd['readyAt'] = Timestamp.fromDate(r);
         } else if (key == itemFertilizer) {
           final bonus = (pm['bonus'] as num?)?.toDouble() ?? 0;
-          if (bonus >= fertilizerMaxBonus - 1e-9) throw StateError('영양제는 한 밭에 $fertilizerMaxPerPlot번까지 쓸 수 있어요');
           plotUpd['bonus'] = bonus + fertilizerBonus;
           userUpd['stats.fertilizer'] = FieldValue.increment(1);
         } else {
@@ -405,7 +406,7 @@ class FirestoreGameService {
         final t = DateTime.now();
         final u = (await tx.get(_user)).data()!;
         final money = _int(u['money']);
-        if (money < price) throw StateError('포인트가 부족합니다');
+        if (money < price) throw StateError('오늘 상품을 다 썼습니다!');
         final items = _asMap(u['items']) ?? {};
         final upd = <String, dynamic>{
           'money': money - price,
@@ -431,7 +432,7 @@ class FirestoreGameService {
         if (item == null) throw StateError('알 수 없는 상품이에요');
         final u = (await tx.get(_user)).data()!;
         final pts = _int(u['points']);
-        if (pts < item.cost) throw StateError('포인트가 부족해요');
+        if (pts < item.cost) throw StateError('오늘 상품을 다 썼습니다!');
         final upd = <String, dynamic>{'points': pts - item.cost, 'updatedAt': FieldValue.serverTimestamp()};
         final items = _asMap(u['items']) ?? {};
         switch (key) {
@@ -573,7 +574,4 @@ class FirestoreGameService {
         });
         return rewarded;
       });
-
-  Future<void> sendFeedback(String text) =>
-      db.collection('feedback').add({'uid': uid, 'text': text.trim(), 'createdAt': FieldValue.serverTimestamp()});
 }
