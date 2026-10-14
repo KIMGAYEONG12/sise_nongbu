@@ -19,6 +19,7 @@ class FarmRepository {
   Future<void> setNickname(String name) => _db.setNickname(name);
   Future<void> setTitle(int? index) => _db.setTitle(index);
   Future<void> setAvatar(bool boy) => _db.setAvatar(boy);
+  Future<int> sellItem(String key, int qty) => _db.sellItem(key, qty);
   Future<void> resetMoney() => _db.resetMoney();
 
   /// 예전 성장 시간으로 심겨 있는 작물을 새 시간에 맞추고, 수확 알림도 다시 예약한다. 바뀐 밭 수를 돌려준다.

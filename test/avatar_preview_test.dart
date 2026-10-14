@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sise_nongbu/widgets/common.dart';
 
 void main() {
-  testWidgets('여자 아이 아바타가 그려진다', (tester) async {
+  testWidgets('여자 아이·남자 아이 아바타가 그려진다', (tester) async {
     final key = GlobalKey();
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
@@ -17,13 +17,13 @@ void main() {
             child: Container(
               color: const Color(0xFF79CBF3),
               padding: const EdgeInsets.all(16),
-              child: const Row(mainAxisSize: MainAxisSize.min, children: [FarmerAvatar(size: 240), SizedBox(width: 16), FarmerAvatar(size: 60)]),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [FarmerAvatar(size: 240), SizedBox(width: 16), FarmerAvatar(size: 240, boy: true), SizedBox(width: 16), FarmerAvatar(size: 60, boy: true)]),
             ),
           ),
         ),
       ),
     ));
-    expect(find.byType(FarmerAvatar), findsNWidgets(2));
+    expect(find.byType(FarmerAvatar), findsNWidgets(3));
     final out = Platform.environment['AVATAR_OUT'];
     if (out != null) {
       await tester.runAsync(() async {

@@ -136,6 +136,20 @@ int seedPackPrice() => (seedPackCrops.fold<int>(0, (a, c) => a + seedPrice(c)) *
 /// 씨앗은 파종비의 85% 가격. 가지고 있으면 파종할 때 파종비 대신 씨앗을 쓴다.
 int seedPrice(CropSpec c) => (c.seedCost * 0.85).round();
 
+/// 창고에서 아이템을 되팔 때 1개 값: 상점 가격의 절반 (팔 수 없는 아이템은 0)
+int itemSellPrice(String key) {
+  for (final i in consumables) {
+    if (i.key == key) return i.price ~/ 2;
+  }
+  if (key.startsWith('seed_')) {
+    final code = key.substring(5);
+    for (final c in crops) {
+      if (c.code == code) return seedPrice(c) ~/ 2;
+    }
+  }
+  return 0;
+}
+
 String itemName(String key) {
   for (final i in consumables) {
     if (i.key == key) return i.name;

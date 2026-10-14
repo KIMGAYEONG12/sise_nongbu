@@ -7,6 +7,7 @@ import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
 import '../widgets/crop_art.dart';
 import 'sell_page.dart';
+import '../core/korean.dart';
 
 /// 창고 탭: 보관 용량, 수확물(작물)과 아이템, 판매·창고 확장
 class InventoryPage extends ConsumerStatefulWidget {
@@ -32,6 +33,25 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
     );
     if (ok != true || !mounted) return;
     await runGuarded(context, ref.read(farmViewModelProvider).expandWarehouse, ok: '창고를 넓혔어요 📦');
+  }
+
+  /// 아이템 판매 창: 1개만 팔거나 모두 판다.
+  Future<void> _sellItem(String key, int have, int unit) async {
+    final name = itemName(key);
+    final qty = await showDialog<int>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: Text('${withJosa(name, '을', '를')} 팔까요?'),
+        content: Text('1개에 ${won(unit)}이에요 (상점 가격의 절반).\n지금 $have개 있어요.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d), child: const Text('취소')),
+          TextButton(onPressed: () => Navigator.pop(d, 1), child: Text('1개 팔기 (${won(unit)})')),
+          if (have > 1) TextButton(onPressed: () => Navigator.pop(d, have), child: Text('모두 팔기 (${won(unit * have)})')),
+        ],
+      ),
+    );
+    if (qty == null || !mounted) return;
+    await runGuarded(context, () => ref.read(farmViewModelProvider).sellItem(key, qty), ok: '$name $qty개가 판매되었습니다! +${won(unit * qty)}');
   }
 
   @override
@@ -75,7 +95,15 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
     }
     if (showItems) {
       for (final e in items) {
-        rows.add(_InvRow(leading: Text(itemEmoji(e.key), style: const TextStyle(fontSize: 28, height: 1)), title: itemName(e.key), trailing: '${e.value}개'));
+        final unit = itemSellPrice(e.key);
+        rows.add(_InvRow(
+          leading: Text(itemEmoji(e.key), style: const TextStyle(fontSize: 28, height: 1)),
+          title: itemName(e.key),
+          sub: unit > 0 ? '눌러서 판매 · 1개 ${won(unit)}' : null,
+          trailing: '${e.value}개',
+          // 아이템을 누르면 1개 또는 모두 팔 수 있다 (상점 가격의 절반)
+          onTap: unit > 0 ? () => _sellItem(e.key, e.value, unit) : null,
+        ));
       }
     }
 

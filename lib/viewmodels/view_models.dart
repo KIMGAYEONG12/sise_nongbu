@@ -299,6 +299,8 @@ class FarmViewModel {
   Future<void> setTitle(int? index) => _repo.setTitle(index);
   /// 프로필 캐릭터 (남자 아이 / 여자 아이)
   Future<void> setAvatar(bool boy) => _repo.setAvatar(boy);
+  /// 창고의 아이템을 되판다 (상점 가격의 절반). 받은 돈을 돌려준다.
+  Future<int> sellItem(String key, int qty) => _repo.sellItem(key, qty);
   Future<void> buyPointItem(PointItem i, {String? cropCode}) =>
       _repo.buyPointItem(i.key, cropCode: cropCode);
 

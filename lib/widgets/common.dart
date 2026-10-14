@@ -554,7 +554,7 @@ class FarmerAvatar extends StatelessWidget {
         ),
         child: ClipOval(
           child: boy
-              ? CustomPaint(size: Size.square(size), painter: const FarmerAvatarPainter(boy: true))
+              ? CustomPaint(size: Size.square(size), painter: const BoyBackAvatarPainter())
               : Image.asset(AppImages.avatarGirl, width: size, height: size, fit: BoxFit.cover, alignment: const Alignment(-.2, -.3), filterQuality: FilterQuality.high),
         ),
       );
@@ -761,4 +761,118 @@ class _TextInputDialogState extends State<_TextInputDialog> {
           TextButton(onPressed: _ok, child: Text(widget.okLabel)),
         ],
       );
+}
+
+/// 남자 아이 농부의 뒷모습: 여자 아이 아바타(튜토리얼 그림)처럼 밀짚모자를 쓰고 농장을 바라보는 모습.
+/// 하늘·나무·울타리·밭 배경 위에 짧은 갈색 머리, 빨간 띠 밀짚모자, 주황 셔츠와 파란 멜빵을 그렸다.
+class BoyBackAvatarPainter extends CustomPainter {
+  const BoyBackAvatarPainter();
+
+  static const _skin = Color(0xFFF6C79F);
+  static const _hair = Color(0xFF6B3E1F);
+  static const _straw = Color(0xFFF1D08A);
+  static const _strawDark = Color(0xFFC99A4B);
+  static const _blue = Color(0xFF3F74CF);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.width;
+    Offset p(double x, double y) => Offset(x * s, y * s);
+    Rect r(double l, double t, double rr, double b) => Rect.fromLTRB(l * s, t * s, rr * s, b * s);
+    Paint fill(Color c) => Paint()..color = c;
+    Paint line(Color c, double w) => Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * s
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..color = c;
+
+    // 배경: 하늘 → 나무 → 울타리 → 밭
+    canvas.drawRect(r(0, 0, 1, 1), Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF79C6F1), Color(0xFFC4E9F8)]).createShader(r(0, 0, 1, .7)));
+    for (final (x, y, rad, c) in [
+      (.08, .42, .2, const Color(0xFF4E9F3D)),
+      (-.02, .58, .16, const Color(0xFF5DB34A)),
+      (.9, .38, .17, const Color(0xFF4E9F3D)),
+      (1.02, .52, .15, const Color(0xFF5DB34A)),
+      (.76, .54, .12, const Color(0xFF6CC055)),
+    ]) {
+      canvas.drawCircle(p(x, y), rad * s, fill(c));
+    }
+    canvas.drawRect(r(0, .64, 1, 1), Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFD3E37E), Color(0xFFEAD879)]).createShader(r(0, .64, 1, 1)));
+    for (final y in [.63, .7]) {
+      canvas.drawLine(p(0, y), p(1, y), line(const Color(0xFFA86B3C), .02));
+    }
+    for (final x in [.04, .94]) {
+      canvas.drawLine(p(x, .58), p(x, .76), line(const Color(0xFF8E5730), .03));
+    }
+
+    // 몸: 주황 셔츠 위에 X자로 엇갈린 파란 멜빵
+    canvas.drawOval(Rect.fromCenter(center: p(.5, 1.1), width: .92 * s, height: .62 * s), fill(const Color(0xFFFF8A4C)));
+    canvas.drawPath(
+      Path()
+        ..moveTo(.3 * s, 1.0 * s)
+        ..quadraticBezierTo(.5 * s, .9 * s, .7 * s, 1.0 * s)
+        ..lineTo(.7 * s, 1.0 * s)
+        ..close(),
+      fill(_blue),
+    );
+    canvas.drawLine(p(.37, .82), p(.6, 1.02), line(_blue, .06));
+    canvas.drawLine(p(.63, .82), p(.4, 1.02), line(_blue, .06));
+    canvas.drawCircle(p(.5, .925), .022 * s, fill(const Color(0xFFFFD34E)));
+
+    // 목
+    canvas.drawRRect(RRect.fromRectAndRadius(r(.43, .7, .59, .86), Radius.circular(.04 * s)), fill(_skin));
+
+    // 뒷머리: 짧은 갈색 머리, 목덜미 쪽은 삐죽삐죽
+    canvas.drawCircle(p(.51, .56), .21 * s, fill(_hair));
+    final nape = Path()..moveTo(.36 * s, .66 * s);
+    var x = .36;
+    var down = true;
+    while (x < .66) {
+      x += .05;
+      nape.lineTo(x * s, (down ? .78 : .72) * s);
+      down = !down;
+    }
+    nape
+      ..lineTo(.66 * s, .64 * s)
+      ..close();
+    canvas.drawPath(nape, fill(_hair));
+    // 머리결
+    for (final dx in [-.08, 0.0, .08]) {
+      canvas.drawLine(p(.51 + dx, .56), p(.5 + dx * 1.3, .72), line(const Color(0x33000000), .01));
+    }
+    // 오른쪽 귀와 볼 끝 (살짝 옆을 보는 모습)
+    canvas.drawCircle(p(.72, .6), .04 * s, fill(_skin));
+    canvas.drawOval(Rect.fromCenter(center: p(.71, .68), width: .05 * s, height: .08 * s), fill(_skin));
+
+    // 밀짚모자: 살짝 기울어진 넓은 챙 → 둥근 윗부분 → 빨간 띠
+    canvas.save();
+    canvas.translate(p(.5, .38).dx, p(.5, .38).dy);
+    canvas.rotate(-.18);
+    canvas.translate(-p(.5, .38).dx, -p(.5, .38).dy);
+    final brim = Rect.fromCenter(center: p(.5, .36), width: .9 * s, height: .3 * s);
+    canvas.drawOval(brim, fill(_straw));
+    canvas.drawOval(brim, line(_strawDark, .012));
+    final crown = Path()
+      ..moveTo(.3 * s, .34 * s)
+      ..quadraticBezierTo(.29 * s, .08 * s, .5 * s, .08 * s)
+      ..quadraticBezierTo(.71 * s, .08 * s, .7 * s, .34 * s)
+      ..quadraticBezierTo(.5 * s, .41 * s, .3 * s, .34 * s)
+      ..close();
+    canvas.drawPath(crown, fill(const Color(0xFFF7DE9C)));
+    canvas.drawPath(crown, line(_strawDark, .01));
+    final band = Path()
+      ..moveTo(.292 * s, .26 * s)
+      ..quadraticBezierTo(.5 * s, .33 * s, .708 * s, .26 * s)
+      ..lineTo(.702 * s, .33 * s)
+      ..quadraticBezierTo(.5 * s, .4 * s, .298 * s, .33 * s)
+      ..close();
+    canvas.drawPath(band, fill(const Color(0xFFD9473A)));
+    // 윗부분 빛
+    canvas.drawOval(Rect.fromCenter(center: p(.44, .14), width: .18 * s, height: .07 * s), fill(const Color(0x66FFFFFF)));
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(BoyBackAvatarPainter old) => false;
 }
