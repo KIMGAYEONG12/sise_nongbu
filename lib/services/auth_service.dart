@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 /// 이메일·Google·게스트(익명) 로그인을 감싼 얇은 서비스
 class AuthService {
@@ -16,9 +17,20 @@ class AuthService {
     await cred.user?.updateDisplayName(nickname.trim());
   }
 
+  static Future<void>? _googleInit;
+
+  /// 브라우저 없이 기기의 Google 계정 고르기 창으로 로그인해 Firebase 자격 증명을 만든다.
+  /// 웹 클라이언트 ID는 google-services.json에서 자동으로 읽는다.
+  Future<AuthCredential> _googleCredential() async {
+    final google = GoogleSignIn.instance;
+    await (_googleInit ??= google.initialize());
+    final account = await google.authenticate();
+    return GoogleAuthProvider.credential(idToken: account.authentication.idToken);
+  }
+
   /// Firebase 콘솔에서 Google 로그인이 켜져 있어야 한다.
   Future<void> signInWithGoogle() async {
-    await _auth.signInWithProvider(GoogleAuthProvider());
+    await _auth.signInWithCredential(await _googleCredential());
   }
 
   Future<void> signInAsGuest() async {
@@ -44,12 +56,20 @@ class AuthService {
   Future<void> linkWithGoogle() async {
     final user = _auth.currentUser;
     if (user == null) throw FirebaseAuthException(code: 'no-current-user');
-    await user.linkWithProvider(GoogleAuthProvider());
+    await user.linkWithCredential(await _googleCredential());
   }
 
   Future<void> sendPasswordReset(String email) => _auth.sendPasswordResetEmail(email: email.trim());
 
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    // 다음 로그인 때 계정 고르기 창이 다시 나오도록 Google 쪽도 로그아웃한다.
+    if (_googleInit != null) {
+      try {
+        await GoogleSignIn.instance.signOut();
+      } catch (_) {}
+    }
+    await _auth.signOut();
+  }
 
   /// 사용자에게 보여줄 한국어 오류 문구
   static String message(Object e) {
@@ -88,6 +108,15 @@ class AuthService {
           return '로그인을 취소했어요';
         default:
           return e.message ?? '로그인에 실패했어요 (${e.code})';
+      }
+    }
+    if (e is GoogleSignInException) {
+      switch (e.code) {
+        case GoogleSignInExceptionCode.canceled:
+        case GoogleSignInExceptionCode.interrupted:
+          return '로그인을 취소했어요';
+        default:
+          return 'Google 로그인에 실패했어요 (${e.code.name})';
       }
     }
     return '$e';

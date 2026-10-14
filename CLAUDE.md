@@ -19,6 +19,17 @@ flutter run --dart-define-from-file=.env.local
 - 이 노트북(램 6GB)은 첫 빌드가 오래 걸린다(20분 가까이). 에뮬레이터는 810×1755, 밀도 360이 부드럽다. 학교 PC는 1080×2340, 밀도 440도 가능.
 - `flutter clean`은 이상한 오류가 날 때만 하고, 한 뒤에는 `flutter pub get`을 꼭 한다.
 
+## APK 만들기·탭에 설치
+```bash
+flutter build apk --release --target-platform android-arm64 --dart-define-from-file=.env.local
+```
+- 결과: `build/app/outputs/flutter-apk/app-release.apk`(약 38MB). release도 debug 키로 서명돼서 바로 설치되고, 그 PC의 SHA-1이 Firebase에 등록돼 있으면 구글 로그인도 된다.
+- 기기: 가영의 Galaxy Tab S6 Lite(SM-P610, arm64). 개발자 옵션·USB 디버깅을 켜 두었다. 연결하면 `adb install -r <apk>`로 바로 설치된다(처음 연결한 PC는 탭에서 "USB 디버깅 허용"을 눌러야 한다).
+- 케이블은 데이터가 되는 것이어야 한다(충전 전용 케이블은 PC에 안 뜬다).
+- 다른 PC에서 만든 APK는 서명 키가 달라서 덮어 설치가 안 된다. 탭의 앱을 지우고 설치한다(게스트 데이터는 사라지니 계정 연결을 먼저).
+- 이 노트북 D 드라이브는 전체 5GB라 빌드 중 "디스크 공간이 부족합니다"가 날 수 있다. 그때는 `flutter clean` 후 다시 빌드한다.
+- 구글 로그인은 `google_sign_in`(앱 안 계정 고르기)으로 한다. 브라우저 방식(`signInWithProvider`)은 크롬에 "missing initial state" 오류 창이 남아서 바꿨다.
+
 ## 학교 PC에서 처음 할 일
 1. 이 폴더를 받는다: `git clone https://github.com/KIMGAYEONG12/sise_nongbu.git` (비공개 저장소)
 2. `.env.local` 복사해 넣기
