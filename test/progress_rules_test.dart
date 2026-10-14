@@ -126,6 +126,15 @@ void main() {
     expect(periodClaimed(m, 'other'), isEmpty);
   });
 
+  test('업적은 id가 모두 다르고 목표·보상이 0보다 크다', () {
+    expect(achievements.map((a) => a.id).toSet().length, achievements.length);
+    for (final a in achievements) {
+      expect(a.target, greaterThan(0), reason: a.id);
+      expect(a.points, greaterThan(0), reason: a.id);
+      expect(const ['일반', '도전', '특별'], contains(a.category), reason: a.id);
+    }
+  });
+
   test('업적 진행도', () {
     final user = {'money': 250000, 'stats': {'harvest': 4}};
     final rich = achievementById('rich')!;

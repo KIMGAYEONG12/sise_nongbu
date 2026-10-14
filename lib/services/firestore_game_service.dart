@@ -312,8 +312,7 @@ class FirestoreGameService {
             userUpd['exp'] = _int(u['exp']) + 2 * expBoost;
             userUpd.addAll(_bumps(u, t, ['water']));
           } else {
-            if (pm['boosted'] == true) throw StateError('성장촉진제는 한 밭에 1번만 쓸 수 있어요');
-            plotUpd['boosted'] = true;
+            plotUpd['boosted'] = true; // 횟수 제한 없음 (여러 번 써도 된다)
             userUpd['stats.booster'] = FieldValue.increment(1);
           }
           var r = ready.subtract(Duration(milliseconds: (growMs * cut).round()));

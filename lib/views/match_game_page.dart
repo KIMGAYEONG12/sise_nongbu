@@ -663,7 +663,7 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
                       fontWeight: FontWeight.w700)),
               Text(value,
                   style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 17,
                       fontWeight: FontWeight.w900,
                       color: Color(0xFF000000))),
             ]),
@@ -704,15 +704,15 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
                 fontWeight: FontWeight.w900,
                 color: Color(0xFF000000))),
         const SizedBox(height: 6),
-        // 모든 줄이 같은 개수가 되도록 줄을 나눈다 (작물 수의 약수). 약수가 없으면 줄마다 개수를 고르게 나눈다.
+        // 4칸씩, 난이도 버튼 줄과 같은 폭으로 놓는다
         LayoutBuilder(builder: (context, box) {
-          const gap = 6.0;
+          const gap = 8.0;
           final layout = matchPickerLayout(matchCrops.length, box.maxWidth);
           var i = 0;
           return Column(mainAxisSize: MainAxisSize.min, children: [
             for (var r = 0; r < layout.rows.length; r++) ...[
               if (r > 0) const SizedBox(height: gap),
-              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Row(mainAxisAlignment: MainAxisAlignment.start, children: [
                 for (var k = 0; k < layout.rows[r]; k++) ...[
                   if (k > 0) const SizedBox(width: gap),
                   SizedBox(width: layout.chip, child: _cropChip(matchCrops[i++])),
@@ -928,19 +928,9 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
 }
 
 /// 작물 고르기 목록의 줄 구성. 작물 [n]개를 폭 [width]에 나눠 놓는다.
-/// 모든 줄이 같은 개수가 되도록 [n]의 약수(7·6·5·4·3·2칸) 중 칩이 너무 작아지지 않는 가장 큰 칸 수를 쓴다.
-/// 그런 약수가 없으면(예: 소수) 줄마다 개수를 고르게 나눈다 (줄 사이 차이는 1개 이하).
+/// 항상 4칸씩 놓고, 칩은 쉬움·보통·어려움 줄과 같은 폭(양쪽 끝이 맞음)을 꽉 채운다. 남는 작물은 마지막 줄 왼쪽부터 놓는다.
 ({List<int> rows, double chip}) matchPickerLayout(int n, double width) {
-  const gap = 6.0, minChip = 46.0, maxChip = 84.0, fallbackChip = 56.0;
-  if (n <= 0) return (rows: const <int>[], chip: fallbackChip);
-  for (final c in const [7, 6, 5, 4, 3, 2]) {
-    if (n % c != 0) continue;
-    final w = (width - gap * (c - 1)) / c;
-    if (w < minChip) continue;
-    return (rows: List<int>.filled(n ~/ c, c), chip: w.clamp(minChip, maxChip).toDouble());
-  }
-  final perRow = ((width + gap) / (fallbackChip + gap)).floor().clamp(1, n).toInt();
-  final rows = (n / perRow).ceil();
-  final base = n ~/ rows, extra = n % rows; // 앞의 [extra]줄이 하나씩 더 많다
-  return (rows: [for (var r = 0; r < rows; r++) base + (r < extra ? 1 : 0)], chip: fallbackChip);
+  const cols = 4, gap = 8.0;
+  final chip = (width - gap * (cols - 1)) / cols;
+  return (rows: [for (var left = n; left > 0; left -= cols) left < cols ? left : cols], chip: chip);
 }

@@ -23,7 +23,13 @@ void main() {
     expect(farmerTitles[farmerTitleIndex(2)].name, '새싹 농부');
     expect(farmerTitles[farmerTitleIndex(3)].name, '초보 농부');
     expect(farmerTitles[farmerTitleIndex(9)].name, '베테랑 농부');
-    expect(farmerTitles[farmerTitleIndex(99)].name, '전설의 농부');
+    expect(farmerTitles[farmerTitleIndex(17)].name, '전설의 농부');
+    expect(farmerTitles[farmerTitleIndex(30)].name, '대농장주');
+    expect(farmerTitles[farmerTitleIndex(999)].name, '농부의 신');
+    // 레벨 기준이 앞에서부터 차례대로 커진다
+    for (var i = 1; i < farmerTitles.length; i++) {
+      expect(farmerTitles[i].minLevel, greaterThan(farmerTitles[i - 1].minLevel));
+    }
     // 레벨이 한 번 오를 때마다 칭호 단계가 1씩 오르고, 칭호가 바뀌면 1단계부터 다시 시작한다
     expect([for (final l in [1, 2, 3, 4, 5, 9, 10, 11]) farmerTitleRank(l)], [1, 2, 1, 2, 1, 3, 1, 2]);
     expect(farmerTitleRank(0), 1);

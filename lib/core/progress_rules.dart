@@ -109,7 +109,7 @@ class ShopItem {
 const consumables = [
   ShopItem(itemWater, '물통', '💧', 500, '물주기 1회 · 성장 시간 3% 단축 (밭당 최대 10회)'),
   ShopItem(itemFertilizer, '영양제', '🧪', 1500, '수확량 +20% (밭당 최대 10회)'),
-  ShopItem(itemBooster, '성장촉진제', '⚡', 3000, '성장 시간 30% 단축 (밭당 1회)'),
+  ShopItem(itemBooster, '성장촉진제', '⚡', 3000, '성장 시간 30% 단축 (횟수 제한 없음)'),
 ];
 
 /// 묶음 상품: 같은 아이템을 여러 개 한꺼번에 사면 10% 싸다.
@@ -290,6 +290,22 @@ const achievements = [
   AchievementDef('big_farm', '대규모 농장', '밭을 9칸 이상으로 넓혀요', '🌾', '도전', 50, 'plots', 9),
   AchievementDef('puzzle', '퍼즐 마스터', '작물 매칭을 1번 완료해요', '🧩', '특별', 20, 'stats.game', 1),
   AchievementDef('helper', '마을의 은인', '마을 공동기금에 합계 10,000P를 기부해요', '🏡', '특별', 40, 'stats.donate', 10000),
+  AchievementDef('plant50', '씨앗 부자', '작물을 50번 파종해요', '🌰', '일반', 40, 'stats.plant', 50),
+  AchievementDef('harvest50', '풍년이로세', '작물을 50번 수확해요', '🌽', '일반', 80, 'stats.harvest', 50),
+  AchievementDef('harvest100', '수확왕', '작물을 100번 수확해요', '👑', '일반', 150, 'stats.harvest', 100),
+  AchievementDef('water50', '물의 요정', '물주기를 50번 해요', '🧚', '일반', 60, 'stats.water', 50),
+  AchievementDef('fertilizer10', '영양 만점', '영양제를 10번 써요', '🌿', '일반', 40, 'stats.fertilizer', 10),
+  AchievementDef('booster10', '번개 농부', '성장촉진제를 10번 써요', '⚡', '일반', 50, 'stats.booster', 10),
+  AchievementDef('harvest_kg500', '500kg 수확', '수확량을 합쳐서 500kg을 모아요', '⚖️', '일반', 70, 'stats.harvestKg', 500),
+  AchievementDef('sell50', '출하 달인', '작물을 50번 판매해요', '📦', '도전', 100, 'stats.sell', 50),
+  AchievementDef('good_sell10', '시세 도사', '시세가 오른 날 작물을 10번 판매해요', '🔮', '도전', 100, 'stats.goodSell', 10),
+  AchievementDef('rich1m', '백만장자 농부', '보유 자금 1,000,000P를 달성해요', '💎', '도전', 150, 'money', 1000000),
+  AchievementDef('plots15', '농장 확장 중', '밭을 15칸 이상으로 넓혀요', '🟫', '도전', 80, 'plots', 15),
+  AchievementDef('plots24', '끝없는 밭', '밭을 최대 24칸까지 넓혀요', '🏞️', '도전', 150, 'plots', 24),
+  AchievementDef('shop10', '단골 손님', '상점에서 10번 구매해요', '🛒', '특별', 40, 'stats.shop', 10),
+  AchievementDef('puzzle5', '퍼즐 중독', '작물 매칭을 5번 완료해요', '🧠', '특별', 50, 'stats.game', 5),
+  AchievementDef('puzzle20', '매칭의 신', '작물 매칭을 20번 완료해요', '🏅', '특별', 120, 'stats.game', 20),
+  AchievementDef('helper100k', '마을의 영웅', '마을 공동기금에 합계 100,000P를 기부해요', '🦸', '특별', 120, 'stats.donate', 100000),
 ];
 
 AchievementDef? achievementById(String id) {
@@ -395,6 +411,14 @@ const farmerTitles = [
   FarmerTitle(10, '농장 이장님', '🏡'),
   FarmerTitle(13, '농업 명인', '🏆'),
   FarmerTitle(17, '전설의 농부', '👑'),
+  FarmerTitle(20, '농산물 박사', '🎓'),
+  FarmerTitle(25, '시세 박사', '📊'),
+  FarmerTitle(30, '대농장주', '🚜'),
+  FarmerTitle(40, '스마트팜 대표', '🤖'),
+  FarmerTitle(50, '농업의 달인', '🌟'),
+  FarmerTitle(60, '풍요의 수호자', '🛡️'),
+  FarmerTitle(75, '우주 농부', '🚀'),
+  FarmerTitle(100, '농부의 신', '🔱'),
 ];
 
 /// [level]에 맞는 칭호의 번호 (farmerTitles의 위치)

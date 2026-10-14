@@ -86,7 +86,7 @@ void main() {
   });
 
   for (final size in const [Size(360, 640), Size(411, 891), Size(320, 600)]) {
-    testWidgets('작물 고르기 목록은 모든 줄의 개수가 똑같다 (${size.width.toInt()}폭)', (tester) async {
+    testWidgets('작물 고르기 목록은 4칸씩 놓이고 난이도 버튼 줄과 폭이 같다 (${size.width.toInt()}폭)', (tester) async {
       tester.view.physicalSize = size * 3;
       tester.view.devicePixelRatio = 3;
       addTearDown(tester.view.reset);
@@ -102,26 +102,24 @@ void main() {
         perRow.add(ys.where((o) => (o - y).abs() < 1).length);
       }
       expect(tester.takeException(), isNull);
-      expect(perRow.reduce((a, b) => a < b ? a : b), greaterThan(1), reason: '한 줄에 하나만 있는 작물이 없다');
-      final most = perRow.reduce((a, b) => a > b ? a : b), least = perRow.reduce((a, b) => a < b ? a : b);
-      expect(most, least, reason: '모든 줄의 작물 개수가 똑같다 (21종은 3의 배수 줄 또는 7의 배수 줄)');
+      expect(perRow.reduce((a, b) => a > b ? a : b), 4, reason: '한 줄에 최대 4칸');
+      // 첫 칩의 왼쪽 끝이 '쉬움' 버튼의 왼쪽 끝과 같다
+      final chipLeft = tester.getTopLeft(find.ancestor(of: find.text(cropOf(matchCrops.first).name), matching: find.byType(GestureDetector)).first).dx;
+      final easyLeft = tester.getTopLeft(find.ancestor(of: find.text('쉬움'), matching: find.byType(GestureDetector)).first).dx;
+      expect((chipLeft - easyLeft).abs(), lessThan(1.5), reason: '작물 칩 왼쪽 $chipLeft, 쉬움 왼쪽 $easyLeft');
     });
   }
 
-  test('작물 고르기 줄 구성: 약수가 있으면 모든 줄이 같고, 없으면 차이가 1개 이하', () {
+  test('작물 고르기 줄 구성: 4칸씩, 남는 작물은 마지막 줄', () {
     for (final width in [260.0, 300.0, 330.0, 360.0, 400.0, 500.0]) {
       final l = matchPickerLayout(21, width);
-      expect(l.rows.reduce((a, b) => a + b), 21);
-      expect(l.rows.toSet().length, 1, reason: '21종 · $width폭 → ${l.rows}');
-      expect(l.chip, inInclusiveRange(46, 84));
+      expect(l.rows, [4, 4, 4, 4, 4, 1]);
+      expect(l.chip * 4 + 8 * 3, closeTo(width, 0.001)); // 4칸 + 칸 사이 틈이 폭을 꽉 채운다
     }
-    expect(matchPickerLayout(21, 300).rows, List<int>.filled(7, 3)); // 좁으면 3칸 × 7줄
-    expect(matchPickerLayout(21, 400).rows, List<int>.filled(3, 7)); // 넓으면 7칸 × 3줄
-    expect(matchPickerLayout(20, 330).rows, List<int>.filled(4, 5)); // 20종이면 5칸 × 4줄
+    expect(matchPickerLayout(20, 330).rows, List<int>.filled(5, 4));
+    expect(matchPickerLayout(0, 330).rows, isEmpty);
     for (final n in [1, 2, 7, 13, 23, 29]) {
-      final l = matchPickerLayout(n, 330);
-      expect(l.rows.reduce((a, b) => a + b), n);
-      expect(l.rows.reduce((a, b) => a > b ? a : b) - l.rows.reduce((a, b) => a < b ? a : b), lessThanOrEqualTo(1), reason: '$n종 → ${l.rows}');
+      expect(matchPickerLayout(n, 330).rows.reduce((a, b) => a + b), n);
     }
   });
 }
