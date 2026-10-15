@@ -58,3 +58,9 @@ env.json
 
 # 카톡 등으로 옮기려고 꺼내 둔 APK
 *.apk
+
+# 플레이 스토어 업로드 키와 그 비밀번호 파일(잃어버리지 않게 USB에 따로 보관)
+key.properties
+*.jks
+*.keystore
+*.aab
