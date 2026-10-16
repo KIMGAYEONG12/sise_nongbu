@@ -169,7 +169,14 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
       }
     }
 
-    return Scaffold(
+    // 뒤로 가기(휴대폰 버튼·화면의 <)를 누르면 "뒤로 가겠습니까?" 창을 먼저 띄운다
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        if (await _confirmBack() && context.mounted) Navigator.of(context).pop();
+      },
+      child: Scaffold(
       body: GameBackground(
         child: SafeArea(
           child: Column(children: [
@@ -178,7 +185,7 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
               title: '작물 성장',
               center: false,
               leading: spec == null ? const Icon(Icons.eco_rounded, size: 26, color: AppColors.green) : CropArt(code: spec.code, size: 30),
-              onBack: () => Navigator.of(context).pop(),
+              onBack: () => Navigator.of(context).maybePop(),
             ),
             Expanded(
               child: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
@@ -257,7 +264,24 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
           ]),
         ),
       ),
+    ),
     );
+  }
+
+  Future<bool> _confirmBack() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('뒤로 가겠습니까?', style: TextStyle(fontWeight: FontWeight.w900)),
+        content: const Text('작물은 그대로 자라고 있어요.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(d).pop(false), child: const Text('취소')),
+          TextButton(onPressed: () => Navigator.of(d).pop(true), child: const Text('뒤로 가기', style: TextStyle(fontWeight: FontWeight.w800))),
+        ],
+      ),
+    );
+    return ok == true;
   }
 }
 
@@ -324,7 +348,7 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final empty = count != null && count == 0;
-    final mark = count != null ? '$count' : badge;
+    final mark = count != null ? '∞' : badge; // 물주기·영양제·성장촉진제는 무제한
     return Expanded(
       child: GestureDetector(
         onTap: onTap,

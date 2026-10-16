@@ -80,7 +80,7 @@ List<NewsItem> buildNews(Map<String, AuctionPrice> prices) {
   news.addAll(const [
     NewsItem('이벤트', '📋', '미션을 완료하고 포인트를 받아요', '일일·주간 미션을 채우면 포인트 보상을 받을 수 있어요.', go: NewsGo.missions),
     NewsItem('이벤트', '🏡', '마을 공동기금 모으기', '기금이 25·50·75·100%에 도달하면 기부한 농부에게 포인트를 드려요.', go: NewsGo.fund),
-    NewsItem('이벤트', '🧩', '작물 매칭 도전', '하루 $gameDailyRewardLimit번까지 점수에 따라 자금과 포인트를 받아요.', go: NewsGo.match),
+    NewsItem('이벤트', '🥬', '작물 매칭 도전', '하루 $gameDailyRewardLimit번까지 점수에 따라 자금과 포인트를 받아요.', go: NewsGo.match),
     NewsItem('특수', '🏠', '하우스로 더 빨리 키워요', '하우스를 지을 때마다 모든 작물의 성장 시간이 줄어요. 10채면 최대 70%까지 줄어요.', go: NewsGo.shop),
     NewsItem('특수', '🧰', '특별 보관함', '특별 상점에서 창고 용량을 늘릴 수 있어요.', go: NewsGo.pointShop),
     NewsItem('특수', '🥔', '감자는 가장 빨리 자라요', '성장 시간이 짧아 자주 수확하고 싶을 때 좋아요.', openCrop: 'POTATO'),

@@ -16,15 +16,15 @@ void main() {
   test('창고 용량과 확장 비용', () {
     expect(warehouseCapKg(0, 0), 200);
     expect(warehouseCapKg(2, 50), 450);
-    expect(warehouseCost(0), 20000);
-    expect(warehouseCost(2), 60000);
+    expect(warehouseCost(0), 2000);
+    expect(warehouseCost(2), 6000);
   });
 
   test('밭 확장 비용: 6칸 5만, 9칸 10만, 12칸은 최대', () {
-    expect(plotExpandCost(6), 50000);
-    expect(plotExpandCost(9), 100000);
-    expect(plotExpandCost(12), 150000);
-    expect(plotExpandCost(21), 300000);
+    expect(plotExpandCost(6), 5000);
+    expect(plotExpandCost(9), 10000);
+    expect(plotExpandCost(12), 15000);
+    expect(plotExpandCost(21), 30000);
     expect(plotExpandCost(24), isNull);
   });
 
@@ -40,10 +40,10 @@ void main() {
     expect(greenhouseFactor(11), closeTo(0.3, 1e-9));
     expect(greenhouseFactor(1000), closeTo(0.3, 1e-9));
     expect(greenhouseFactor(-3), 1.0);
-    expect(greenhouseCostFor(0), 20000);
-    expect(greenhouseCostFor(4), 60000);
-    expect(greenhouseCostFor(5), 70000); // 5채 뒤에도 더 지을 수 있다
-    expect(greenhouseCostFor(20), 220000);
+    expect(greenhouseCostFor(0), 2000);
+    expect(greenhouseCostFor(4), 6000);
+    expect(greenhouseCostFor(5), 7000); // 5채 뒤에도 더 지을 수 있다
+    expect(greenhouseCostFor(20), 22000);
   });
 
   test('레벨 업 보상은 레벨이 높을수록 커진다', () {

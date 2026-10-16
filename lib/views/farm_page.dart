@@ -51,7 +51,7 @@ class FarmPage extends ConsumerWidget {
 
     final shortcuts = <(String, String, VoidCallback, String?)>[
       ('📋', '미션', () => _push(context, const MissionPage()), '$dailyDone/${dailyMissions.length}'),
-      ('🧩', '작물 매칭', () => _push(context, const MatchGamePage()), null),
+      ('🥬', '작물 매칭', () => _push(context, const MatchGamePage()), null),
       ('📖', '작물 도감', () => _push(context, const EncyclopediaPage()), null),
       ('📰', '농부 뉴스', () => _push(context, const NewsPage()), null),
       ('🏡', '마을 기금', () => _push(context, const FundPage()), null),

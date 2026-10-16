@@ -48,7 +48,7 @@ const vaultStepKg = 50;
 int warehouseCapKg(int level, int bonusKg) => baseWarehouseKg + warehouseStepKg * level + bonusKg;
 
 /// 창고 확장 비용. 레벨 0 → 20,000원, 1 → 40,000원 …
-int warehouseCost(int level) => 20000 * (level + 1);
+int warehouseCost(int level) => 2000 * (level + 1); // 농장 시설은 싸게
 
 const maxPlots = 24; // 6칸에서 시작해 3칸씩 6번 넓힐 수 있다
 const plotExpandStep = 3;
@@ -57,7 +57,7 @@ const plotExpandStep = 3;
 int? plotExpandCost(int currentPlots) {
   if (currentPlots >= maxPlots) return null;
   final steps = (currentPlots - plotCount) ~/ plotExpandStep;
-  return 50000 * (steps < 0 ? 1 : steps + 1);
+  return 5000 * (steps < 0 ? 1 : steps + 1); // 농장 시설은 싸게
 }
 
 /// 잘못 심은 작물을 뽑을 때, 심은 지 이 시간 안이면 파종비(또는 씨앗)를 돌려준다.
@@ -72,7 +72,7 @@ const greenhouseLateStep = 0.04;
 const greenhouseMaxCut = 0.7;
 
 /// [owned]채를 가진 상태에서 다음 하우스를 짓는 비용. 20,000원부터 10,000원씩 늘어난다 (채 수 제한 없음).
-int greenhouseCostFor(int owned) => 20000 + 10000 * (owned < 0 ? 0 : owned);
+int greenhouseCostFor(int owned) => 2000 + 1000 * (owned < 0 ? 0 : owned); // 농장 시설은 싸게
 
 /// 하우스 [count]채가 있을 때 성장 시간 배율 (1.0 → 0.9 → … 5채 0.5 → 6채 0.46 … 10채 0.3, 그 뒤로는 0.3 그대로)
 double greenhouseFactor(int count) {
@@ -272,14 +272,14 @@ const dailyMissions = [
   MissionDef('d_harvest', '작물 1개 수확하기', '🧺', 'harvest', 1, 20, false),
   MissionDef('d_shop', '농장 상점 이용하기', '🛒', 'shop', 1, 30, false),
   MissionDef('d_sell', '작물 1번 판매하기', '💰', 'sell', 1, 25, false),
-  MissionDef('d_game', '작물 매칭 1번 하기', '🧩', 'game', 1, 20, false),
+  MissionDef('d_game', '작물 매칭 1번 하기', '🥬', 'game', 1, 20, false),
 ];
 
 const weeklyMissions = [
   MissionDef('w_harvest', '작물 10번 수확하기', '🧺', 'harvest', 10, 100, true),
   MissionDef('w_sell', '작물 5번 판매하기', '💰', 'sell', 5, 100, true),
   MissionDef('w_plant', '작물 15번 파종하기', '🌱', 'plant', 15, 80, true),
-  MissionDef('w_game', '작물 매칭 3번 하기', '🧩', 'game', 3, 50, true),
+  MissionDef('w_game', '작물 매칭 3번 하기', '🥬', 'game', 3, 50, true),
   MissionDef('w_water', '작물에 물 20회 주기', '💧', 'water', 20, 80, true),
   MissionDef('w_shop', '농장 상점 5번 이용하기', '🛒', 'shop', 5, 70, true),
 ];
@@ -309,7 +309,7 @@ const achievements = [
   AchievementDef('sell10', '단골 출하', '작물을 10번 판매해요', '🚚', '도전', 60, 'stats.sell', 10),
   AchievementDef('rich', '부자 농부', '보유 자금 200,000P를 달성해요', '💰', '도전', 50, 'money', 200000),
   AchievementDef('big_farm', '대규모 농장', '밭을 9칸 이상으로 넓혀요', '🌾', '도전', 50, 'plots', 9),
-  AchievementDef('puzzle', '퍼즐 마스터', '작물 매칭을 1번 완료해요', '🧩', '특별', 20, 'stats.game', 1),
+  AchievementDef('puzzle', '퍼즐 마스터', '작물 매칭을 1번 완료해요', '🥬', '특별', 20, 'stats.game', 1),
   AchievementDef('helper', '마을의 은인', '마을 공동기금에 합계 10,000P를 기부해요', '🏡', '특별', 40, 'stats.donate', 10000),
   AchievementDef('plant50', '씨앗 부자', '작물을 50번 파종해요', '🌰', '일반', 40, 'stats.plant', 50),
   AchievementDef('harvest50', '풍년이로세', '작물을 50번 수확해요', '🌽', '일반', 80, 'stats.harvest', 50),

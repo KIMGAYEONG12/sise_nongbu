@@ -816,7 +816,7 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
       final lv = _lv;
       final s = _saved;
       return Column(mainAxisSize: MainAxisSize.min, children: [
-        const Text('🧩', style: TextStyle(fontSize: 46)),
+        const Text('🥬', style: TextStyle(fontSize: 46)),
         const SizedBox(height: 4),
         const Text('작물 매칭',
             style: TextStyle(

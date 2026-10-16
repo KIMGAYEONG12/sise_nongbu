@@ -95,7 +95,7 @@ class _AchievementPageState extends ConsumerState<AchievementPage> {
                                   child: OutlinedButton(
                                     onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => _goTo(a.id)!)),
                                     style: OutlinedButton.styleFrom(foregroundColor: AppColors.greenDark, side: const BorderSide(color: AppColors.green, width: 1.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17))),
-                                    child: Text(a.id == 'puzzle' ? '🧩 퍼즐 하러 가기' : '🏡 기부하러 가기', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900)),
+                                    child: Text(a.id == 'puzzle' ? '🥬 퍼즐 하러 가기' : '🏡 기부하러 가기', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900)),
                                   ),
                                 ),
                               ),

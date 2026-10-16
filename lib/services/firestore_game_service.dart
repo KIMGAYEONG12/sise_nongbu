@@ -328,14 +328,14 @@ class FirestoreGameService {
         final pm = (await tx.get(pref)).data() ?? {};
         if (pm['cropCode'] == null) throw StateError('작물이 심어진 밭에만 쓸 수 있어요');
         final have = _int(_asMap(u['items'])?[key]);
-        if (have <= 0) throw StateError('아이템이 없어요. 상점에서 구매해 주세요');
+        // 물주기·영양제·성장촉진제는 무제한 (개수를 쓰지 않는다)
         final ready = (pm['readyAt'] as Timestamp?)?.toDate();
         if (ready == null) throw StateError('밭 정보를 읽지 못했어요');
         final left = ready.difference(t).inMilliseconds;
         final growMs = _int(pm['growMs']) > 0 ? _int(pm['growMs']) : (left > 0 ? left : 1);
 
         final plotUpd = <String, dynamic>{};
-        final userUpd = <String, dynamic>{'items.$key': have - 1, 'updatedAt': FieldValue.serverTimestamp()};
+        final userUpd = <String, dynamic>{'items.$key': have, 'updatedAt': FieldValue.serverTimestamp()};
         DateTime? newReady;
         if (key == itemWater || key == itemBooster) {
           if (left <= 0) throw StateError('이미 다 자랐어요. 수확해 주세요');
