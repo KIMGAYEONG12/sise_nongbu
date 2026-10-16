@@ -1,7 +1,7 @@
 name: sise_nongbu
 description: 실제 공영도매시장 경매 시세로 움직이는 농장 시뮬레이션 게임
 publish_to: none
-version: 1.0.0+5
+version: 1.0.0+6
 environment:
   sdk: ">=3.3.0 <4.0.0"
 dependencies:
