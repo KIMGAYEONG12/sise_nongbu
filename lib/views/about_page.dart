@@ -81,7 +81,7 @@ class AboutPage extends ConsumerWidget {
                         subtitle: const Padding(
                           padding: EdgeInsets.only(top: 6),
                           child: const KoText(
-                              '발표·시연용이에요. 켜면 어떤 작물이든 심고 1초 뒤에 바로 수확할 수 있어요.\n켠 뒤에 새로 심는 작물부터 적용되고, 이미 심은 작물은 원래 속도로 자라요.',
+                              '켜면 어떤 작물이든 심고 1초 뒤에 바로 수확할 수 있어요.\n켠 뒤에 새로 심는 작물부터 적용되고, 이미 심은 작물은 원래 속도로 자라요.',
                               style: _bodyStyle),
                         ),
                         isThreeLine: true,

@@ -55,7 +55,7 @@ const lockedCrops = <(String, String, String)>[];
 
 CropSpec cropOf(String code) => crops.firstWhere((c) => c.code == code);
 
-/// 데모 모드(발표·시연용) 배속 값. 이 값이면 작물 종류와 상관없이 파종 1초 뒤에 수확할 수 있다.
+/// 데모 모드 배속 값. 이 값이면 작물 종류와 상관없이 파종 1초 뒤에 수확할 수 있다.
 const demoSpeed = 1000000;
 
 /// 데모 모드에서 작물이 다 자라는 시간

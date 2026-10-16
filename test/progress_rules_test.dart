@@ -40,10 +40,11 @@ void main() {
     expect(greenhouseFactor(11), closeTo(0.3, 1e-9));
     expect(greenhouseFactor(1000), closeTo(0.3, 1e-9));
     expect(greenhouseFactor(-3), 1.0);
-    expect(greenhouseCostFor(0), 2000);
-    expect(greenhouseCostFor(4), 6000);
-    expect(greenhouseCostFor(5), 7000); // 5채 뒤에도 더 지을 수 있다
-    expect(greenhouseCostFor(20), 22000);
+    // 하우스 값은 몇 채를 지어도 10,000으로 같다
+    expect(greenhouseCostFor(0), 10000);
+    expect(greenhouseCostFor(4), 10000);
+    expect(greenhouseCostFor(5), 10000);
+    expect(greenhouseCostFor(20), 10000);
   });
 
   test('레벨 업 보상은 레벨이 높을수록 커진다', () {

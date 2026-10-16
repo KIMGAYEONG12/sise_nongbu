@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import '../core/game_rules.dart';
 import '../models/models.dart';
+import 'rule_llm.dart';
 
 /// 도우미가 답할 때 참고하는 현재 농장 상황
 class AiContext {
@@ -82,6 +83,7 @@ const aiGameGuide = '''
 - 아이템: 물통은 성장 시간 3% 단축, 영양제·성장촉진제(30% 단축)도 횟수 제한 없이 쓸 수 있다. 상점에서 사거나 묶음으로 싸게 산다.
 - 판매: 창고에서 작물을 눌러 판다. 받는 돈 = kg × 오늘 시세 × 신선도. 오래 두면 신선도가 하루 5%씩 떨어진다.
 - 미션·업적을 깨면 포인트를 받고, 포인트로 특별 상점에서 산다.
+- 고객센터·문의: 아래 MY 탭 → 고객센터에서 자주 묻는 질문을 보고, '의견 보내기'에 적어 보내기를 누르면 메일 앱이 열려 운영자에게 보낼 수 있다.
 ''';
 
 /// 질문과 함께 보내는 사진 (카메라·앨범에서 고른 것)
@@ -115,12 +117,24 @@ const aiSuggestions = [
   ('🎮', '작물 매칭 점수 잘 받는 법'),
   ('🛒', '상점에서 뭘 사면 좋아?'),
   ('💡', '초보 농부 팁 알려줘'),
+  ('📮', '고객센터 문의는 어떻게 해?'),
 ];
 
-/// AI 농사 도우미: 두뇌(Llm)를 감싸고, 실패하면 알아듣기 쉬운 문구로 바꿔준다.
+/// 고객센터·문의 질문에 대한 정해진 답 (AI가 엉뚱한 답을 하지 않도록 바로 답한다)
+const aiSupportAnswer = '📮 고객센터는 아래 MY 탭 → 고객센터에 있어요.\n'
+    '자주 묻는 질문을 먼저 확인하고, 해결이 안 되면 맨 아래 의견 보내기에 내용을 적은 뒤 보내기를 눌러 주세요. 메일 앱이 열리면 거기서 보내기를 누르면 운영자에게 전달돼요.';
+
+/// 고객센터·문의·불편 신고 같은 질문인지
+bool isSupportQuestion(String q) {
+  final t = q.replaceAll(' ', '');
+  return const ['고객센터', '고객센타', '문의', '상담', '건의', '신고', '버그', '오류신고', '운영자', '개발자', '연락처', '이메일'].any(t.contains);
+}
+
+/// AI 농사 도우미: 두뇌(Llm)를 감싸고, 실패하면 오프라인 규칙 도우미로 대신 답한다.
 class AiAgent {
-  AiAgent(this._llm);
+  AiAgent(this._llm, {Llm fallback = const RuleBasedLlm()}) : _fallback = fallback;
   final Llm _llm;
+  final Llm _fallback;
 
   Future<String> ask(String question, AiContext ctx, {AiImage? image}) async {
     var q = question.trim();
@@ -128,8 +142,15 @@ class AiAgent {
       if (image == null) return '궁금한 걸 입력해 주세요!';
       q = aiDefaultPhotoQuestion; // 사진만 보냈으면 사진 속 내용을 물어본 것으로 본다
     }
+    if (image == null && isSupportQuestion(q)) return aiSupportAnswer;
     try {
-      return await _llm.complete(q, ctx, image: image);
+      final a = await _llm.complete(q, ctx, image: image);
+      if (a.trim().isNotEmpty) return a.trim();
+    } catch (_) {}
+    // 인터넷 AI가 실패하면(인터넷 끊김·한도 초과 등) 오프라인 도우미가 대신 답한다
+    if (identical(_llm, _fallback)) return '지금은 답을 가져오지 못했어요. 잠시 후 다시 물어봐 주세요.';
+    try {
+      return await _fallback.complete(q, ctx, image: image);
     } catch (_) {
       return '지금은 답을 가져오지 못했어요. 잠시 후 다시 물어봐 주세요.';
     }

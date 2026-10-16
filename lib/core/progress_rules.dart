@@ -71,8 +71,8 @@ const greenhouseStep = 0.1;
 const greenhouseLateStep = 0.04;
 const greenhouseMaxCut = 0.7;
 
-/// [owned]채를 가진 상태에서 다음 하우스를 짓는 비용. 20,000원부터 10,000원씩 늘어난다 (채 수 제한 없음).
-int greenhouseCostFor(int owned) => 2000 + 1000 * (owned < 0 ? 0 : owned); // 농장 시설은 싸게
+/// 하우스 한 채 값. 몇 채를 지어도(레벨이 올라도) 늘 10,000으로 같다.
+int greenhouseCostFor(int owned) => 10000;
 
 /// 하우스 [count]채가 있을 때 성장 시간 배율 (1.0 → 0.9 → … 5채 0.5 → 6채 0.46 … 10채 0.3, 그 뒤로는 0.3 그대로)
 double greenhouseFactor(int count) {
