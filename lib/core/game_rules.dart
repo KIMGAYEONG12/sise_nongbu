@@ -45,14 +45,13 @@ const crops = [
   CropSpec('PAPRIKA', '파프리카', '🫑', 11000, 9, 190, kind: '채소', desc: '색이 다양한 양채류예요. 사계절 거래되고 수출도 많아요.'),
   CropSpec('GARLIC', '마늘', '🧄', 9500, 6, 240, kind: '채소', desc: '조미채소류예요. 저장성이 좋아 시세 변동이 완만한 편이에요.'),
   CropSpec('BROCCOLI', '브로콜리', '🥦', 10000, 8, 140, kind: '채소', desc: '영양이 풍부한 양채류예요. 선선한 철에 거래가 늘어요.'),
+  CropSpec('BANANA', '바나나', '🍌', 11000, 10, 260, kind: '과일', desc: '수입 과일이라 사계절 꾸준히 거래돼요. 가격 변동이 작은 편이에요.'),
+  CropSpec('PEACH', '복숭아', '🍑', 14000, 6, 300, kind: '과일', desc: '여름 제철 과일이에요. 제철이 아니면 경매가 없어 시세가 안 나올 수 있어요.'),
+  CropSpec('LETTUCE', '양상추', '🥗', 9000, 10, 130, kind: '채소', desc: '샐러드에 쓰는 양채류예요. 날씨에 따라 가격이 크게 움직여요.'),
 ];
 
 /// 도감에 "준비 중"으로만 보여주는 작물 (아직 심을 수 없음)
-const lockedCrops = [
-  ('바나나', '🍌', 'BANANA'),
-  ('복숭아', '🍑', 'PEACH'),
-  ('양상추', '🥗', 'LETTUCE'),
-];
+const lockedCrops = <(String, String, String)>[];
 
 CropSpec cropOf(String code) => crops.firstWhere((c) => c.code == code);
 

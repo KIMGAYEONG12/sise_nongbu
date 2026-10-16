@@ -187,7 +187,7 @@ void cropPickerTests() {
     expect(matchCrops.length, crops.length);
     expect(validMatchCrops(['CABBAGE', 'POTATO']), isFalse);
     expect(validMatchCrops(['CABBAGE', 'CABBAGE', 'POTATO']), isFalse);
-    expect(validMatchCrops(['CABBAGE', 'POTATO', 'BANANA']), isFalse);
+    expect(validMatchCrops(['CABBAGE', 'POTATO', 'DURIAN']), isFalse); // 게임에 없는 작물
   });
 
   test('고른 작물이 저장에 남고, 작물 목록이 없는 예전 저장은 기본 작물로 읽는다', () {
