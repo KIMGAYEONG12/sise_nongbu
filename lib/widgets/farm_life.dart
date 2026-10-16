@@ -122,15 +122,12 @@ class _FarmLifeState extends State<FarmLife> with SingleTickerProviderStateMixin
                   top: FarmLife.patches[i].dy * k - cropSize * .86,
                   width: cropSize,
                   height: cropSize,
-                  // 바람에 흔들리는 작물: 한 바퀴(28초)에 14번, 약 7도까지 기울고 숨 쉬듯 살짝 커졌다 작아진다 (눈에 띄게)
-                  child: Transform.scale(
-                    scale: 1 + .035 * math.sin(t * math.pi * 2 * 14 * 2 + i),
+                  // 바람에 살랑이는 작물: 한 바퀴(28초)에 10번, 약 4도까지 천천히 기운다.
+                  // (예전에는 숨 쉬듯 커졌다 작아지기도 했는데, 작은 화면에서 깜빡이는 것처럼 보여서 뺐다)
+                  child: Transform.rotate(
+                    angle: math.sin(t * math.pi * 2 * 10 + i * 1.7) * .07,
                     alignment: Alignment.bottomCenter,
-                    child: Transform.rotate(
-                      angle: math.sin(t * math.pi * 2 * 14 + i * 1.7) * .12,
-                      alignment: Alignment.bottomCenter,
-                      child: cropArts[i],
-                    ),
+                    child: cropArts[i],
                   ),
                 ),
               // 순찰하는 최첨단 로봇 (하우스가 있으면 하우스 안에서 일하므로 여기서는 보이지 않는다)

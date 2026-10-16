@@ -27,6 +27,8 @@ class _AppRootState extends ConsumerState<AppRoot> {
     // 시안 순서: 스플래시 → 튜토리얼 → (로그인) → 농장.
     // 처음 실행일 때만 튜토리얼을 보여준다. 앱 정보에서 '앱을 켤 때 튜토리얼 보기'를 켜면 매번 보여준다.
     final show = _firstTime; // 튜토리얼은 처음 한 번만 (예전 '켤 때마다 보기' 설정이 남아 있어도 무시)
+    // 보여 주는 순간 '봤음'으로 저장한다: 튜토리얼 중간에 앱을 꺼도 다음에 켤 때 다시 나오지 않는다
+    if (show) prefs.setBool(tutorialDoneKey, true);
     setState(() => _stage = show ? 1 : 2);
   }
 

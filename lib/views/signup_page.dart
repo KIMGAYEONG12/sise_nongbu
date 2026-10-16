@@ -47,7 +47,10 @@ class _SignupPageState extends ConsumerState<SignupPage> {
     final pending = ref.read(pendingNicknameProvider.notifier);
     try {
       pending.state = _nick.text.trim();
-      await ref.read(authServiceProvider).signUp(_email.text, _pw.text, _nick.text);
+      final farm = ref.read(farmRepoProvider);
+      final linked = await ref.read(authServiceProvider).signUp(_email.text, _pw.text, _nick.text);
+      // 게스트 농장을 이어받았으면 농장 문서가 이미 있으니 닉네임만 새로 적는다
+      if (linked) await farm.setNickname(_nick.text);
       flag.state = false;
       if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
     } catch (e) {

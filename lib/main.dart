@@ -8,6 +8,7 @@ import 'firebase_options.dart'; // flutterfire configure로 생성
 import 'services/notification_service.dart';
 import 'viewmodels/view_models.dart';
 import 'views/app_root.dart';
+import 'widgets/app_frame.dart';
 import 'widgets/common.dart';
 import 'widgets/phone_frame.dart';
 
@@ -20,7 +21,6 @@ Future<void> main() async {
   FirebaseMessaging.onBackgroundMessage(_onBackground);
   // 로그인은 앱 안의 로그인·회원가입 화면에서 처리한다 (AppRoot → AuthGate)
   final noti = NotificationService();
-  await noti.init();
   final prefs = await SharedPreferences.getInstance();
   runApp(ProviderScope(
     overrides: [notificationProvider.overrideWithValue(noti), prefsProvider.overrideWithValue(prefs)],
@@ -37,9 +37,12 @@ Future<void> main() async {
           ),
           child: child!,
         );
-        return kIsWeb ? PhoneFrame(child: scaled) : scaled; // 웹(PC)에서는 휴대폰 테두리 안에 표시
+        // 웹(PC)에서는 휴대폰 테두리 안에, 갤럭시 탭처럼 넓은 화면에서는 가운데 세로 영역에 표시 (글자·그림이 잘리지 않게)
+        return kIsWeb ? PhoneFrame(child: scaled) : appFrameBuilder(context, scaled);
       },
       home: const AppRoot(),
     ),
   ));
+  // 알림 준비(권한 묻기 포함)는 첫 화면을 띄운 뒤에 한다: 예전에는 이걸 기다리느라 앱이 켜질 때 한참 빈 화면이었다
+  noti.init().catchError((Object e) => debugPrint('알림 준비 실패: $e'));
 }

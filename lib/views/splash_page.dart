@@ -19,10 +19,10 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 2600));
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500)); // 짧게: 앱이 빨리 켜지게
 
   /// 처음 한 번 재생하는 등장 연출
-  late final AnimationController _in = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100));
+  late final AnimationController _in = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
 
   /// 계속 반복하는 연출 (구름·빛·별빛·꽃잎)
   late final AnimationController _fx = AnimationController(vsync: this, duration: const Duration(milliseconds: 6000));
@@ -45,7 +45,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     // 다음 화면(튜토리얼·로그인·농장) 그림은 막대가 차는 동안 뒤에서 미리 읽는다.
     AppImages.precacheAll(context);
     await _c.forward();
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    await Future<void>.delayed(const Duration(milliseconds: 120));
     if (mounted && !_done) {
       _done = true;
       widget.onDone();

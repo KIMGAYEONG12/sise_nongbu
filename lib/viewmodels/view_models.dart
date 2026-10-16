@@ -77,7 +77,7 @@ final isGuestProvider = StreamProvider<bool>((ref) => ref.watch(authServiceProvi
 /// 튜토리얼을 막 끝냈으면 true. 이때는 예전에 쓰던 게스트(익명) 세션이 남아 있어도 로그인·회원가입 화면을 먼저 보여준다.
 final loginAfterTutorialProvider = StateProvider<bool>((_) => false);
 
-/// 튜토리얼을 다 봤는지 저장하는 키 (shared_preferences). 로그아웃하면 지워서 다음 실행 때 다시 보여준다.
+/// 튜토리얼을 봤는지 저장하는 키 (shared_preferences). 앱을 처음 켰을 때 한 번만 보여 주고, 로그아웃해도 지우지 않는다.
 const tutorialDoneKey = 'tutorialDone';
 
 /// 앱을 켤 때마다(스플래시 다음) 튜토리얼을 보여줄지 저장하는 키. 기본값은 보여주지 않기(false): 튜토리얼은 처음 한 번만 나온다.

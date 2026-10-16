@@ -49,7 +49,7 @@ class VeggiePainter extends CustomPainter {
     try {
       emoji = cropOf(code).emoji;
     } catch (_) {}
-    if (emoji == null) {
+    if (emoji == null || emoji.isEmpty) {
       canvas.drawCircle(c, r * .6, Paint()..color = const Color(0xFF6DAA3F));
       return;
     }
@@ -66,29 +66,29 @@ class VeggiePainter extends CustomPainter {
     ..cubicTo(c.dx - r * .26, c.dy - r * .5, c.dx - r * .16, c.dy - r * .86, c.dx, c.dy - r * .86)
     ..close();
 
-  /// 무화과 (사진처럼): 왼쪽은 꼭지가 달린 자주·갈색 통무화과(세로 줄무늬와 작은 점), 오른쪽은 반으로 자른 단면(연두 껍질·빨간 속살·씨).
+  /// 무화과 (사진처럼): 왼쪽은 꼭지가 달린 초록 통무화과(청무화과, 세로 줄무늬와 작은 점), 오른쪽은 반으로 자른 단면(초록 껍질·빨간 속살·씨).
   void _fig(Canvas canvas, Offset c, double r) {
-    // 왼쪽: 통무화과
+    // 왼쪽: 초록 통무화과
     final back = c.translate(-r * .36, -r * .04);
     final br = r * .8;
     final whole = _figShape(back, br);
     final wr = Rect.fromCircle(center: back, radius: br);
-    canvas.drawPath(whole, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFB7A645), Color(0xFF8A4A3A), Color(0xFF5E2A3A), Color(0xFF4A2030)], stops: [0, .32, .7, 1]).createShader(wr));
+    canvas.drawPath(whole, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFD3E07A), Color(0xFF9CC24C), Color(0xFF74A33A), Color(0xFF5B862E)], stops: [0, .32, .7, 1]).createShader(wr));
     canvas.save();
     canvas.clipPath(whole);
     for (final dx in const [-.55, -.3, -.08, .14, .36, .58]) {
       final stripe = Path()
         ..moveTo(back.dx + br * dx * .3, back.dy - br * .8)
         ..quadraticBezierTo(back.dx + br * dx * 1.25, back.dy + br * .2, back.dx + br * dx * .7, back.dy + br * .95);
-      canvas.drawPath(stripe, _line(const Color(0x55E7C27A), math.max(1, r * .05)));
+      canvas.drawPath(stripe, _line(const Color(0x55F4F8C8), math.max(1, r * .05)));
     }
-    final dot = Paint()..color = const Color(0x99F3E2B0);
+    final dot = Paint()..color = const Color(0x99F8F6D2);
     for (final (dx, dy) in const [(-.4, .1), (-.15, .35), (.2, .05), (.35, .45), (-.3, .6), (.05, .7), (.45, -.15), (-.5, -.2)]) {
       canvas.drawCircle(back.translate(br * dx, br * dy), math.max(.6, r * .022), dot);
     }
-    canvas.drawOval(Rect.fromCenter(center: back.translate(-br * .32, -br * .05), width: br * .2, height: br * .45), Paint()..color = const Color(0x40FFFFFF));
+    canvas.drawOval(Rect.fromCenter(center: back.translate(-br * .32, -br * .05), width: br * .2, height: br * .45), Paint()..color = const Color(0x50FFFFFF));
     canvas.restore();
-    canvas.drawPath(whole, _line(const Color(0xFF3A1622), math.max(1, r * .04)));
+    canvas.drawPath(whole, _line(const Color(0xFF3E5E1E), math.max(1, r * .04)));
     // 꼭지
     final stem = Path()
       ..moveTo(back.dx - br * .07, back.dy - br * .82)
@@ -104,7 +104,7 @@ class VeggiePainter extends CustomPainter {
     final front = c.translate(r * .4, r * .1);
     final fr = r * .76;
     final half = _figShape(front, fr);
-    canvas.drawPath(half, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFD9DE5A), Color(0xFFE8E07A)]).createShader(Rect.fromCircle(center: front, radius: fr))); // 연두 껍질
+    canvas.drawPath(half, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF9CC24C), Color(0xFFB9D468)]).createShader(Rect.fromCircle(center: front, radius: fr))); // 초록 껍질
     final inner = _figShape(front.translate(0, fr * .03), fr * .86);
     canvas.drawPath(inner, Paint()..color = const Color(0xFFFFF4D8)); // 흰 속껍질
     final flesh = _figShape(front.translate(0, fr * .07), fr * .7);
@@ -116,10 +116,10 @@ class VeggiePainter extends CustomPainter {
       final rr = fr * .32 * math.sqrt((k + .5) / 22);
       canvas.drawCircle(front.translate(math.cos(a) * rr * .8, fr * .22 + math.sin(a) * rr), math.max(.6, fr * .028), seed);
     }
-    canvas.drawPath(half, _line(const Color(0xFF8C8A2A), math.max(1, r * .035)));
+    canvas.drawPath(half, _line(const Color(0xFF5E7A1E), math.max(1, r * .035)));
   }
 
-  /// 호박: 주황색 골이 진 둥근 호박 + 짧은 줄기 + 동그란 잎 + 말린 덩굴 (얼굴 없는 귀여운 호박)
+  /// 호박: 노란 골이 진 둥근 호박(실제 늙은 호박 색) + 짧은 줄기 + 동그란 잎 + 말린 덩굴 (할로윈 얼굴 없음)
   void _pumpkin(Canvas canvas, Offset c, double r) {
     final body = c.translate(0, r * .14);
     final h = r * 1.42, w = r * 1.86;
@@ -127,8 +127,8 @@ class VeggiePainter extends CustomPainter {
     // 바깥 골 → 가운데 골 순서로 겹쳐 그려 통통한 호박 모양
     for (final (dx, ww) in const [(-.3, .52), (.3, .52), (-.14, .5), (.14, .5), (0.0, .46)]) {
       final seg = Rect.fromCenter(center: body.translate(w * dx, 0), width: w * ww, height: h);
-      canvas.drawOval(seg, _grad(seg, const [Color(0xFFFFC266), Color(0xFFF08A1C), Color(0xFFC85F0E)]));
-      canvas.drawOval(seg, _line(const Color(0xFFA9500D), math.max(1, r * .04)));
+      canvas.drawOval(seg, _grad(seg, const [Color(0xFFFFE47A), Color(0xFFF5BE2E), Color(0xFFD9940F)]));
+      canvas.drawOval(seg, _line(const Color(0xFFB0780C), math.max(1, r * .04)));
     }
     canvas.drawOval(Rect.fromCenter(center: body.translate(-w * .12, -h * .2), width: w * .12, height: h * .3), Paint()..color = const Color(0x66FFFFFF));
     // 줄기

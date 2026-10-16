@@ -33,7 +33,7 @@ class RuleBasedLlm implements Llm {
     for (final c in crops) {
       if (!q.contains(c.name)) continue;
       final p = ctx.prices[c.code];
-      if (p == null) return '${c.emoji} ${c.name} 시세를 아직 불러오지 못했어요.';
+      if (p == null) return '${c.label} 시세를 아직 불러오지 못했어요.';
       final prev = p.prevPerKg;
       final tip = prev == null || prev == 0
           ? ''
@@ -42,7 +42,7 @@ class RuleBasedLlm implements Llm {
               : p.pricePerKg < prev
                   ? '\n전일보다 내렸어요. 오를 때까지 보관하거나 새로 심어 두세요 📉'
                   : '\n전일과 같아요. 급하지 않으면 지켜봐요.';
-      return '${c.emoji} ${c.name}은(는) 지금 kg당 ${p.pricePerKg.round()}원이에요.$tip\n(씨앗 ${c.seedCost}원 · 수확 ${c.yieldKg.toStringAsFixed(0)}kg · 성장 ${c.growMinutes}분)';
+      return '${c.label}은(는) 지금 kg당 ${p.pricePerKg.round()}원이에요.$tip\n(씨앗 ${c.seedCost}원 · 수확 ${c.yieldKg.toStringAsFixed(0)}kg · 성장 ${c.growMinutes}분)';
     }
 
     // 2) 시세 요약
@@ -50,7 +50,7 @@ class RuleBasedLlm implements Llm {
       final lines = <String>[];
       for (final c in crops) {
         final p = ctx.prices[c.code];
-        if (p != null) lines.add('${c.emoji} ${c.name} ${p.pricePerKg.round()}원${_trend(p.pricePerKg, p.prevPerKg)}');
+        if (p != null) lines.add('${c.label} ${p.pricePerKg.round()}원${_trend(p.pricePerKg, p.prevPerKg)}');
       }
       return lines.isEmpty ? '시세를 아직 불러오지 못했어요.' : '오늘 시세예요 (kg당)\n${lines.join('\n')}';
     }
@@ -62,7 +62,7 @@ class RuleBasedLlm implements Llm {
         ..sort((a, b) => ctx.prices[b.cropCode]!.pricePerKg.compareTo(ctx.prices[a.cropCode]!.pricePerKg));
       if (best.isEmpty) return '시세를 불러온 뒤에 추천해 드릴게요.';
       final c = cropOf(best.first.cropCode);
-      return '창고에서는 ${c.emoji} ${c.name}이(가) kg당 ${ctx.prices[c.code]!.pricePerKg.round()}원으로 가장 비싸요. 신선도가 떨어지기 전에 출하해 보세요!';
+      return '창고에서는 ${c.label}이(가) kg당 ${ctx.prices[c.code]!.pricePerKg.round()}원으로 가장 비싸요. 신선도가 떨어지기 전에 출하해 보세요!';
     }
 
     // 4) 심을 작물 추천
@@ -79,7 +79,7 @@ class RuleBasedLlm implements Llm {
           top = c;
         }
       }
-      if (top != null) return '요즘 ${top.emoji} ${top.name} 시세가 가장 많이 올랐어요 (${(topRate * 100).toStringAsFixed(1)}%). 성장 ${top.growMinutes}분이니 지금 심어 볼까요?';
+      if (top != null) return '요즘 ${top.label} 시세가 가장 많이 올랐어요 (${(topRate * 100).toStringAsFixed(1)}%). 성장 ${top.growMinutes}분이니 지금 심어 볼까요?';
     }
 
     // 5) 레벨·경험치
@@ -103,7 +103,7 @@ class RuleBasedLlm implements Llm {
       for (final l in ctx.lots) {
         sum[l.cropCode] = (sum[l.cropCode] ?? 0) + l.kg;
       }
-      return '창고 상태예요 🧺\n${sum.entries.map((e) => '${cropOf(e.key).emoji} ${cropOf(e.key).name} ${e.value.toStringAsFixed(1)}kg').join('\n')}';
+      return '창고 상태예요 🧺\n${sum.entries.map((e) => '${cropOf(e.key).label} ${e.value.toStringAsFixed(1)}kg').join('\n')}';
     }
 
     // 8) 날씨

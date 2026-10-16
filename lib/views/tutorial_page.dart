@@ -307,13 +307,13 @@ class _PriceCardState extends _AnimState<_PriceCard> {
     final c = list[k];
     final pr = widget.prices?[c.code];
     final pct = pr == null ? null : changePercent(pr.pricePerKg, pr.prevPerKg);
-    if (pct == null) return '${c.emoji} ${c.name}: 시세를 불러오는 중이에요';
+    if (pct == null) return '${c.label}: 시세를 불러오는 중이에요';
     if (pct.abs() < 0.05) {
-      return '${c.emoji} ${c.name}: 어제와 같아요 – 급하지 않으면 기다려 봐요';
+      return '${c.label}: 어제와 같아요 – 급하지 않으면 기다려 봐요';
     }
     return pct > 0
-        ? '${c.emoji} ${c.name}: 어제보다 ${pct.toStringAsFixed(1)}% 올랐어요 ▲ 지금 팔면 이득이에요'
-        : '${c.emoji} ${c.name}: 어제보다 ${pct.abs().toStringAsFixed(1)}% 내렸어요 ▼ 오를 때까지 보관해 봐요';
+        ? '${c.label}: 어제보다 ${pct.toStringAsFixed(1)}% 올랐어요 ▲ 지금 팔면 이득이에요'
+        : '${c.label}: 어제보다 ${pct.abs().toStringAsFixed(1)}% 내렸어요 ▼ 오를 때까지 보관해 봐요';
   }
 
   @override

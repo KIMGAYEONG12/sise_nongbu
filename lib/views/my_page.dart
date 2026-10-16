@@ -47,9 +47,7 @@ class MyPage extends ConsumerWidget {
     );
     if (ok != true || !context.mounted) return;
     ref.read(shellIndexProvider.notifier).state = 1;
-    // 다음에 앱을 켜면 스플래시 → 튜토리얼 → 로그인 순서로 다시 보여준다
-    await ref.read(prefsProvider).remove(tutorialDoneKey);
-    if (!context.mounted) return;
+    // 튜토리얼은 앱을 처음 켰을 때 한 번만 나온다 (로그아웃해도 다시 나오지 않는다)
     await runGuarded(context, ref.read(authServiceProvider).signOut);
   }
 

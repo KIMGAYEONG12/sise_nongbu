@@ -20,7 +20,7 @@ class PointShopBody extends ConsumerWidget {
       case pointRareSeed:
         final c = crops[Random().nextInt(crops.length)];
         code = c.code;
-        msg = '${c.emoji} ${c.name} 씨앗 3개를 받았어요!';
+        msg = '${c.label} 씨앗 3개를 받았어요!';
       case pointWaterPack:
         msg = '💧 물통 10개를 받았어요!';
       case pointBoosterPack:
