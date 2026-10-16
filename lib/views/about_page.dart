@@ -76,15 +76,14 @@ class AboutPage extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 4),
                       child: SwitchListTile(
-                        title: const KoText('데모 모드 (1초 만에 성장)',
+                        title: const KoText('데모 모드',
                             style: _titleStyle),
                         subtitle: const Padding(
                           padding: EdgeInsets.only(top: 6),
                           child: const KoText(
-                              '켜면 어떤 작물이든 심고 1초 뒤에 바로 수확할 수 있어요.\n켠 뒤에 새로 심는 작물부터 적용되고, 이미 심은 작물은 원래 속도로 자라요.',
+                              '데모 모드를 켜면, 어떤 작물이든 심고, 1초 뒤에 수확할 수 있어요.',
                               style: _bodyStyle),
                         ),
-                        isThreeLine: true,
                         value: demo,
                         onChanged: (v) => ref
                             .read(speedProvider.notifier)

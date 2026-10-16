@@ -16,8 +16,9 @@ class GeminiLlm implements Llm {
   final String apiKey;
   final List<String> models;
 
-  /// 빠른 모델 → 예비 모델 순서 (모두 무료 등급에서 쓸 수 있는 이름)
-  static const defaultModels = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest'];
+  /// 빠른 모델 → 예비 모델 순서 (모두 무료 등급에서 쓸 수 있는 이름).
+  /// 2026-10-16 측정: gemini-2.5-flash는 약 1초에 답하고, gemini-flash-latest는 계속 503(바쁨)이라 뒤로 뺐다.
+  static const defaultModels = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest'];
 
   static const _system = '너는 실제 도매시장 경매 시세로 움직이는 농장 게임 "하루 농장:시세 농부 게임"의 친절한 농사 도우미야. '
       '아래 [현재 상황]과 [게임 안내]를 근거로 짧고 쉬운 한국어(3문장 이내)로 답해. 질문과 관계없는 이야기는 하지 마. '
@@ -33,8 +34,10 @@ class GeminiLlm implements Llm {
           return await _ask(m, question, ctx, image);
         } on _Retryable catch (e) {
           lastError = e;
-          if (kDebugMode) debugPrint('Gemini $m 바쁨(${e.code}), 다시 시도');
-          await Future<void>.delayed(Duration(milliseconds: 600 * (attempt + 1)));
+          if (kDebugMode) debugPrint('Gemini $m 바쁨(${e.code})');
+          // 바쁜 모델(503)은 기다리지 않고 바로 다음 모델로 넘어간다. 한도(429)만 잠깐 쉬고 한 번 더.
+          if (e.code != 429) break;
+          await Future<void>.delayed(const Duration(milliseconds: 400));
         } catch (e) {
           lastError = e;
           if (kDebugMode) debugPrint('Gemini $m 실패: $e');
@@ -69,15 +72,16 @@ class GeminiLlm implements Llm {
                 ]
               }
             ],
-            // 답이 중간에 잘리지 않도록 넉넉히(최대 800토큰). 받아 주는 모델만 생각 단계를 꺼서 빠르게.
+            // 3문장 답이 잘리지 않을 만큼(최대 500토큰)만 받아서 빠르게. 받아 주는 모델만 생각 단계를 꺼서 빠르게.
             'generationConfig': {
-              'maxOutputTokens': 800,
+              'maxOutputTokens': 500,
               'temperature': 0.4,
               if (_canSkipThinking(model)) 'thinkingConfig': {'thinkingBudget': 0},
             },
           }),
         )
-        .timeout(Duration(seconds: image == null ? 25 : 40));
+        // 한 모델이 오래 멈춰 있으면 다음 모델로 (글 15초, 사진 30초)
+        .timeout(Duration(seconds: image == null ? 15 : 30));
     if (res.statusCode == 429 || res.statusCode == 500 || res.statusCode == 503) throw _Retryable(res.statusCode);
     if (res.statusCode != 200) throw StateError('Gemini ${res.statusCode}');
     final body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;

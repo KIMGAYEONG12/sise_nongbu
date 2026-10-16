@@ -40,7 +40,7 @@ void main() {
 
   test('AI는 빠른 모델이 먼저이고, 예비 모델도 있다', () {
     final g = GeminiLlm(_NoClient(), apiKey: 'x');
-    expect(g.models.first, 'gemini-flash-latest');
+    expect(g.models.first, 'gemini-2.5-flash'); // 2026-10-16 측정: 약 1초로 가장 빠르고, flash-latest는 계속 503
     expect(g.models.length, greaterThanOrEqualTo(2));
   });
 

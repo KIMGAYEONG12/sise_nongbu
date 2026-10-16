@@ -179,6 +179,21 @@ class MatchSaveStore {
   }
 }
 
+/// 작물 매칭의 대표 그림: 무화과와 딸기가 나란히 (시작 화면·농장 바로가기)
+class MatchGameIcon extends StatelessWidget {
+  const MatchGameIcon({super.key, this.size = 30});
+  final double size;
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: size * 1.5,
+        height: size,
+        child: Stack(children: [
+          Positioned(left: 0, top: 0, child: CropArt(code: 'FIG', size: size)),
+          Positioned(right: 0, top: size * .08, child: CropArt(code: 'STRAWBERRY', size: size * .92)),
+        ]),
+      );
+}
+
 /// 작물 매칭: 같은 작물 두 칸을 차례로 눌러 짝을 맞추는 퍼즐.
 /// 양배추는 양배추끼리, 토마토는 토마토끼리, 감자는 감자끼리 맞추면 두 칸이 사라지고,
 /// 한 판을 모두 맞추면 다음 판으로 넘어간다. 오늘 시세가 오른 작물을 맞추면 점수를 더 받는다.
@@ -816,7 +831,7 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
       final lv = _lv;
       final s = _saved;
       return Column(mainAxisSize: MainAxisSize.min, children: [
-        const Text('🥬', style: TextStyle(fontSize: 46)),
+        const MatchGameIcon(size: 52),
         const SizedBox(height: 4),
         const Text('작물 매칭',
             style: TextStyle(

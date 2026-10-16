@@ -162,7 +162,8 @@ class FarmPage extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
               onTap: s.$3,
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Text(s.$1, style: const TextStyle(fontSize: 26, height: 1.1)),
+                // 작물 매칭은 무화과·딸기 그림, 나머지는 이모지
+                if (s.$2 == '작물 매칭') const MatchGameIcon(size: 29) else Text(s.$1, style: const TextStyle(fontSize: 26, height: 1.1)),
                 const SizedBox(height: 4),
                 Text(s.$2, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
                 if (s.$4 != null) Text(s.$4!, style: const TextStyle(fontSize: 10, color: AppColors.greenDark, fontWeight: FontWeight.w800)),

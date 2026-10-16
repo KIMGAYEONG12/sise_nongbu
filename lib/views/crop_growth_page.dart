@@ -36,7 +36,7 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
         return; // 저장소가 없는 테스트 화면에서는 안내 창을 띄우지 않는다
       }
       showGuideOnce(context, prefs, 'growth',
-          icon: Icons.eco_rounded,
+          icon: Icons.agriculture_rounded,
           title: '작물을 키워 볼까요?',
           lines: const ['빈 밭(+)을 눌러 원하는 작물을 심어요', '물주기·영양제·성장촉진제로 더 빨리 자라요', '다 자라면 밭을 눌러 수확하고 창고에서 팔아요']);
     });
@@ -60,11 +60,7 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
       showMsg(context, '먼저 작물이 심어진 밭을 선택해 주세요');
       return;
     }
-    final have = ref.read(userDataProvider).item(key);
-    if (have <= 0) {
-      showMsg(context, '${withJosa(itemName(key), '이', '가')} 없어요. 상점에서 구매해 주세요');
-      return;
-    }
+    // 물주기·영양제·성장촉진제는 모든 사용자가 무제한으로 쓴다 (가진 개수와 상관없이, 서버도 개수를 줄이지 않는다)
     await runGuarded(context, () => ref.read(farmViewModelProvider).useItem(p, key), ok: '${withJosa(itemName(key), '을', '를')} 사용했어요');
   }
 
@@ -184,7 +180,7 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
             PageHeader(
               title: '작물 성장',
               center: false,
-              leading: spec == null ? const Icon(Icons.eco_rounded, size: 26, color: AppColors.green) : CropArt(code: spec.code, size: 30),
+              leading: spec == null ? const Icon(Icons.agriculture_rounded, size: 28, color: Color(0xFF9A6B3F)) : CropArt(code: spec.code, size: 30),
               onBack: () => Navigator.of(context).maybePop(),
             ),
             Expanded(
@@ -196,7 +192,8 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
                       ? const Padding(
                           padding: EdgeInsets.symmetric(vertical: 10),
                           child: Row(children: [
-                            Icon(Icons.eco_rounded, size: 32, color: AppColors.green),
+                            // 빈 밭 안내: 초록 새싹(다른 앱과 비슷해 보임) 대신 갈색 트랙터
+                            Icon(Icons.agriculture_rounded, size: 34, color: Color(0xFF9A6B3F)),
                             SizedBox(width: 10),
                             Expanded(child: Text('심어진 작물이 없어요.\n여기나 아래 빈 밭(+)을 눌러 작물을 심어보세요!', style: TextStyle(height: 1.4))),
                           ]),
