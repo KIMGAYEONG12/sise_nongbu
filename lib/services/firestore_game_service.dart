@@ -46,6 +46,20 @@ class FirestoreGameService {
     }
   }
 
+  /// 이미 있는 농장에 물통·영양제·성장촉진제를 10개씩 한 번만 채워 준다 (10개보다 적을 때만 10개로).
+  Future<void> _giveStarterItems() async {
+    await db.runTransaction((tx) async {
+      final u = (await tx.get(_user)).data() ?? {};
+      if (_int(u['starterItems']) >= 1) return;
+      final items = _asMap(u['items']) ?? {};
+      final upd = <String, dynamic>{'starterItems': 1};
+      for (final k in starterItemKeys) {
+        if (_int(items[k]) < starterItemCount) upd['items.$k'] = starterItemCount;
+      }
+      tx.update(_user, upd);
+    });
+  }
+
   /// 처음 로그인한 사용자의 문서와 밭을 만든다. 이미 있으면 닉네임이 비어 있을 때만 채운다.
   Future<void> ensureUser({String? nickname}) async {
     final name = (nickname != null && nickname.trim().isNotEmpty) ? nickname.trim() : null;
@@ -56,6 +70,7 @@ class FirestoreGameService {
     if (snap.exists) {
       final cur = snap.data()?['nickname'];
       if (cur == null || cur == '' || cur == oldAuto) await _user.update({'nickname': name ?? fallback});
+      await _giveStarterItems();
       return;
     }
     final b = db.batch();
@@ -70,7 +85,8 @@ class FirestoreGameService {
       'greenhouse': false,
       'greenhouses': 0,
       'decor': 0,
-      'items': <String, dynamic>{},
+      'items': <String, dynamic>{for (final k in starterItemKeys) k: starterItemCount},
+      'starterItems': 1,
       'stats': <String, dynamic>{},
       'fundGiven': 0,
       'createdAt': FieldValue.serverTimestamp(),

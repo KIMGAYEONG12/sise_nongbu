@@ -90,6 +90,10 @@ const itemWater = 'water';
 const itemFertilizer = 'fertilizer';
 const itemBooster = 'booster';
 
+/// 처음 시작할 때 주는 물통·영양제·성장촉진제 개수
+const starterItemCount = 10;
+const starterItemKeys = [itemWater, itemFertilizer, itemBooster];
+
 /// 물주기: 한 번에 전체 성장 시간의 3% 단축. 한 밭에 주는 횟수 제한은 없다.
 const waterCut = 0.03;
 /// 튜토리얼 연습에서 물을 주는 횟수 (실제 게임에는 횟수 제한이 없다)

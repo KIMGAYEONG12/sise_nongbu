@@ -13,6 +13,7 @@ class AiContext {
     this.expLeft = 0,
     this.greenhouses = 0,
     this.weather,
+    this.items = const {},
   });
   final Map<String, AuctionPrice> prices;
   final int money;
@@ -27,6 +28,9 @@ class AiContext {
 
   /// 오늘 날씨 (예: "맑음 23°C"), 모르면 null
   final String? weather;
+
+  /// 가지고 있는 아이템·씨앗 (키 → 개수)
+  final Map<String, int> items;
 
   /// LLM에 넘길 요약 글
   String toText() {
@@ -47,9 +51,38 @@ class AiContext {
     }
     final planted = plots.where((p) => p.cropCode != null).length;
     b.writeln('[밭] 전체 ${plots.length}칸 중 $planted칸에 작물이 있어요');
+    final owned = items.entries.where((e) => e.value > 0).toList();
+    b.writeln('[가진 아이템]');
+    if (owned.isEmpty) b.writeln('- 없음');
+    for (final e in owned) {
+      b.writeln('- ${_itemLabel(e.key)} ${e.value}개');
+    }
+    b.write(aiGameGuide);
     return b.toString();
   }
 }
+
+String _itemLabel(String key) {
+  const names = {'water': '물통', 'fertilizer': '영양제', 'booster': '성장촉진제'};
+  if (names.containsKey(key)) return names[key]!;
+  if (key.startsWith('seed_')) {
+    try {
+      return '${cropOf(key.substring(5)).name} 씨앗';
+    } catch (_) {}
+  }
+  return key;
+}
+
+/// 게임 규칙 안내: 도우미가 시세·창고 말고 게임 방법(작물 매칭, 레벨, 하우스, 상점 등)도 답할 수 있게 함께 보낸다.
+const aiGameGuide = '''
+[게임 안내]
+- 작물 매칭: 같은 작물 3개 이상을 한 줄로 맞추면 지워진다. 한 칸에 10점, 한 번에 이어서 여러 번 지워지면(연쇄) 2번째부터 20점씩 더 준다. 오늘 시세가 오른 작물일수록 점수 배율이 높다(10% 오르면 2배). 난이도가 높을수록(작물 종류가 많고 시간이 짧을수록) 배율이 높다. 한 판을 다 맞추면 시간과 점수를 더 받는다.
+- 레벨: 심기·수확·판매·구매·미션·기부·게임으로 경험치를 얻는다. 수확 경험치가 가장 크다. 레벨이 오르면 포인트와 씨앗 보상, 칭호가 바뀐다.
+- 하우스: 상점 농장 시설에서 짓는다. 지을 때마다 성장 시간이 줄어든다(5채까지 10%씩, 이후 4%씩, 최대 70%).
+- 아이템: 물통은 성장 시간 3% 단축, 영양제·성장촉진제(30% 단축)도 횟수 제한 없이 쓸 수 있다. 상점에서 사거나 묶음으로 싸게 산다.
+- 판매: 창고에서 작물을 눌러 판다. 받는 돈 = kg × 오늘 시세 × 신선도. 오래 두면 신선도가 하루 5%씩 떨어진다.
+- 미션·업적을 깨면 포인트를 받고, 포인트로 특별 상점에서 산다.
+''';
 
 /// 질문과 함께 보내는 사진 (카메라·앨범에서 고른 것)
 class AiImage {

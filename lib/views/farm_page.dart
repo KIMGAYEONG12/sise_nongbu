@@ -104,16 +104,18 @@ class FarmPage extends ConsumerWidget {
                             Flexible(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text('Lv. ${lv.level}  ·  ${farmerTitles[user.titleIndex].emoji} ${farmerTitles[user.titleIndex].name}', maxLines: 1, style: const TextStyle(fontSize: 14, color: Color(0xFF2B3A30), fontWeight: FontWeight.w700)))),
                             const SizedBox(width: 10), // 칭호와 포인트 사이 간격 (알약이 칭호 바로 옆에 붙는다)
                             MoneyPill(money: user.money),
+                            const SizedBox(width: 6),
+                            // 톱니바퀴: 포인트 알약과 같은 줄·같은 높이 (가운데 맞춤)
+                            SizedBox(
+                              width: 34,
+                              height: 34,
+                              child: IconButton(padding: EdgeInsets.zero, onPressed: () => _push(context, const AboutPage()), icon: const Icon(Icons.settings_outlined, color: AppColors.ink, size: 28)),
+                            ),
                           ]),
                         ]),
                       ),
                     ]),
                   ),
-                ),
-                // 톱니바퀴: 오른쪽 위 구름에 겹치지 않게 아랫줄(레벨·포인트) 높이로 내려 두었다
-                Padding(
-                  padding: const EdgeInsets.only(top: 26, left: 4),
-                  child: IconButton(visualDensity: VisualDensity.compact, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 40, height: 36), onPressed: () => _push(context, const AboutPage()), icon: const Icon(Icons.settings_outlined, color: AppColors.ink, size: 28)),
                 ),
               ]),
               const SizedBox(height: 10),
@@ -246,19 +248,17 @@ class _FarmHero extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: const [Color(0xFF58B6EE), Color(0xFF72C6F0), Color(0xFF81CDEF), Color(0xFF81CDEF)],
+                  colors: const [Color(0xFF58B6EE), Color(0xFF78CAF0), Color(0xFF85D0F0), Color(0xFF85D0F0)],
                   stops: [0, ((seam / h) * .55).clamp(0.0, 1.0).toDouble(), (seam / h).clamp(0.0, 1.0).toDouble(), 1],
                 ),
               ),
             ),
           ),
-          Positioned(left: -20, top: topInset + 58, child: const _Cloud(width: 130)),
-          // 오른쪽 위 구름: 톱니바퀴 바로 왼쪽 위에 두어 겹치지 않게 한다
-          Positioned(right: 52, top: topInset + 4, child: const _Cloud(width: 100)),
-          Positioned(right: 60, top: topInset + 125, child: const _Cloud(width: 84)),
-          // 날씨 카드와 그림 사이 하늘이 넓을 때 채워 주는 구름
+          // 구름은 모두 날씨 카드 아래 하늘에만 둔다 (프로필·날씨 카드 뒤에 흰 조각이 비치지 않게)
           if (imgTop - (topInset + 150) > 70) ...[
-            Positioned(left: 24, top: topInset + 170, child: const _Cloud(width: 92)),
+            Positioned(left: 20, top: topInset + 168 + (imgTop - topInset - 150) * .05, child: const _Cloud(width: 96)),
+            Positioned(right: 24, top: topInset + 150 + (imgTop - topInset - 150) * .42, child: const _Cloud(width: 112)),
+            Positioned(left: 110, top: topInset + 150 + (imgTop - topInset - 150) * .78, child: const _Cloud(width: 78)),
           ],
           // 농장 일러스트: 윗부분 10%만 잘라 내고 나머지는 흐림·번짐 효과 없이 그대로 또렷하게 보여 준다
           Positioned(
@@ -268,7 +268,12 @@ class _FarmHero extends StatelessWidget {
             height: imgH,
             child: ClipRect(
               clipper: _TopCropClipper(cropPx),
-              child: Image.asset(AppImages.farmHome, width: imgW, height: imgH, fit: BoxFit.fill, filterQuality: FilterQuality.high),
+              // 그림 맨 위 6%는 하늘색으로 스며들게 해서 하늘과 그림 사이에 경계선이 보이지 않는다
+              child: ShaderMask(
+                blendMode: BlendMode.dstIn,
+                shaderCallback: (r) => const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.white], stops: [0, .06]).createShader(r),
+                child: Image.asset(AppImages.farmHome, width: imgW, height: imgH, fit: BoxFit.fill, filterQuality: FilterQuality.high),
+              ),
             ),
           ),
           // 하늘과 그림이 만나는 곳의 숲 가장자리: 잘린 나무 윗부분을 둥근 덤불 선으로 자연스럽게 마무리한다 (그림 아님, 코드로 그린 또렷한 도형)

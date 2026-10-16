@@ -70,6 +70,15 @@ class _AiAssistantPageState extends ConsumerState<AiAssistantPage> {
     super.dispose();
   }
 
+/// 데이터를 기다려 받되, 오래 걸리거나 실패하면 [fallback]을 쓴다
+  Future<T> _orEmpty<T>(Future<T> f, T fallback) async {
+    try {
+      return await f.timeout(const Duration(seconds: 4));
+    } catch (_) {
+      return fallback;
+    }
+  }
+
   Future<void> _send([String? preset]) async {
     final typed = (preset ?? _ctrl.text).trim();
     final photo = _photo;
@@ -86,12 +95,16 @@ class _AiAssistantPageState extends ConsumerState<AiAssistantPage> {
     _toBottom();
     final user = ref.read(userDataProvider);
     final weather = ref.read(weatherProvider).valueOrNull;
+    // 창고·밭은 이 화면에서 아직 안 불러왔을 수 있으니 기다려서 받는다 (예전에는 비어 있다고 잘못 답했다)
+    final lots = await _orEmpty(ref.read(lotsProvider.future), const <Lot>[]);
+    final plots = await _orEmpty(ref.read(plotsProvider.future), const <Plot>[]);
     final ctx = AiContext(
       prices: ref.read(marketViewModelProvider).valueOrNull ??
           const <String, AuctionPrice>{},
       money: user.money,
-      lots: ref.read(lotsProvider).valueOrNull ?? const <Lot>[],
-      plots: ref.read(plotsProvider).valueOrNull ?? const <Plot>[],
+      lots: lots,
+      plots: plots,
+      items: {for (final e in user.items.entries) e.key: (e.value as num?)?.toInt() ?? 0},
       level: user.level.level,
       expLeft: user.level.need - user.level.exp,
       greenhouses: user.greenhouses,
