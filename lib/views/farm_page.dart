@@ -190,17 +190,17 @@ class _FarmHero extends StatelessWidget {
 
   /// 하우스를 올려 놓을 자리 (그림 원본 픽셀: 집 왼쪽 앞 풀밭, 크게).
   /// 아래 끝(566)이 갈색 밭이 시작되는 높이(약 590)보다 위라서 밭과 겹치지 않는다.
-  static const _house = Rect.fromLTWH(2, 402, 238, 162);
+  static const _house = Rect.fromLTWH(2, 428, 170, 120);
 
-  // 그림(farm_scene.jpg) 좌표 기준 크기 (실제 파일은 2배 고해상도 1872×1428)
-  static const _srcW = 936.0, _srcH = 714.0;
+  // 그림(farm_scene_gemini.jpg) 좌표 기준 크기 (실제 파일은 3배 고해상도 1728×2079)
+  static const _srcW = 576.0, _srcH = 693.0;
 
 
   /// 그림 확대 한도. 원본이 작아서 이보다 키우면 깨져 보인다.
-  static const maxScale = 1.4; // 그림 확대 한도. 더 키우면 원본의 네모 얼룩이 커져 집이 깨져 보인다
+  static const maxScale = 1.0; // 제미나이 시안처럼 화면 폭에 딱 맞춰 집·연못·밭이 다 보이게 한다 (위쪽 남는 곳은 하늘·구름)
 
   /// 그림 맨 위에서 잘라 내는 비율 (옅은 안개색 부분)
-  static const _cropTop = .15;
+  static const _cropTop = 0.0; // 제미나이 그림은 맨 위가 맑은 하늘이라 자르지 않는다
 
   /// 프로필·날씨 카드 아래 끝 (그림은 이보다 36px 위에서 시작해 하늘과 겹친다)
   static double _headerBottom(double topInset) => topInset + 150;
@@ -214,10 +214,10 @@ class _FarmHero extends StatelessWidget {
   }
 
   /// 그림 속 연못 물(파란 부분)이 있는 자리 (원본 픽셀)
-  static const _pond = Rect.fromLTRB(668, 448, 826, 520);
+  static const _pond = Rect.fromLTRB(440, 462, 572, 526);
 
   /// 그림 속 밭(갈색 흙)이 그려진 자리 (원본 픽셀 좌표: 왼쪽, 위, 오른쪽, 아래)
-  static const _field = Rect.fromLTRB(280, 560, 680, 714);
+  static const _field = Rect.fromLTRB(40, 560, 572, 693);
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
@@ -246,7 +246,7 @@ class _FarmHero extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: const [Color(0xFF58B6EE), Color(0xFF78D0F8), Color(0xFF86D6F4), Color(0xFF86D6F4)],
+                  colors: const [Color(0xFF58B6EE), Color(0xFF72C6F0), Color(0xFF81CDEF), Color(0xFF81CDEF)],
                   stops: [0, ((seam / h) * .55).clamp(0.0, 1.0).toDouble(), (seam / h).clamp(0.0, 1.0).toDouble(), 1],
                 ),
               ),
@@ -259,7 +259,6 @@ class _FarmHero extends StatelessWidget {
           // 날씨 카드와 그림 사이 하늘이 넓을 때 채워 주는 구름
           if (imgTop - (topInset + 150) > 70) ...[
             Positioned(left: 24, top: topInset + 170, child: const _Cloud(width: 92)),
-            Positioned(right: 18, top: (topInset + 150 + imgTop) / 2 - 10, child: const _Cloud(width: 120)),
           ],
           // 농장 일러스트: 윗부분 10%만 잘라 내고 나머지는 흐림·번짐 효과 없이 그대로 또렷하게 보여 준다
           Positioned(
@@ -269,11 +268,11 @@ class _FarmHero extends StatelessWidget {
             height: imgH,
             child: ClipRect(
               clipper: _TopCropClipper(cropPx),
-              child: Image.asset(AppImages.farmScene, width: imgW, height: imgH, fit: BoxFit.fill, filterQuality: FilterQuality.high),
+              child: Image.asset(AppImages.farmHome, width: imgW, height: imgH, fit: BoxFit.fill, filterQuality: FilterQuality.high),
             ),
           ),
           // 하늘과 그림이 만나는 곳의 숲 가장자리: 잘린 나무 윗부분을 둥근 덤불 선으로 자연스럽게 마무리한다 (그림 아님, 코드로 그린 또렷한 도형)
-          if (seam > 12)
+          if (cropPx > 12)
             Positioned(left: 0, right: 0, top: seam - 14, height: math.max(40.0, imgH * .12), child: const IgnorePointer(child: CustomPaint(painter: _TreeLinePainter()))),
           // 연못에서 헤엄치는 물고기 (농장 탭을 보고 있을 때만 움직인다)
           Positioned.fromRect(

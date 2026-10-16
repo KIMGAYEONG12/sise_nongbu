@@ -31,6 +31,7 @@ class AppImages {
 
   /// 튜토리얼 2장에서 움직이는 손가락 (tut_plant.jpg에서 오려 낸 그림)
   static const tutHand = 'assets/images/tut_hand.png';
+  static const farmHome = 'assets/images/farm_scene_gemini.jpg'; // 농장 화면 배경: 제미나이 시안 그림을 3배 고화질로 (1728×2079)
   static const farmScene = 'assets/images/farm_scene_hd3.jpg'; // 압축 노이즈를 줄여 곱게 다듬은 농장 그림 (원본 farm_scene.jpg와 같은 크기)
 
   /// 레벨 업 창 위쪽 일러스트 (시안에서 오려 낸 그림)
@@ -51,7 +52,7 @@ class AppImages {
 
   /// 스플래시가 떠 있는 동안 미리 읽어 두면 다음 화면에서 그림이 늦게 뜨지 않는다.
   static Future<void> precacheAll(BuildContext context) async {
-    for (final a in const [splash, avatarGirl, tutPlant, tutHand, tutGrow, tutSell, tutReady, farmScene, loginLand, signupLand, leafTopRight, leafTopLeft]) {
+    for (final a in const [splash, avatarGirl, tutPlant, tutHand, tutGrow, tutSell, tutReady, farmScene, farmHome, loginLand, signupLand, leafTopRight, leafTopLeft]) {
       if (!context.mounted) return;
       try {
         await precacheImage(AssetImage(a), context);
