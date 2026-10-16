@@ -9,6 +9,7 @@ import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
 import '../widgets/greenhouse_art.dart';
 import '../widgets/farm_life.dart';
+import '../widgets/farm_mailbox.dart';
 import '../widgets/pond_fish.dart';
 import 'about_page.dart';
 import 'ai_assistant_page.dart';
@@ -129,6 +130,17 @@ class FarmPage extends ConsumerWidget {
             onGreenhouse: () => _showGreenhouseSheet(context),
             fishActive: ref.watch(shellIndexProvider) == 1,
             plots: ref.watch(plotsProvider).valueOrNull ?? const <Plot>[],
+            // 새 버전이 나오면 농장 우체통에 편지가 온다. 누르면 편지 창 → 업데이트하기
+            mailbox: Builder(builder: (context) {
+              final hasLetter = ref.watch(updateAvailableProvider).valueOrNull != null;
+              return FarmMailbox(
+                hasLetter: hasLetter,
+                active: ref.watch(shellIndexProvider) == 1,
+                onTap: () => showMailboxLetter(context, hasLetter: hasLetter, onUpdate: () async {
+                  await ref.read(updateServiceProvider).update();
+                }),
+              );
+            }),
           ),
         ),
         Padding(
@@ -169,7 +181,7 @@ class FarmPage extends ConsumerWidget {
 /// 시안의 농장 화면: 하늘 위 프로필·날씨 → 하단 탭 위까지 이어지는 농장 일러스트 전체(집·연못·밭).
 /// 그림은 시안처럼 아무것도 올리지 않고 그대로 보여 주고, 그림 속 밭을 누르면 작물 관리 화면으로 간다.
 class _FarmHero extends StatelessWidget {
-  const _FarmHero({required this.topInset, required this.header, required this.onField, required this.decor, required this.greenhouses, required this.level, required this.onGreenhouse, required this.fishActive, required this.plots});
+  const _FarmHero({required this.topInset, required this.header, required this.onField, required this.decor, required this.greenhouses, required this.level, required this.onGreenhouse, required this.fishActive, required this.plots, this.mailbox});
   final double topInset;
   final Widget header;
   final VoidCallback onField;
@@ -189,6 +201,13 @@ class _FarmHero extends StatelessWidget {
 
   /// 내 밭들 (작물이 심어진 밭의 작물이 농장 그림 속 흙 위에서 흔들린다)
   final List<Plot> plots;
+
+  /// 집 오른쪽·연못 위 풀밭에 서 있는 우체통 (새 버전 편지)
+  final Widget? mailbox;
+
+  /// 우체통 기둥 아래 끝 자리 (그림 원본 픽셀: 집 오른쪽, 연못 바로 위 풀밭)
+  static const _mailboxFoot = Offset(452, 432);
+  static const _mailboxSize = 40.0;
 
   /// 하우스를 올려 놓을 자리 (그림 원본 픽셀: 집 왼쪽 앞 풀밭, 크게).
   /// 아래 끝(566)이 갈색 밭이 시작되는 높이(약 590)보다 위라서 밭과 겹치지 않는다.
@@ -296,6 +315,13 @@ class _FarmHero extends StatelessWidget {
             height: imgH,
             child: FarmLife(k: k, active: fishActive, plots: plots, robot: greenhouses == 0),
           ),
+          // 농장 우체통
+          if (mailbox != null)
+            Positioned(
+              left: imgLeft + _mailboxFoot.dx * k - _mailboxSize * .65,
+              top: imgTop + _mailboxFoot.dy * k - _mailboxSize * 1.5 * .97,
+              child: mailbox!,
+            ),
           // 프로필·날씨
           Positioned(left: 16, right: 6, top: topInset + 2, child: header),
           // 그림 속 밭: 눌러서 작물 관리로 (화면에는 아무것도 덧그리지 않는다)

@@ -20,6 +20,7 @@ import '../services/auth_service.dart';
 import '../services/firestore_game_service.dart';
 import '../services/notification_service.dart';
 import '../services/sample_auction_source.dart';
+import '../services/update_service.dart';
 import '../services/weather_service.dart';
 
 // main()에서 override
@@ -27,6 +28,17 @@ final notificationProvider =
     Provider<NotificationService>((_) => throw UnimplementedError());
 final prefsProvider =
     Provider<SharedPreferences>((_) => throw UnimplementedError());
+
+/// 구글 플레이 앱 내 업데이트
+final updateServiceProvider = Provider<UpdateService>((_) => const UpdateService());
+
+/// 플레이 스토어에 새 버전이 있으면 그 버전 코드(모르면 0), 없으면 null. 농장 우체통에 편지가 오는지 정한다.
+/// 앱을 켤 때 한 번 확인하고, 앱으로 돌아올 때마다 다시 확인한다.
+final updateAvailableProvider = FutureProvider<int?>((ref) {
+  final listener = AppLifecycleListener(onResume: ref.invalidateSelf);
+  ref.onDispose(listener.dispose);
+  return ref.watch(updateServiceProvider).availableVersion();
+});
 
 // ───────────────────────── 시세 알림 ─────────────────────────
 
