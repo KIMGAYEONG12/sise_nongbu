@@ -37,8 +37,8 @@ class _SupportPageState extends ConsumerState<SupportPage> {
     super.dispose();
   }
 
-  /// 의견을 받는 메일 주소
-  static const supportEmail = 'pooka1217517@gmail.com';
+  /// 의견을 받는 메일 주소 (개발자 계정. 플레이 스토어 문의 이메일·개인정보처리방침과 같다)
+  static const supportEmail = 'opencarsister2019@gmail.com';
 
   /// 받는 사람·제목·내용을 채운 메일 앱을 연다. (닉네임을 함께 적어 누가 보냈는지 알 수 있게)
   Future<void> _send() async {
