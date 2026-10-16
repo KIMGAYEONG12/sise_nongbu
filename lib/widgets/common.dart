@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 앱 전체 글꼴 (assets/fonts/NotoSansKR.ttf)
 const appFontFamily = 'NotoSansKR';
@@ -26,7 +27,7 @@ class AppImages {
   static const tutPlant = 'assets/images/tut_plant.jpg';
   static const tutGrow = 'assets/images/tut_grow.jpg';
   static const tutSell = 'assets/images/tut_sell.jpg';
-  static const tutReady = 'assets/images/tut_ready.jpg';
+  static const tutReady = 'assets/images/tut_ready_hd.jpg'; // 계단 현상을 다듬은 고화질본 (원본 tut_ready.jpg)
 
   /// 튜토리얼 2장에서 움직이는 손가락 (tut_plant.jpg에서 오려 낸 그림)
   static const tutHand = 'assets/images/tut_hand.png';
@@ -124,23 +125,153 @@ String errMsg(Object e) {
   return s;
 }
 
+/// 알림 문구를 화면 위쪽(상태바 바로 아래)에 글자만 잠깐 띄운다. 새 알림이 오면 앞의 것을 바로 바꾼다.
 void showMsg(BuildContext context, String msg) {
   if (!context.mounted) return;
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating));
+  final overlay = Overlay.maybeOf(context, rootOverlay: true);
+  if (overlay == null) return;
+  _topNotice?.remove();
+  late final OverlayEntry entry;
+  entry = OverlayEntry(builder: (_) => _TopNotice(msg: msg, onDone: () {
+        if (_topNotice == entry) {
+          entry.remove();
+          _topNotice = null;
+        }
+      }));
+  _topNotice = entry;
+  overlay.insert(entry);
 }
+
+OverlayEntry? _topNotice;
 
 /// 작물 알림 (수확·파종). 그림이나 이모티콘 없이 글만 보여 준다. 예) "수박을 수확했습니다!"
 /// [cropCode]는 호출하는 쪽과 맞추기 위해 남겨 둔 값이고 화면에는 쓰지 않는다.
-void showCropMsg(BuildContext context, String cropCode, String msg) {
+void showCropMsg(BuildContext context, String cropCode, String msg) => showMsg(context, msg);
+
+/// 위에서 내려왔다가(0.25초) 잠시 보이고(2.2초) 다시 올라가는 글자 알림. 타이머 대신 애니메이션으로 시간을 잰다.
+class _TopNotice extends StatelessWidget {
+  const _TopNotice({required this.msg, required this.onDone});
+  final String msg;
+  final VoidCallback onDone;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: 16,
+      right: 16,
+      top: MediaQuery.paddingOf(context).top + 8,
+      child: IgnorePointer(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 2700),
+          onEnd: onDone,
+          builder: (_, t, child) {
+            // 0~0.1 내려오기, 0.1~0.9 머물기, 0.9~1 올라가기
+            final show = t < .1 ? t / .1 : (t > .9 ? (1 - t) / .1 : 1.0);
+            return Opacity(opacity: show, child: Transform.translate(offset: Offset(0, -24 * (1 - show)), child: child));
+          },
+          child: Material(
+            color: const Color(0xF0263A2B),
+            borderRadius: BorderRadius.circular(14),
+            elevation: 6,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+              child: Text(msg, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 화면에 처음 들어왔을 때 [showGuideOnce] 안내 창을 한 번 띄우는 보이지 않는 위젯. 화면 Stack이나 Column 아무 데나 넣는다.
+class GuideOnce extends StatefulWidget {
+  const GuideOnce({super.key, required this.prefs, required this.guideKey, required this.title, required this.icon, required this.lines, this.when});
+  /// 저장소를 꺼내는 함수 (저장소가 없는 테스트 등에서는 예외 → 안내 창을 띄우지 않는다)
+  final SharedPreferences Function() prefs;
+  final String guideKey, title;
+  final IconData icon;
+  final List<String> lines;
+
+  /// 띄워도 되는지 (예: 농장 탭이 보이고 있을 때만). 없으면 항상.
+  final bool Function()? when;
+
+  @override
+  State<GuideOnce> createState() => _GuideOnceState();
+}
+
+class _GuideOnceState extends State<GuideOnce> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || (widget.when != null && !widget.when!())) return;
+      final SharedPreferences prefs;
+      try {
+        prefs = widget.prefs();
+      } catch (_) {
+        return;
+      }
+      showGuideOnce(context, prefs, widget.guideKey, title: widget.title, icon: widget.icon, lines: widget.lines);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
+}
+
+/// 처음 한 번만 보여 주는 안내 창 (틔움처럼 화면 가운데 모달). 한 번 띄우면 다음부터는 안 나온다.
+/// [prefs]에 [key]로 본 적이 있는지 저장한다.
+Future<void> showGuideOnce(BuildContext context, SharedPreferences prefs, String key,
+    {required String title, required IconData icon, required List<String> lines}) async {
+  if (prefs.getBool('guide_$key') ?? false) return;
   if (!context.mounted) return;
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(
-      content: Text(msg, maxLines: 2, overflow: TextOverflow.ellipsis),
-      behavior: SnackBarBehavior.floating,
-    ));
+  await prefs.setBool('guide_$key', true);
+  if (!context.mounted) return;
+  await showDialog<void>(
+    context: context,
+    builder: (d) => Dialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 24, 22, 14),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: const BoxDecoration(color: AppColors.greenLight, shape: BoxShape.circle),
+            child: Icon(icon, size: 34, color: AppColors.greenDark),
+          ),
+          const SizedBox(height: 12),
+          Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: AppColors.ink)),
+          const SizedBox(height: 14),
+          for (final (i, l) in lines.indexed)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Container(
+                  width: 22,
+                  height: 22,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(color: AppColors.green, shape: BoxShape.circle),
+                  child: Text('${i + 1}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w900)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(child: Text(l, style: const TextStyle(fontSize: 14, height: 1.4, color: AppColors.ink))),
+              ]),
+            ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: GreenButton(label: '확인', height: 48, onPressed: () => Navigator.of(d).pop()),
+          ),
+          const SizedBox(height: 8),
+        ]),
+      ),
+    ),
+  );
 }
 
 /// 비동기 작업을 실행하고 실패하면 스낵바로 알린다. 성공 시 [ok]가 있으면 그 문구를 보여준다. 성공 여부를 돌려준다.

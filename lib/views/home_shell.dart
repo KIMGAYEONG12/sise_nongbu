@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/progress_rules.dart';
 import '../models/models.dart';
@@ -40,6 +41,34 @@ class HomeShell extends ConsumerWidget {
     });
     // 시세가 새로 들어올 때 목표 가격에 닿은 시세 알림이 있으면 알려 준다 (앱이 켜져 있는 동안)
     ref.listen<AsyncValue<Map<String, AuctionPrice>>>(marketViewModelProvider, (_, next) => fireDueAlerts(context, ref, next.valueOrNull));
+    // 휴대폰 뒤로 가기: 다른 탭이면 농장 탭으로, 농장 탭이면 "앱을 종료할까요?" 창 (틔움처럼)
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        if (ref.read(shellIndexProvider) != 1) {
+          ref.read(shellIndexProvider.notifier).state = 1;
+          return;
+        }
+        final quit = await showDialog<bool>(
+          context: context,
+          builder: (d) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Text('앱을 종료할까요?', style: TextStyle(fontWeight: FontWeight.w900)),
+            content: const Text('농장은 자동으로 저장돼요.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(d).pop(false), child: const Text('취소')),
+              TextButton(onPressed: () => Navigator.of(d).pop(true), child: const Text('종료', style: TextStyle(color: AppColors.up, fontWeight: FontWeight.w800))),
+            ],
+          ),
+        );
+        if (quit == true) SystemNavigator.pop();
+      },
+      child: _shell(context, ref, i),
+    );
+  }
+
+  Widget _shell(BuildContext context, WidgetRef ref, int i) {
     return Scaffold(
       body: GameBackground(
         child: SafeArea(

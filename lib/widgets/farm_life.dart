@@ -96,18 +96,24 @@ class _FarmLifeState extends State<FarmLife> with SingleTickerProviderStateMixin
   Widget build(BuildContext context) {
     final k = widget.k;
     final planted = widget.plots.where((p) => !p.isEmpty).take(FarmLife.patches.length).toList();
+    final cropSize = 54 * k;
+    final now0 = widget.now ?? DateTime.now();
+    // 작물 그림은 애니메이션 밖에서 한 번만 만들고 RepaintBoundary로 묶는다.
+    // 매 프레임 다시 그리지 않고 흔들기(회전·크기)만 바꿔서, 깜빡임이 없고 갤럭시 탭에서도 가볍다.
+    final cropArts = [
+      for (final p in planted)
+        RepaintBoundary(child: CropArt(code: p.cropCode!, size: cropSize, stage: p.progress(now0))),
+    ];
     return IgnorePointer(
       child: RepaintBoundary(
         child: AnimatedBuilder(
           animation: _c,
           builder: (_, __) {
             final t = _c.value;
-            final now = widget.now ?? DateTime.now();
             final (rp, goingLeft) = FarmLife.robotAt(t);
             // 로봇이 밭 가까이에 있으면 물을 준다
             final watering = FarmLife.patches.any((p) => (p - rp).distance < 34);
             final robotSize = 66 * k;
-            final cropSize = 54 * k;
             return Stack(clipBehavior: Clip.none, children: [
               // 밭에서 흔들리는 작물 (자라는 정도에 따라 새싹 → 어린 작물 → 다 자란 작물)
               for (var i = 0; i < planted.length; i++)
@@ -123,7 +129,7 @@ class _FarmLifeState extends State<FarmLife> with SingleTickerProviderStateMixin
                     child: Transform.rotate(
                       angle: math.sin(t * math.pi * 2 * 14 + i * 1.7) * .12,
                       alignment: Alignment.bottomCenter,
-                      child: CropArt(code: planted[i].cropCode!, size: cropSize, stage: planted[i].progress(now)),
+                      child: cropArts[i],
                     ),
                   ),
                 ),

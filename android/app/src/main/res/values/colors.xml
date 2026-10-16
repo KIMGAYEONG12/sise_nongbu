@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="splash_sky">#42AAF0</color>
-    <!-- 앱 아이콘(로고 1번 시안) 뒷면 색 -->
-    <color name="ic_launcher_background">#E4F4F1</color>
+    <!-- 앱 아이콘(로고 1번 시안) 뒷면 색: 둥근 로고 둘레가 흰색으로 보인다 -->
+    <color name="ic_launcher_background">#FFFFFF</color>
 </resources>

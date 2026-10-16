@@ -1,4 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:ui' show Color;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -8,14 +9,14 @@ import '../core/korean.dart';
 class NotificationService {
   final _local = FlutterLocalNotificationsPlugin();
   static const _details = NotificationDetails(
-      android: AndroidNotificationDetails('harvest', '수확 알림', importance: Importance.high, priority: Priority.high));
+      android: AndroidNotificationDetails('harvest', '수확 알림', importance: Importance.high, priority: Priority.high, icon: 'ic_stat_notify', color: Color(0xFF2F8F3E)));
   static const _priceDetails = NotificationDetails(
-      android: AndroidNotificationDetails('price', '시세 알림', importance: Importance.high, priority: Priority.high));
+      android: AndroidNotificationDetails('price', '시세 알림', importance: Importance.high, priority: Priority.high, icon: 'ic_stat_notify', color: Color(0xFF2F8F3E)));
 
   Future<void> init() async {
     tz.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Seoul'));
-    await _local.initialize(const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')));
+    await _local.initialize(const InitializationSettings(android: AndroidInitializationSettings('@drawable/ic_stat_notify')));
     await _local.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()?.requestNotificationsPermission();
     await FirebaseMessaging.instance.requestPermission();
     // 포그라운드 FCM은 시스템이 알림을 띄우지 않으므로 로컬 알림으로 표시

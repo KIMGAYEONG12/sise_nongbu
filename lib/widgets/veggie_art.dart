@@ -30,6 +30,14 @@ class VeggiePainter extends CustomPainter {
         _potato(canvas, c, r);
       case 'FIG':
         _fig(canvas, c, r);
+      case 'PUMPKIN':
+        _pumpkin(canvas, c, r);
+      case 'BANANA':
+        _banana(canvas, c, r);
+      case 'PEACH':
+        _peach(canvas, c, r);
+      case 'LETTUCE':
+        _lettuce(canvas, c, r);
       default:
         _emoji(canvas, c, r);
     }
@@ -49,30 +57,135 @@ class VeggiePainter extends CustomPainter {
     tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
   }
 
-  /// 무화과: 보랏빛 물방울 모양 열매 + 줄기 + 작은 잎 + 아래쪽 꽃눈
+  /// 무화과 열매 모양 (위는 좁고 아래가 통통한 물방울)
+  Path _figShape(Offset c, double r) => Path()
+    ..moveTo(c.dx, c.dy - r * .86)
+    ..cubicTo(c.dx + r * .16, c.dy - r * .86, c.dx + r * .26, c.dy - r * .5, c.dx + r * .58, c.dy - r * .1)
+    ..cubicTo(c.dx + r * .98, c.dy + r * .38, c.dx + r * .8, c.dy + r * .94, c.dx, c.dy + r * .94)
+    ..cubicTo(c.dx - r * .8, c.dy + r * .94, c.dx - r * .98, c.dy + r * .38, c.dx - r * .58, c.dy - r * .1)
+    ..cubicTo(c.dx - r * .26, c.dy - r * .5, c.dx - r * .16, c.dy - r * .86, c.dx, c.dy - r * .86)
+    ..close();
+
+  /// 무화과: 뒤에 짙은 보라 통무화과 + 앞에 반으로 자른 무화과(분홍빛 속살과 씨). 자른 단면이 있어 마늘·양파와 헷갈리지 않는다.
   void _fig(Canvas canvas, Offset c, double r) {
-    final body = Path()
-      // 윗부분은 좁고 아래로 갈수록 통통해지는 배(눈물) 모양 — 둥근 양파·마늘과 구별된다
-      ..moveTo(c.dx, c.dy - r * .86)
-      ..cubicTo(c.dx + r * .16, c.dy - r * .86, c.dx + r * .26, c.dy - r * .5, c.dx + r * .58, c.dy - r * .1)
-      ..cubicTo(c.dx + r * .98, c.dy + r * .38, c.dx + r * .8, c.dy + r * .94, c.dx, c.dy + r * .94)
-      ..cubicTo(c.dx - r * .8, c.dy + r * .94, c.dx - r * .98, c.dy + r * .38, c.dx - r * .58, c.dy - r * .1)
-      ..cubicTo(c.dx - r * .26, c.dy - r * .5, c.dx - r * .16, c.dy - r * .86, c.dx, c.dy - r * .86)
-      ..close();
-    final rect = Rect.fromCircle(center: c, radius: r);
-    canvas.drawPath(body, _grad(rect, const [Color(0xFFB77CCB), Color(0xFF6B3A86), Color(0xFF3F1F58)]));
-    canvas.drawPath(body, _line(const Color(0xFF2E1642), math.max(1, r * .05)));
-    // 빛 반사
-    canvas.drawOval(Rect.fromCenter(center: c.translate(-r * .32, -r * .12), width: r * .28, height: r * .5), Paint()..color = const Color(0x55FFFFFF));
-    // 세로 결
-    for (final dx in const [-.3, 0.0, .3]) {
-      canvas.drawLine(Offset(c.dx + r * dx, c.dy - r * .3), Offset(c.dx + r * dx * 1.2, c.dy + r * .62), _line(const Color(0x33FFFFFF), math.max(.8, r * .03)));
+    // 뒤: 통무화과
+    final back = c.translate(-r * .32, -r * .1);
+    final br = r * .78;
+    final whole = _figShape(back, br);
+    canvas.drawPath(whole, _grad(Rect.fromCircle(center: back, radius: br), const [Color(0xFF9B5DB5), Color(0xFF5E2F79), Color(0xFF3A1A50)]));
+    canvas.drawPath(whole, _line(const Color(0xFF2E1642), math.max(1, r * .045)));
+    canvas.drawOval(Rect.fromCenter(center: back.translate(-br * .3, -br * .1), width: br * .22, height: br * .45), Paint()..color = const Color(0x55FFFFFF));
+    canvas.drawLine(Offset(back.dx, back.dy - br * .84), Offset(back.dx + br * .08, back.dy - br * 1.06), _line(const Color(0xFF5A8F2E), math.max(2, r * .1)));
+    _leafBlade(canvas, Offset(back.dx + br * .08, back.dy - br * 1.02), -.8, r * .46, r * .2, const [Color(0xFF7FC450), Color(0xFF3F8F2E)]);
+    // 앞: 반으로 자른 무화과
+    final front = c.translate(r * .34, r * .16);
+    final fr = r * .74;
+    final half = _figShape(front, fr);
+    canvas.drawPath(half, Paint()..color = const Color(0xFF6B3A86)); // 보라 껍질 테두리
+    final inner = _figShape(front.translate(0, fr * .04), fr * .84);
+    canvas.drawPath(inner, Paint()..color = const Color(0xFFFFF1DC)); // 흰 속껍질
+    final flesh = _figShape(front.translate(0, fr * .08), fr * .66);
+    canvas.drawPath(flesh, _grad(Rect.fromCircle(center: front, radius: fr), const [Color(0xFFFF8FA3), Color(0xFFE2465F)], begin: Alignment.topCenter, end: Alignment.bottomCenter));
+    // 씨
+    final seed = Paint()..color = const Color(0xFFFFE7A8);
+    for (final (dx, dy) in const [(-.18, .05), (.16, .02), (-.05, .3), (.2, .32), (-.24, .38), (.02, .55), (-.12, .2), (.08, .18)]) {
+      canvas.drawOval(Rect.fromCenter(center: front.translate(fr * dx, fr * dy), width: fr * .07, height: fr * .1), seed);
     }
-    // 꽃눈
-    canvas.drawCircle(c.translate(0, r * .82), r * .09, Paint()..color = const Color(0xFFE9B8D8));
-    // 줄기와 잎
-    canvas.drawLine(Offset(c.dx, c.dy - r * .84), Offset(c.dx + r * .06, c.dy - r * 1.04), _line(const Color(0xFF5A8F2E), math.max(2.5, r * .12)));
-    _leafBlade(canvas, Offset(c.dx + r * .06, c.dy - r * 1.0), -.7, r * .5, r * .22, const [Color(0xFF7FC450), Color(0xFF3F8F2E)]);
+    canvas.drawPath(half, _line(const Color(0xFF2E1642), math.max(1, r * .045)));
+  }
+
+  /// 호박: 주황색 골이 진 둥근 호박 + 짧은 줄기 + 동그란 잎 + 말린 덩굴 (얼굴 없는 귀여운 호박)
+  void _pumpkin(Canvas canvas, Offset c, double r) {
+    final body = c.translate(0, r * .14);
+    final h = r * 1.42, w = r * 1.86;
+    final rect = Rect.fromCenter(center: body, width: w, height: h);
+    // 바깥 골 → 가운데 골 순서로 겹쳐 그려 통통한 호박 모양
+    for (final (dx, ww) in const [(-.3, .52), (.3, .52), (-.14, .5), (.14, .5), (0.0, .46)]) {
+      final seg = Rect.fromCenter(center: body.translate(w * dx, 0), width: w * ww, height: h);
+      canvas.drawOval(seg, _grad(seg, const [Color(0xFFFFC266), Color(0xFFF08A1C), Color(0xFFC85F0E)]));
+      canvas.drawOval(seg, _line(const Color(0xFFA9500D), math.max(1, r * .04)));
+    }
+    canvas.drawOval(Rect.fromCenter(center: body.translate(-w * .12, -h * .2), width: w * .12, height: h * .3), Paint()..color = const Color(0x66FFFFFF));
+    // 줄기
+    final stem = Path()
+      ..moveTo(body.dx - r * .08, rect.top + r * .06)
+      ..lineTo(body.dx - r * .02, rect.top - r * .26)
+      ..lineTo(body.dx + r * .14, rect.top - r * .24)
+      ..lineTo(body.dx + r * .08, rect.top + r * .06)
+      ..close();
+    canvas.drawPath(stem, Paint()..color = const Color(0xFF6B8E23));
+    canvas.drawPath(stem, _line(const Color(0xFF3F5E16), math.max(1, r * .035)));
+    // 동그란 잎과 말린 덩굴
+    _leafBlade(canvas, Offset(body.dx + r * .1, rect.top - r * .12), 1.1, r * .52, r * .3, const [Color(0xFF6DBE45), Color(0xFF3F8F2E)]);
+    final vine = Path()
+      ..moveTo(body.dx - r * .05, rect.top - r * .12)
+      ..cubicTo(body.dx - r * .4, rect.top - r * .35, body.dx - r * .55, rect.top - r * .05, body.dx - r * .38, rect.top - r * .02);
+    canvas.drawPath(vine, _line(const Color(0xFF4E8F2A), math.max(1.2, r * .05)));
+  }
+
+  /// 바나나: 노란 바나나 세 개가 한 송이로 휘어진 모양
+  void _banana(Canvas canvas, Offset c, double r) {
+    for (final (rot, dy) in const [(-.35, -.1), (0.0, 0.0), (.35, .1)]) {
+      canvas.save();
+      canvas.translate(c.dx + r * .1, c.dy - r * .45);
+      canvas.rotate(rot);
+      final p = Path()
+        ..moveTo(0, 0)
+        ..cubicTo(-r * .2, r * .45, -r * .7, r * (.95 + dy), -r * 1.05, r * (.85 + dy))
+        ..cubicTo(-r * .9, r * (1.08 + dy), -r * .2, r * (1.0 + dy), r * .14, r * .1)
+        ..close();
+      final rect = Rect.fromLTRB(-r * 1.05, 0, r * .14, r * 1.1);
+      canvas.drawPath(p, _grad(rect, const [Color(0xFFFFF1A0), Color(0xFFFFD43B), Color(0xFFE9A800)], begin: Alignment.topRight, end: Alignment.bottomLeft));
+      canvas.drawPath(p, _line(const Color(0xFFB98500), math.max(1, r * .04)));
+      canvas.drawCircle(Offset(-r * 1.0, r * (.92 + dy)), r * .05, Paint()..color = const Color(0xFF5A4210));
+      canvas.restore();
+    }
+    // 송이 꼭지
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: c.translate(r * .12, -r * .52), width: r * .2, height: r * .3), Radius.circular(r * .05)), Paint()..color = const Color(0xFF7C9A2E));
+  }
+
+  /// 복숭아: 분홍~주황 동그란 열매 + 가운데 홈 + 초록 잎 두 장
+  void _peach(Canvas canvas, Offset c, double r) {
+    final body = c.translate(0, r * .1);
+    final p = Path()
+      ..moveTo(body.dx, body.dy - r * .7)
+      ..cubicTo(body.dx + r * .5, body.dy - r * .95, body.dx + r * .95, body.dy - r * .35, body.dx + r * .82, body.dy + r * .22)
+      ..cubicTo(body.dx + r * .7, body.dy + r * .78, body.dx + r * .25, body.dy + r * .86, body.dx, body.dy + r * .82)
+      ..cubicTo(body.dx - r * .25, body.dy + r * .86, body.dx - r * .7, body.dy + r * .78, body.dx - r * .82, body.dy + r * .22)
+      ..cubicTo(body.dx - r * .95, body.dy - r * .35, body.dx - r * .5, body.dy - r * .95, body.dx, body.dy - r * .7)
+      ..close();
+    final rect = Rect.fromCircle(center: body, radius: r);
+    canvas.drawPath(p, _grad(rect, const [Color(0xFFFFE0B2), Color(0xFFFF9E80), Color(0xFFF0627A)], begin: Alignment.bottomLeft, end: Alignment.topRight));
+    canvas.drawPath(p, _line(const Color(0xFFC94C5E), math.max(1, r * .04)));
+    // 가운데 홈
+    final groove = Path()
+      ..moveTo(body.dx, body.dy - r * .66)
+      ..cubicTo(body.dx + r * .22, body.dy - r * .2, body.dx + r * .16, body.dy + r * .4, body.dx + r * .04, body.dy + r * .78);
+    canvas.drawPath(groove, _line(const Color(0x88C94C5E), math.max(1, r * .05)));
+    canvas.drawOval(Rect.fromCenter(center: body.translate(-r * .38, -r * .2), width: r * .24, height: r * .36), Paint()..color = const Color(0x77FFFFFF));
+    _leafBlade(canvas, Offset(body.dx, body.dy - r * .68), -.9, r * .55, r * .22, const [Color(0xFF7FC450), Color(0xFF3F8F2E)]);
+    _leafBlade(canvas, Offset(body.dx + r * .04, body.dy - r * .68), .6, r * .45, r * .18, const [Color(0xFF7FC450), Color(0xFF3F8F2E)]);
+  }
+
+  /// 양상추: 연둣빛 둥근 잎이 겹겹이 감싼 공 모양 (배추보다 밝고 동그랗다)
+  void _lettuce(Canvas canvas, Offset c, double r) {
+    final body = c.translate(0, r * .12);
+    // 바깥 잎 (주름진 가장자리)
+    for (var i = 0; i < 7; i++) {
+      final a = -math.pi / 2 + i * math.pi * 2 / 7;
+      final leafC = body.translate(math.cos(a) * r * .42, math.sin(a) * r * .34);
+      final lr = Rect.fromCenter(center: leafC, width: r * .95, height: r * .8);
+      canvas.drawOval(lr, _grad(lr, const [Color(0xFFC8EC8A), Color(0xFF7CC243)]));
+      canvas.drawOval(lr, _line(const Color(0xFF4F9A2C), math.max(1, r * .035)));
+    }
+    // 속 (둥근 머리)
+    final head = Rect.fromCenter(center: body, width: r * 1.05, height: r * .92);
+    canvas.drawOval(head, _grad(head, const [Color(0xFFF4FFD8), Color(0xFFCDEB8E)], begin: Alignment.topCenter, end: Alignment.bottomCenter));
+    canvas.drawOval(head, _line(const Color(0xFF7DB84A), math.max(1, r * .035)));
+    // 잎맥
+    for (final a in const [-.9, -.3, .3, .9]) {
+      canvas.drawLine(body.translate(0, r * .32), body.translate(math.sin(a) * r * .42, -math.cos(a) * r * .3), _line(const Color(0x667DB84A), math.max(.8, r * .03)));
+    }
   }
 
   Paint _grad(Rect rect, List<Color> colors, {Alignment begin = Alignment.topLeft, Alignment end = Alignment.bottomRight}) =>

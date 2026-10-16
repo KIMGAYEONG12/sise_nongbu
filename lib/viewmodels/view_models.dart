@@ -80,11 +80,11 @@ final loginAfterTutorialProvider = StateProvider<bool>((_) => false);
 /// 튜토리얼을 다 봤는지 저장하는 키 (shared_preferences). 로그아웃하면 지워서 다음 실행 때 다시 보여준다.
 const tutorialDoneKey = 'tutorialDone';
 
-/// 앱을 켤 때마다(스플래시 다음) 튜토리얼을 보여줄지 저장하는 키. 기본값은 보여주기(true).
+/// 앱을 켤 때마다(스플래시 다음) 튜토리얼을 보여줄지 저장하는 키. 기본값은 보여주지 않기(false): 튜토리얼은 처음 한 번만 나온다.
 const tutorialOnStartKey = 'tutorialOnStart';
 
 /// 앱 정보의 '앱을 켤 때 튜토리얼 보기' 스위치 상태
-final tutorialOnStartProvider = StateProvider<bool>((ref) => ref.read(prefsProvider).getBool(tutorialOnStartKey) ?? true);
+final tutorialOnStartProvider = StateProvider<bool>((ref) => ref.read(prefsProvider).getBool(tutorialOnStartKey) ?? false);
 
 /// 회원가입 직후 닉네임을 Firestore 문서에 넣기 위해 잠깐 들고 있는 값
 final pendingNicknameProvider = StateProvider<String?>((_) => null);

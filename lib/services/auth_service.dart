@@ -81,6 +81,8 @@ class AuthService {
         case 'wrong-password':
         case 'invalid-credential':
           return '이메일 또는 비밀번호가 올바르지 않아요';
+        case 'operation-not-allowed':
+          return '이메일 가입이 아직 열려 있지 않아요. 잠시 후 다시 시도해 주세요';
         case 'email-already-in-use':
           return '이미 가입된 이메일이에요';
         case 'credential-already-in-use':

@@ -49,9 +49,9 @@ const crops = [
 
 /// 도감에 "준비 중"으로만 보여주는 작물 (아직 심을 수 없음)
 const lockedCrops = [
-  ('바나나', '🍌'),
-  ('복숭아', '🍑'),
-  ('양상추', '🥗'),
+  ('바나나', '🍌', 'BANANA'),
+  ('복숭아', '🍑', 'PEACH'),
+  ('양상추', '🥗', 'LETTUCE'),
 ];
 
 CropSpec cropOf(String code) => crops.firstWhere((c) => c.code == code);

@@ -124,7 +124,10 @@ class _EncyclopediaPageState extends ConsumerState<EncyclopediaPage> {
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                           onTap: () => showMsg(context, '${l.$1}은(는) 아직 준비 중이에요'),
                           child: Row(children: [
-                            const EmojiBadge('🔒', size: 44, color: Color(0xFFE3E7E0)),
+                            Stack(clipBehavior: Clip.none, children: [
+                              CropBadge(l.$3, size: 44, color: const Color(0xFFE3E7E0)),
+                              const Positioned(right: -2, bottom: -2, child: Icon(Icons.lock_rounded, size: 16, color: AppColors.sub)),
+                            ]),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [

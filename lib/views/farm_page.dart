@@ -72,6 +72,14 @@ class FarmPage extends ConsumerWidget {
       return ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(overscroll: false),
         child: ListView(padding: EdgeInsets.zero, physics: const ClampingScrollPhysics(), children: [
+        GuideOnce(
+          prefs: () => ref.read(prefsProvider),
+          guideKey: 'farm',
+          when: () => ref.read(shellIndexProvider) == 1,
+          icon: Icons.grass_rounded,
+          title: '내 농장에 오신 걸 환영해요!',
+          lines: const ['아래 밭을 눌러 씨앗을 심어 보세요', '물·영양제로 키우고, 다 자라면 수확해요', '시세판에서 가격을 보고 창고에서 팔아요'],
+        ),
         SizedBox(
           height: heroH,
           child: _FarmHero(

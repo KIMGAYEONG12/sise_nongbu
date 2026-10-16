@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/game_rules.dart';
 import '../core/progress_rules.dart';
@@ -26,6 +27,19 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
   void initState() {
     super.initState();
     _sel = widget.initialPlot;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final SharedPreferences prefs;
+      try {
+        prefs = ref.read(prefsProvider);
+      } catch (_) {
+        return; // 저장소가 없는 테스트 화면에서는 안내 창을 띄우지 않는다
+      }
+      showGuideOnce(context, prefs, 'growth',
+          icon: Icons.eco_rounded,
+          title: '작물을 키워 볼까요?',
+          lines: const ['빈 밭(+)을 눌러 원하는 작물을 심어요', '물주기·영양제·성장촉진제로 더 빨리 자라요', '다 자라면 밭을 눌러 수확하고 창고에서 팔아요']);
+    });
   }
 
   Plot? _selected(List<Plot> list) {

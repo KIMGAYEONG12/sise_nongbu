@@ -58,7 +58,7 @@ void main() {
     });
     await tester.pump(const Duration(seconds: 9)); // 로봇이 움직인다
     // 심은 밭 3곳의 작물이 그려진다 (빈 밭은 안 그린다)
-    expect(find.descendant(of: find.byType(FarmLife), matching: find.byType(CropArt)), findsNWidgets(3));
+    expect(find.descendant(of: find.byType(FarmLife), matching: find.byType(CropArt)), findsNWidgets(3)); // 작물 그림은 한 번만 만들어 흔들기만 한다
     expect(find.descendant(of: find.byType(FarmLife), matching: find.byType(CustomPaint)), findsWidgets);
     // 레벨·칭호 줄은 "…"로 잘리지 않고 전체가 보인다 (exp 1500 = Lv.5 성실한 농부)
     expect(find.text('Lv. 5  ·  🌾 성실한 농부'), findsOneWidget);
