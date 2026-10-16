@@ -27,11 +27,15 @@ class AuthService {
 
   static Future<void>? _googleInit;
 
+  /// Firebase 프로젝트의 웹 클라이언트 ID (google-services.json의 client_type 3, 공개해도 되는 값).
+  /// 플러그인이 리소스(default_web_client_id)에서 자동으로 읽을 수도 있지만, 플레이 스토어용 빌드는 리소스 줄이기가
+  /// 그 값을 지워 버려서 "clientConfigurationError"로 구글 로그인이 실패했다. 그래서 코드에 직접 넣는다.
+  static const googleWebClientId = '641118692037-0nk84mc3sd42dr1rpo6meqkepl75kel7.apps.googleusercontent.com';
+
   /// 브라우저 없이 기기의 Google 계정 고르기 창으로 로그인해 Firebase 자격 증명을 만든다.
-  /// 웹 클라이언트 ID는 google-services.json에서 자동으로 읽는다.
   Future<AuthCredential> _googleCredential() async {
     final google = GoogleSignIn.instance;
-    await (_googleInit ??= google.initialize());
+    await (_googleInit ??= google.initialize(serverClientId: googleWebClientId));
     final account = await google.authenticate();
     return GoogleAuthProvider.credential(idToken: account.authentication.idToken);
   }
