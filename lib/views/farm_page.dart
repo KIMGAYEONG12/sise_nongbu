@@ -7,6 +7,7 @@ import '../models/models.dart';
 import '../services/weather_service.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
+import '../widgets/crop_art.dart';
 import '../widgets/greenhouse_art.dart';
 import '../widgets/farm_life.dart';
 import '../widgets/farm_mailbox.dart';
@@ -77,9 +78,14 @@ class FarmPage extends ConsumerWidget {
           prefs: () => ref.read(prefsProvider),
           guideKey: 'farm',
           when: () => ref.read(shellIndexProvider) == 1,
-          icon: Icons.grass_rounded,
-          title: '내 농장에 오신 걸 환영해요!',
-          lines: const ['아래 밭을 눌러 씨앗을 심어 보세요', '물·영양제로 키우고, 다 자라면 수확해요', '시세판에서 가격을 보고 창고에서 팔아요'],
+          icon: Icons.cottage_rounded,
+          title: '농부님, 내 농장에 오신 것을 환영합니다!',
+          lines: const [
+            '아래 밭을 눌러 마음에 드시는 씨앗을 심어 보세요.',
+            '물과 영양제를 주시면 작물이 더 빨리, 더 많이 자라요.',
+            '다 자라면 수확하시고, 시세판에서 가격을 확인하신 뒤 창고에서 판매해 주세요.',
+            '궁금하신 점은 언제든 AI 도우미에게 편하게 물어봐 주세요.',
+          ],
         ),
         SizedBox(
           height: heroH,
@@ -133,12 +139,26 @@ class FarmPage extends ConsumerWidget {
             // 새 버전이 나오면 농장 우체통에 편지가 온다. 누르면 편지 창 → 업데이트하기
             mailbox: Builder(builder: (context) {
               final hasLetter = ref.watch(updateAvailableProvider).valueOrNull != null;
+              final colorIndex = ref.watch(mailboxColorProvider);
               return FarmMailbox(
                 hasLetter: hasLetter,
+                color: mailboxColorOf(colorIndex),
                 active: ref.watch(shellIndexProvider) == 1,
-                onTap: () => showMailboxLetter(context, hasLetter: hasLetter, onUpdate: () async {
-                  await ref.read(updateServiceProvider).update();
-                }),
+                onTap: () => showMailboxLetter(
+                  context,
+                  hasLetter: hasLetter,
+                  onUpdate: () async {
+                    await ref.read(updateServiceProvider).update();
+                  },
+                  colorIndex: colorIndex,
+                  // 우체통 색을 고르면 바로 바뀌고 기기에 저장된다
+                  onColor: (i) {
+                    ref.read(mailboxColorProvider.notifier).state = i;
+                    try {
+                      ref.read(prefsProvider).setInt(mailboxColorKey, i);
+                    } catch (_) {}
+                  },
+                ),
               );
             }),
           ),
@@ -147,7 +167,8 @@ class FarmPage extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       const SizedBox(height: 12),
-      GreenButton(label: '작물 관리', icon: const Icon(Icons.eco_rounded, size: 20), onPressed: () => _push(context, const CropGrowthPage())),
+      // 작물 관리 버튼 앞 그림: 잎 아이콘(다른 앱과 비슷해 보임) 대신 우리 작물 그림(배추)
+      GreenButton(label: '작물 관리', icon: const CropArt(code: 'CABBAGE', size: 26), onPressed: () => _push(context, const CropGrowthPage())),
       const SectionTitle('바로가기'),
       GridView.count(
         crossAxisCount: 4,

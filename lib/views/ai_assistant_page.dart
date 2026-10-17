@@ -165,12 +165,13 @@ class _AiAssistantPageState extends ConsumerState<AiAssistantPage> {
         showMsg(context, '사진이 오지 않았어요. 카메라가 안 열리면 앨범에서 골라 보세요');
       }
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         showMsg(
             context,
             fromCamera
                 ? '카메라를 열지 못했어요. 앨범에서 골라 보세요'
                 : '사진을 가져오지 못했어요. 다시 해 주세요');
+      }
     }
   }
 
@@ -209,10 +210,11 @@ class _AiAssistantPageState extends ConsumerState<AiAssistantPage> {
   }
 
   void _toBottom() => WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scroll.hasClients)
+        if (_scroll.hasClients) {
           _scroll.animateTo(_scroll.position.maxScrollExtent,
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeOut);
+        }
       });
 
   @override

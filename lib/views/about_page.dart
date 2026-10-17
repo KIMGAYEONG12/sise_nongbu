@@ -76,12 +76,12 @@ class AboutPage extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 4),
                       child: SwitchListTile(
-                        title: const KoText('데모 모드',
+                        title: const KoText('작물 성장 빠르게 올리기',
                             style: _titleStyle),
                         subtitle: const Padding(
                           padding: EdgeInsets.only(top: 6),
-                          child: const KoText(
-                              '데모 모드를 켜면, 어떤 작물이든 심고, 1초 뒤에 수확할 수 있어요.',
+                          child: KoText(
+                              '켜시면 어떤 작물이든 심고, 1초 뒤에 바로 수확하실 수 있어요.',
                               style: _bodyStyle),
                         ),
                         value: demo,
@@ -100,7 +100,7 @@ class AboutPage extends ConsumerWidget {
                             style: _titleStyle),
                         subtitle: const Padding(
                           padding: EdgeInsets.only(top: 6),
-                          child: const KoText(
+                          child: KoText(
                               '테스트용: 보유 자금을 시작 자금으로 맞춰요 (작물·창고·아이템은 그대로)',
                               style: _bodyStyle),
                         ),

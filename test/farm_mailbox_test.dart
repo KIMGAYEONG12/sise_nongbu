@@ -62,10 +62,12 @@ void main() {
       await tester.tap(find.byType(FarmMailbox));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
-      expect(find.text(letter ? '시세 농부 편지가 왔어요' : '우체통이 비어 있어요'), findsOneWidget);
+      expect(find.text(letter ? '농부님께 편지가 도착했어요' : '아직 도착한 편지가 없어요'), findsOneWidget);
+      // 우체통 색 고르기 (분홍)
+      expect(find.text('우체통 색을 골라 주세요'), findsOneWidget);
       await savePreview(tester, shot, 'mailbox_sheet_${letter ? 'letter' : 'empty'}');
       if (letter) {
-        await tester.tap(find.text('업데이트하기'));
+        await tester.tap(find.text('지금 업데이트하기'));
         await tester.pump(const Duration(milliseconds: 400));
         expect(fake.updates, 1);
       }

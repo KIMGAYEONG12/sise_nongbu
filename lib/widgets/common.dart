@@ -266,7 +266,7 @@ Future<void> showGuideOnce(BuildContext context, SharedPreferences prefs, String
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
-            child: GreenButton(label: '확인', height: 48, onPressed: () => Navigator.of(d).pop()),
+            child: GreenButton(label: '네, 알겠어요', height: 48, onPressed: () => Navigator.of(d).pop()),
           ),
           const SizedBox(height: 8),
         ]),

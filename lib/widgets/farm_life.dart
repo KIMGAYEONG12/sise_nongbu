@@ -189,7 +189,7 @@ class FarmRobotPainter extends CustomPainter {
     canvas.drawCircle(p(.5, .64), w * .09, Paint()..color = const Color(0xFF39F0C8).withValues(alpha: .35 * glow)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
     canvas.drawCircle(p(.5, .64), w * .055, Paint()..color = const Color(0xFF1FD6AE).withValues(alpha: .6 + .4 * glow));
     // 태양광 패널 띠
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTRB(w * .26, h * .52, w * .74, h * .56), Radius.circular(2)), Paint()..color = const Color(0xFF2B4C8C));
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTRB(w * .26, h * .52, w * .74, h * .56), const Radius.circular(2)), Paint()..color = const Color(0xFF2B4C8C));
 
     // 팔 (물뿌리개를 든 쪽)
     final arm = Paint()..color = const Color(0xFF6F879B)..strokeWidth = w * .06..strokeCap = StrokeCap.round;

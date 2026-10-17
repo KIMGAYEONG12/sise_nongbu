@@ -27,7 +27,7 @@ void main() {
       expect(p.dy, inInclusiveRange(0, 714));
     }
     // 가다가 왼쪽으로 꺾는 구간이 있다 (로봇이 몸을 돌린다)
-    expect([for (var i = 0; i < 100; i++) FarmLife.robotAt(i / 100).$2].toSet(), {true, false});
+    expect({for (var i = 0; i < 100; i++) FarmLife.robotAt(i / 100).$2}, {true, false});
   });
 
   final shot = GlobalKey();

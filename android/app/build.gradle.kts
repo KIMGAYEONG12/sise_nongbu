@@ -55,6 +55,8 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
+            // 코드 줄이기(R8)가 Firebase 로그인 저장·구글 로그인 부품을 지우지 않게 (proguard-rules.pro)
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }

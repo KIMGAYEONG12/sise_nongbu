@@ -174,7 +174,7 @@ void main() {
   });
 
   group('오프라인 도우미', () {
-    final ctx = const AiContext(prices: {}, money: 0, lots: [], plots: []);
+    const ctx = AiContext(prices: {}, money: 0, lots: [], plots: []);
 
     test('사진만 오면 사진을 분석하지 못한다는 것을 솔직히 알리고 글로 도울 방법을 안내한다', () async {
       final a = await const RuleBasedLlm().complete(aiDefaultPhotoQuestion, ctx, image: AiImage(Uint8List.fromList(_png), 'image/png'));

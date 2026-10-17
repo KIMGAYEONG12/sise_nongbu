@@ -29,6 +29,16 @@ final notificationProvider =
 final prefsProvider =
     Provider<SharedPreferences>((_) => throw UnimplementedError());
 
+/// 농장 우체통 색 번호 (farm_mailbox.dart의 mailboxColors). 기기에 저장해 두고 다음에도 같은 색으로 보여 준다.
+const mailboxColorKey = 'mailbox_color';
+final mailboxColorProvider = StateProvider<int>((ref) {
+  try {
+    return ref.read(prefsProvider).getInt(mailboxColorKey) ?? 0;
+  } catch (_) {
+    return 0; // 저장소가 없는 테스트 화면 등
+  }
+});
+
 /// 구글 플레이 앱 내 업데이트
 final updateServiceProvider = Provider<UpdateService>((_) => const UpdateService());
 

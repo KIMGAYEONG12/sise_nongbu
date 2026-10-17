@@ -37,8 +37,12 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
       }
       showGuideOnce(context, prefs, 'growth',
           icon: Icons.agriculture_rounded,
-          title: '작물을 키워 볼까요?',
-          lines: const ['빈 밭(+)을 눌러 원하는 작물을 심어요', '물주기·영양제·성장촉진제로 더 빨리 자라요', '다 자라면 밭을 눌러 수확하고 창고에서 팔아요']);
+          title: '농부님, 함께 작물을 키워 볼까요?',
+          lines: const [
+            '빈 밭(+)을 눌러 원하시는 작물을 심어 주세요.',
+            '물주기·영양제·성장촉진제는 횟수 제한 없이 마음껏 쓰실 수 있어요.',
+            '다 자라면 밭을 눌러 수확하시고, 창고에서 판매하실 수 있어요.',
+          ]);
     });
   }
 

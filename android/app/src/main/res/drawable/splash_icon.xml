@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 안드로이드 12+ 시작 화면 아이콘: 시스템이 동그랗게 잘라도 "시세농부" 글자까지 다 보이게 로고를 원 안쪽에 작게 넣는다 -->
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
-    android:inset="27%">
+    android:inset="31%">
     <bitmap
         android:filter="true"
         android:gravity="fill"
