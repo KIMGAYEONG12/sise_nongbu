@@ -222,6 +222,29 @@ void main() {
       expect(parts.length, 1);
     });
   });
+
+  testWidgets('튜토리얼을 물으면 AI에게 보내지 않고 "튜토리얼을 보여드릴까요?" → 아니요를 누르면 보여 주지 않는다', (tester) async {
+    final llm = _SpyLlm();
+    await tester.pumpWidget(_app(photo: _FakePhoto(), voice: _FakeVoice('안녕하세요'), llm: llm));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField), '튜토리얼 다시 보고 싶어요');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(llm.question, isNull); // AI에게 보내지 않았다
+    expect(find.textContaining('튜토리얼을 보여드릴까요?'), findsOneWidget);
+    expect(find.text('네'), findsOneWidget);
+    await tester.tap(find.text('아니요'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.textContaining('언제든 편하게 물어봐 주세요'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, '네'), findsNothing); // 답한 뒤에는 버튼이 사라진다
+  });
+
+  test('튜토리얼 질문 알아보기', () {
+    expect(isTutorialQuestion('튜토리얼 보여줘'), isTrue);
+    expect(isTutorialQuestion('게임 방법 알려 주세요'), isTrue);
+    expect(isTutorialQuestion('배추 시세 어때요'), isFalse);
+  });
 }
 
 AiContext ctx() => const AiContext(prices: {}, money: 0, lots: [], plots: []);

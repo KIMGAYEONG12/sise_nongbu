@@ -348,8 +348,10 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final empty = count != null && count == 0;
-    final mark = count != null ? '∞' : badge; // 물주기·영양제·성장촉진제는 무제한
+    // 물주기·영양제·성장촉진제는 상점에서 사지 않아도 모든 사용자가 무제한으로 쓴다.
+    // 그래서 가진 개수(count)와 상관없이 흐리게 하지 않고, 파란 '무제한' 표시를 단다.
+    final unlimited = count != null;
+    final mark = unlimited ? '∞ 무제한' : badge;
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -365,7 +367,7 @@ class _ActionButton extends StatelessWidget {
                   boxShadow: [BoxShadow(color: AppColors.green.withValues(alpha: .08), blurRadius: 8, offset: const Offset(0, 2))],
                 ),
                 child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Opacity(opacity: empty ? .6 : 1, child: Icon(icon, size: 38, color: iconColor)),
+                  Icon(icon, size: 38, color: iconColor),
                   const SizedBox(height: 8),
                   Text(label, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppColors.ink)),
                 ]),
@@ -377,7 +379,7 @@ class _ActionButton extends StatelessWidget {
                 right: 5,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(color: empty ? const Color(0xFFB9C2BC) : AppColors.greenDark, borderRadius: BorderRadius.circular(10)),
+                  decoration: BoxDecoration(color: unlimited ? const Color(0xFF2F86D6) : AppColors.greenDark, borderRadius: BorderRadius.circular(10)),
                   child: Text(mark, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white, height: 1.2)),
                 ),
               ),

@@ -17,6 +17,34 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _pw = TextEditingController();
   bool _hide = true, _busy = false;
 
+  /// 아이디(이메일) 저장 · 로그인 유지 (기기에 저장)
+  bool _rememberEmail = false, _keepLogin = true;
+
+  @override
+  void initState() {
+    super.initState();
+    try {
+      final prefs = ref.read(prefsProvider);
+      _rememberEmail = prefs.getBool(rememberEmailKey) ?? false;
+      _keepLogin = prefs.getBool(keepLoginKey) ?? true;
+      if (_rememberEmail) _email.text = prefs.getString(savedEmailKey) ?? '';
+    } catch (_) {} // 저장소가 없는 테스트 화면
+  }
+
+  /// 로그인에 성공하면 아이디 저장·로그인 유지 설정을 기기에 적어 둔다
+  Future<void> _saveLoginPrefs({String? email}) async {
+    try {
+      final prefs = ref.read(prefsProvider);
+      await prefs.setBool(rememberEmailKey, _rememberEmail);
+      await prefs.setBool(keepLoginKey, _keepLogin);
+      if (_rememberEmail && email != null && email.trim().isNotEmpty) {
+        await prefs.setString(savedEmailKey, email.trim());
+      } else if (!_rememberEmail) {
+        await prefs.remove(savedEmailKey);
+      }
+    } catch (_) {}
+  }
+
   @override
   void dispose() {
     _email.dispose();
@@ -42,8 +70,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       return;
     }
     final flag = ref.read(loginAfterTutorialProvider.notifier);
+    final email = _email.text;
     _run(() async {
-      await ref.read(authServiceProvider).signIn(_email.text, _pw.text);
+      await ref.read(authServiceProvider).signIn(email, _pw.text);
+      await _saveLoginPrefs(email: email);
       flag.state = false;
     });
   }
@@ -52,6 +82,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final flag = ref.read(loginAfterTutorialProvider.notifier);
     _run(() async {
       await ref.read(authServiceProvider).signInWithGoogle();
+      await _saveLoginPrefs(email: ref.read(authServiceProvider).currentUser?.email);
       flag.state = false;
     });
   }
@@ -112,7 +143,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 6),
+                // 아이디 저장 · 로그인 유지
+                Row(children: [
+                  _CheckOption(label: '아이디 저장', value: _rememberEmail, onChanged: (v) => setState(() => _rememberEmail = v)),
+                  const SizedBox(width: 10),
+                  _CheckOption(label: '로그인 유지', value: _keepLogin, onChanged: (v) => setState(() => _keepLogin = v)),
+                ]),
+                const SizedBox(height: 8),
                 GreenButton(label: '로그인', loading: _busy, height: 52, onPressed: _login),
                 const OrDivider(),
                 GreenButton(label: 'Google로 로그인', outlined: true, height: 52, icon: const GoogleG(), onPressed: _busy ? null : _google),
@@ -170,6 +208,35 @@ class OrDivider extends StatelessWidget {
           Padding(padding: EdgeInsets.symmetric(horizontal: 14), child: Text('또는', style: TextStyle(fontSize: 13, color: Color(0xFF4A5A4E), fontWeight: FontWeight.w600))),
           Expanded(child: Divider(color: Color(0xFFD5DECF))),
         ]),
+      );
+}
+
+/// 체크 상자 + 글자 (글자를 눌러도 켜고 끌 수 있다)
+class _CheckOption extends StatelessWidget {
+  const _CheckOption({required this.label, required this.value, required this.onChanged});
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  @override
+  Widget build(BuildContext context) => InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => onChanged(!value),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            SizedBox(
+              width: 32,
+              height: 32,
+              child: Checkbox(
+                value: value,
+                activeColor: AppColors.green,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                onChanged: (v) => onChanged(v ?? false),
+              ),
+            ),
+            Text(label, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: Color(0xFF3D4A40))),
+          ]),
+        ),
       );
 }
 

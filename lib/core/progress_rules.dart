@@ -18,6 +18,21 @@ int sellExp(int amount) => amount ~/ 700 < 3 ? 3 : amount ~/ 700;
 /// 마을 기금 기부 금액에 따라 얻는 경험치 (400원당 1, 최소 3)
 int donateExp(int amount) => amount ~/ 400 < 3 ? 3 : amount ~/ 400;
 
+/// 마을 기금에 기부할 때마다 바로 받는 포인트(특별 상점용). 많이 기부할수록 비율이 좋아진다.
+/// 1,000P → 10 · 5,000P → 60 · 10,000P → 150 · 50,000P → 900
+int donateRewardPoints(int amount) {
+  if (amount <= 0) return 0;
+  final rate = amount >= 50000
+      ? 1.8
+      : amount >= 10000
+          ? 1.5
+          : amount >= 5000
+              ? 1.2
+              : 1.0;
+  final p = (amount * rate / 100).round();
+  return p < 1 ? 1 : p;
+}
+
 class LevelInfo {
   const LevelInfo(this.level, this.exp, this.need);
   final int level; // 현재 레벨

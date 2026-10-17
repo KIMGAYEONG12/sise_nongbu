@@ -29,6 +29,13 @@ final notificationProvider =
 final prefsProvider =
     Provider<SharedPreferences>((_) => throw UnimplementedError());
 
+/// 로그인 화면의 "아이디 저장" (켜 두면 다음에 이메일이 미리 채워진다)
+const rememberEmailKey = 'remember_email';
+const savedEmailKey = 'saved_email';
+
+/// 로그인 화면의 "로그인 유지" (기본 켬). 끄고 로그인하면 앱을 완전히 껐다 켤 때 다시 로그인하게 한다 (게스트는 항상 유지).
+const keepLoginKey = 'keep_login';
+
 /// 농장 우체통 색 번호 (farm_mailbox.dart의 mailboxColors). 기기에 저장해 두고 다음에도 같은 색으로 보여 준다.
 const mailboxColorKey = 'mailbox_color';
 final mailboxColorProvider = StateProvider<int>((ref) {
@@ -331,7 +338,8 @@ class FarmViewModel {
   Future<void> claimMission(MissionDef d) => _repo.claimMission(d);
   Future<void> claimAchievement(AchievementDef d) => _repo.claimAchievement(
       d, (_ref.read(plotsProvider).valueOrNull ?? const <Plot>[]).length);
-  Future<void> donate(int amount) => _repo.donateToFund(amount);
+  /// 기부하고 바로 받은 포인트를 돌려준다
+  Future<int> donate(int amount) => _repo.donateToFund(amount);
   Future<void> claimFund(FundMilestone m) => _repo.claimFundMilestone(m);
   Future<bool> gameReward(int score) => _repo.gameReward(score);
 }

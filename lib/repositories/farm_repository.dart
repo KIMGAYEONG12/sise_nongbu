@@ -83,7 +83,7 @@ class FarmRepository {
   Future<LevelUpReward?> claimLevelUpReward(int from, int to) => _db.claimLevelUpReward(from, to);
   Future<void> claimMission(MissionDef def) => _db.claimMission(def);
   Future<void> claimAchievement(AchievementDef def, int plots) => _db.claimAchievement(def, plots);
-  Future<void> donateToFund(int amount) => _db.donateToFund(amount);
+  Future<int> donateToFund(int amount) => _db.donateToFund(amount);
   Future<void> claimFundMilestone(FundMilestone m) => _db.claimFundMilestone(m);
   Future<bool> gameReward(int score) => _db.gameReward(score);
 

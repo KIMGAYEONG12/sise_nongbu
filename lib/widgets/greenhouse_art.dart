@@ -145,6 +145,19 @@ class GreenhousePainter extends CustomPainter {
     canvas.drawRRect(bed, Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: bedColors).createShader(bed.outerRect));
     canvas.drawRRect(bed, line(const Color(0xFF6B3F1F), 1.2));
     canvas.drawLine(p(.04, .905), p(.96, .905), line(const Color(0x33FFFFFF), 1));
+    // 화단 앞의 알록달록한 꽃 (하우스를 더 예쁘게): 잎 두 장 + 꽃잎 다섯 장 + 노란 꽃술
+    const flowers = [(.07, Color(0xFFFF8FB1)), (.17, Color(0xFFFFD45C)), (.27, Color(0xFFB79CE0)), (.73, Color(0xFFFF8FB1)), (.83, Color(0xFF8ED1F2)), (.93, Color(0xFFFFD45C))];
+    for (final f in flowers) {
+      final c = p(f.$1, .925);
+      final r = w * .018;
+      canvas.drawOval(Rect.fromCenter(center: c + Offset(-r * 1.1, r * .9), width: r * 1.6, height: r * .8), fill(const Color(0xFF4FA83A)));
+      canvas.drawOval(Rect.fromCenter(center: c + Offset(r * 1.1, r * .9), width: r * 1.6, height: r * .8), fill(const Color(0xFF4FA83A)));
+      for (var k = 0; k < 5; k++) {
+        final ang = k * math.pi * 2 / 5 - math.pi / 2;
+        canvas.drawCircle(c + Offset(math.cos(ang) * r * .8, math.sin(ang) * r * .8), r * .62, fill(f.$2));
+      }
+      canvas.drawCircle(c, r * .45, fill(const Color(0xFFFFE27A)));
+    }
 
     // 안에서 자라는 작물: 단계가 오를수록 풍성해진다.
     // 유리가 짙은 황금/첨단 온실(3단계 이상)은 유리 뒤에 그리면 가려지므로 유리 위에 그려서 작물이 또렷하게 보이게 한다.
@@ -290,7 +303,8 @@ class GreenhousePainter extends CustomPainter {
   /// 하우스 안을 왼쪽·오른쪽으로 오가며 작물에 물을 주는 로봇. 오른쪽으로 갈 때 물을 뿌리고, 방향을 바꿀 때 몸을 돌린다.
   void _drawRobot(Canvas canvas, Size size, double a2, double base) {
     final w = size.width, h = size.height;
-    final rw = w * .12, rh = h * .205; // 작은 로봇
+    // 작은 로봇: 하우스 가로·세로 비율이 달라져도 로봇이 늘어나 보이지 않게 로봇 자체 비율(가로:세로 ≈ 0.83)을 지킨다
+    final rw = w * .12, rh = rw / .83;
     final s = math.sin(a2); // -1(왼쪽 끝) ~ 1(오른쪽 끝)
     final goingRight = math.cos(a2) >= 0;
     final cx = w * (.5 + .25 * s);

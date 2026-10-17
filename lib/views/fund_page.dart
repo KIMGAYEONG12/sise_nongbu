@@ -19,8 +19,14 @@ class _FundPageState extends ConsumerState<FundPage> {
 
   Future<void> _donate(int amount) async {
     setState(() => _busy = true);
-    await runGuarded(context, () => ref.read(farmViewModelProvider).donate(amount), ok: '${won(amount)}을 기부했어요. 고마워요! 🏡');
-    if (mounted) setState(() => _busy = false);
+    try {
+      final reward = await ref.read(farmViewModelProvider).donate(amount);
+      if (mounted) showMsg(context, '${won(amount)}을 기부해 주셔서 감사합니다! 보상으로 $reward포인트를 드렸어요');
+    } catch (e) {
+      if (mounted) showMsg(context, errMsg(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
@@ -67,7 +73,7 @@ class _FundPageState extends ConsumerState<FundPage> {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(color: const Color(0xFFEAF5DF), borderRadius: BorderRadius.circular(18)),
-                  child: const Text('🌿  단계별 목표 달성 시 기부한 농부에게 포인트 보상!  🌿', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.greenDark)),
+                  child: const Text('🌿  기부할 때마다 바로 포인트 보상! 많이 기부할수록 더 많이!  🌿', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.greenDark)),
                 ),
                 const SizedBox(height: 10),
                 SoftCard(
@@ -117,7 +123,15 @@ class _FundPageState extends ConsumerState<FundPage> {
                           ),
                         ),
                     ]),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
+                    // 이번 기부로 바로 받는 보상 미리 보기
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(color: const Color(0xFFFFF4D6), borderRadius: BorderRadius.circular(12)),
+                      child: Text('🎁 기부하시면 바로 +${commaNum(donateRewardPoints(amount))}포인트와 경험치를 드려요', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF7A5200))),
+                    ),
+                    const SizedBox(height: 10),
                     GreenButton(label: '${won(amount)} 기부하기', loading: _busy, onPressed: user.money < amount ? null : () => _donate(amount)),
                     if (user.money < amount)
                       const Padding(padding: EdgeInsets.only(top: 6), child: Text('포인트가 부족합니다', style: TextStyle(fontSize: 11, color: AppColors.sub))),

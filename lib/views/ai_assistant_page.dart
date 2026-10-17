@@ -6,6 +6,7 @@ import '../models/models.dart';
 import '../services/ai_input_service.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
+import 'tutorial_page.dart';
 
 /// 사진·음성 입력 서비스 (테스트에서는 가짜로 바꿔 끼운다)
 final photoInputProvider =
@@ -18,10 +19,19 @@ const aiGreeting =
 
 /// 대화 한 줄: 내가 보낸 건지, 글, (있으면) 함께 보낸 사진
 class _Msg {
-  const _Msg(this.mine, this.text, {this.image});
+  const _Msg(this.mine, this.text, {this.image, this.askTutorial = false});
   final bool mine;
   final String text;
   final AiImage? image;
+
+  /// "튜토리얼을 보여드릴까요?" 질문 (아래에 네/아니요 버튼이 붙는다)
+  final bool askTutorial;
+}
+
+/// 튜토리얼(게임 방법)을 묻는 질문인지
+bool isTutorialQuestion(String q) {
+  final s = q.replaceAll(' ', '');
+  return s.contains('튜토리얼') || s.contains('게임방법') || s.contains('하는방법') || s.contains('사용법') || s.contains('사용방법');
 }
 
 /// AI 농사 도우미 대화 화면. 아래 추천 질문을 눌러 바로 물어볼 수도 있고, 직접 입력하거나
@@ -40,6 +50,9 @@ class _AiAssistantPageState extends ConsumerState<AiAssistantPage> {
   final _msgs = <_Msg>[const _Msg(false, aiGreeting)];
   bool _busy = false;
   bool _listening = false;
+
+  /// 네/아니요로 이미 답한 "튜토리얼을 보여드릴까요?" 질문 (버튼을 다시 보이지 않는다)
+  final _answered = <int>{};
 
   /// 다음 질문과 함께 보낼 사진 (고르면 입력창 위에 작게 보인다)
   AiImage? _photo;
@@ -93,6 +106,15 @@ class _AiAssistantPageState extends ConsumerState<AiAssistantPage> {
       _busy = true;
     });
     _toBottom();
+    // 튜토리얼(게임 방법)을 물으면 AI에게 보내지 않고, 튜토리얼을 보여 드릴지 먼저 여쭤본다
+    if (photo == null && isTutorialQuestion(typed)) {
+      setState(() {
+        _msgs.add(const _Msg(false, '튜토리얼을 보여드릴까요?\n게임 방법을 처음부터 차근차근 알려 드릴게요.', askTutorial: true));
+        _busy = false;
+      });
+      _toBottom();
+      return;
+    }
     final user = ref.read(userDataProvider);
     final weather = ref.read(weatherProvider).valueOrNull;
     // 창고·밭은 이 화면에서 아직 안 불러왔을 수 있으니 기다려서 받는다 (예전에는 비어 있다고 잘못 답했다)
@@ -118,6 +140,22 @@ class _AiAssistantPageState extends ConsumerState<AiAssistantPage> {
       _msgs.add(_Msg(false, a));
       _busy = false;
     });
+    _toBottom();
+  }
+
+  /// "튜토리얼을 보여드릴까요?"에 대한 답. 네 → 튜토리얼 화면을 열고, 아니요 → 보여 주지 않는다.
+  Future<void> _answerTutorial(int index, bool yes) async {
+    if (_answered.contains(index)) return;
+    setState(() {
+      _answered.add(index);
+      _msgs.add(_Msg(true, yes ? '네' : '아니요'));
+      if (!yes) _msgs.add(const _Msg(false, '알겠어요! 궁금하신 점이 생기면 언제든 편하게 물어봐 주세요.'));
+    });
+    _toBottom();
+    if (!yes) return;
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (route) => TutorialPage(onDone: () => Navigator.of(route).pop())));
+    if (!mounted) return;
+    setState(() => _msgs.add(const _Msg(false, '튜토리얼을 봐 주셔서 감사합니다! 더 궁금하신 점은 언제든 물어봐 주세요.')));
     _toBottom();
   }
 
@@ -270,6 +308,24 @@ class _AiAssistantPageState extends ConsumerState<AiAssistantPage> {
                                   height: 1.4,
                                   color:
                                       m.mine ? Colors.white : AppColors.ink)),
+                          // 튜토리얼을 보여 드릴지 묻는 말 아래의 네/아니요 버튼
+                          if (m.askTutorial && !_answered.contains(i))
+                            Padding(
+                              padding: const EdgeInsets.only(top: 10),
+                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                FilledButton(
+                                  style: FilledButton.styleFrom(backgroundColor: AppColors.green, minimumSize: const Size(72, 38)),
+                                  onPressed: () => _answerTutorial(i, true),
+                                  child: const Text('네', style: TextStyle(fontWeight: FontWeight.w800)),
+                                ),
+                                const SizedBox(width: 8),
+                                OutlinedButton(
+                                  style: OutlinedButton.styleFrom(foregroundColor: AppColors.ink, minimumSize: const Size(72, 38)),
+                                  onPressed: () => _answerTutorial(i, false),
+                                  child: const Text('아니요', style: TextStyle(fontWeight: FontWeight.w800)),
+                                ),
+                              ]),
+                            ),
                         ]),
                   ),
                 );

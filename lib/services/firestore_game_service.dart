@@ -555,7 +555,8 @@ class FirestoreGameService {
 
   // ───────────────────────── 마을 공동기금 ─────────────────────────
 
-  Future<void> donateToFund(int amount) => _tx((tx) async {
+  /// 마을 기금에 기부한다. 기부할 때마다 바로 포인트 보상을 주고, 받은 포인트를 돌려준다.
+  Future<int> donateToFund(int amount) => _tx<int>((tx) async {
         if (amount <= 0) throw StateError('기부할 금액을 입력해 주세요');
         final u = (await tx.get(_user)).data()!;
         final f = (await tx.get(_fund)).data();
@@ -563,14 +564,17 @@ class FirestoreGameService {
         if (money < amount) throw StateError('포인트가 부족합니다');
         final total = _int(f?['total']);
         final goal = _int(f?['goal']) > 0 ? _int(f?['goal']) : fundDefaultGoal;
+        final reward = donateRewardPoints(amount);
         tx.update(_user, {
           'money': money - amount,
           'fundGiven': FieldValue.increment(amount),
           'stats.donate': FieldValue.increment(amount),
           'exp': _int(u['exp']) + donateExp(amount),
+          'points': FieldValue.increment(reward),
           'updatedAt': FieldValue.serverTimestamp(),
         });
         tx.set(_fund, {'total': total + amount, 'goal': goal, 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+        return reward;
       });
 
   Future<void> claimFundMilestone(FundMilestone m) => _tx((tx) async {

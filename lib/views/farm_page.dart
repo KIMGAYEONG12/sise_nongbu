@@ -233,7 +233,8 @@ class _FarmHero extends StatelessWidget {
 
   /// 하우스를 올려 놓을 자리 (그림 원본 픽셀: 집 왼쪽 앞 풀밭, 크게).
   /// 아래 끝(566)이 갈색 밭이 시작되는 높이(약 590)보다 위라서 밭과 겹치지 않는다.
-  static const _house = Rect.fromLTWH(2, 428, 170, 120);
+  /// 가로 160 : 세로 150으로 키 큰 집 모양 (예전 170×120은 옆으로 넓어서 납작해 보였다). 아래 끝(548)은 그대로.
+  static const _house = Rect.fromLTWH(2, 398, 160, 150);
 
   // 그림(farm_scene_gemini.jpg) 좌표 기준 크기 (실제 파일은 3배 고해상도 1728×2079)
   static const _srcW = 576.0, _srcH = 693.0;
