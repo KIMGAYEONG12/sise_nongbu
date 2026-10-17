@@ -3,16 +3,20 @@ import 'package:flutter/material.dart';
 import 'common.dart';
 
 /// 우체통 색 (이름, 색). 편지 창 아래에서 고를 수 있고, 고른 색은 기기에 저장된다.
+/// 파스텔 느낌의 예쁜 색 (농장 그림과 어울리게 채도를 살짝 낮췄다)
 const mailboxColors = <(String, Color)>[
-  ('빨강', Color(0xFFE5483F)),
-  ('분홍', Color(0xFFF58BB4)),
-  ('보라', Color(0xFF9B6BD6)),
-  ('하양', Color(0xFFF7F5F0)),
-  ('하늘', Color(0xFF6CC4F0)),
-  ('검정', Color(0xFF34343C)),
-  ('노랑', Color(0xFFF7C843)),
-  ('초록', Color(0xFF5DB55A)),
+  ('체리', Color(0xFFEF6461)),
+  ('벚꽃', Color(0xFFF6A5C5)),
+  ('라벤더', Color(0xFFB79CE0)),
+  ('크림', Color(0xFFFFF6E6)),
+  ('하늘', Color(0xFF8ED1F2)),
+  ('민트', Color(0xFF7FD6BC)),
+  ('레몬', Color(0xFFFFD966)),
+  ('밤하늘', Color(0xFF45415A)),
 ];
+
+/// 레몬색 우체통 (깃발을 노랑 대신 빨강으로 그린다)
+const _lemon = Color(0xFFFFD966);
 
 /// 저장된 번호를 안전하게 색으로 바꾼다 (범위를 벗어나면 빨강)
 Color mailboxColorOf(int index) => mailboxColors[(index >= 0 && index < mailboxColors.length) ? index : 0].$2;
@@ -20,7 +24,7 @@ Color mailboxColorOf(int index) => mailboxColors[(index >= 0 && index < mailboxC
 /// 농장에 서 있는 작은 우체통. 새 버전이 나오면 편지가 와서 노란 깃발이 서고 빨간 숫자 1이 통통 튄다.
 /// 누르면 [onTap] (편지 창 열기). 코드로 그려서 큰 화면에서도 선명하다.
 class FarmMailbox extends StatefulWidget {
-  const FarmMailbox({super.key, required this.hasLetter, required this.onTap, this.size = 46, this.active = true, this.color = const Color(0xFFE5483F)});
+  const FarmMailbox({super.key, required this.hasLetter, required this.onTap, this.size = 46, this.active = true, this.color = const Color(0xFFEF6461)});
   final bool hasLetter;
   final VoidCallback onTap;
   final double size;
@@ -106,7 +110,7 @@ class _FarmMailboxState extends State<FarmMailbox> with SingleTickerProviderStat
 
 /// 나무 기둥 + 둥근 지붕의 우체통 + 편지 넣는 구멍 + 옆의 노란 깃발 (편지가 있으면 서 있다)
 class MailboxPainter extends CustomPainter {
-  const MailboxPainter({required this.flagUp, this.color = const Color(0xFFE5483F)});
+  const MailboxPainter({required this.flagUp, this.color = const Color(0xFFEF6461)});
   final bool flagUp;
   final Color color;
 
@@ -136,8 +140,16 @@ class MailboxPainter extends CustomPainter {
     canvas.drawPath(body, line);
     // 반짝임
     canvas.drawOval(Rect.fromLTWH(w * .24, h * .27, w * .12, h * .1), Paint()..color = const Color(0x66FFFFFF));
+    // 몸통 아래쪽의 작은 하트 스티커 (귀엽게)
+    final hc = Offset(w * .5, h * .505), hr = w * .055;
+    final heart = Path()
+      ..moveTo(hc.dx, hc.dy + hr * .9)
+      ..cubicTo(hc.dx - hr * 1.6, hc.dy - hr * .2, hc.dx - hr * .7, hc.dy - hr * 1.3, hc.dx, hc.dy - hr * .4)
+      ..cubicTo(hc.dx + hr * .7, hc.dy - hr * 1.3, hc.dx + hr * 1.6, hc.dy - hr * .2, hc.dx, hc.dy + hr * .9)
+      ..close();
+    canvas.drawPath(heart, Paint()..color = light ? const Color(0xFFF28FA8) : Colors.white.withValues(alpha: .9));
     // 편지 넣는 구멍
-    final slot = RRect.fromRectAndRadius(Rect.fromLTWH(w * .32, h * .42, w * .36, h * .045), Radius.circular(h * .02));
+    final slot =RRect.fromRectAndRadius(Rect.fromLTWH(w * .32, h * .42, w * .36, h * .045), Radius.circular(h * .02));
     canvas.drawRRect(slot, Paint()..color = const Color(0xFF3A2620));
     // 편지가 있으면 흰 봉투 끝이 구멍 위로 살짝 보인다
     if (flagUp) {
@@ -161,7 +173,7 @@ class MailboxPainter extends CustomPainter {
       ..lineTo(0, -h * .2)
       ..close();
     // 우체통이 노란색이면 깃발은 빨간색으로 (눈에 띄게)
-    canvas.drawPath(flag, Paint()..color = color == mailboxColors[6].$2 ? const Color(0xFFE5483F) : const Color(0xFFFFC93C));
+    canvas.drawPath(flag, Paint()..color = color == _lemon ? const Color(0xFFE5483F) : const Color(0xFFFFC93C));
     canvas.drawPath(flag, Paint()..style = PaintingStyle.stroke..strokeWidth = math.max(1, w * .02)..color = const Color(0xFF6B5A4A));
     canvas.restore();
   }

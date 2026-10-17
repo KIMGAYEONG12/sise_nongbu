@@ -64,3 +64,6 @@ key.properties
 *.jks
 *.keystore
 *.aab
+
+# Firebase 호스팅 배포 기록
+.firebase/
