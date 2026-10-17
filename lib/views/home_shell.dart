@@ -5,7 +5,7 @@ import '../core/progress_rules.dart';
 import '../models/models.dart';
 import '../viewmodels/view_models.dart';
 import '../core/game_rules.dart' show cropOf;
-import '../widgets/greenhouse_art.dart' show greenhouseNames, greenhouseTier;
+import '../widgets/greenhouse_art.dart' show greenhouseNames, greenhouseTier, greenhouseStage, greenhouseStageName;
 import '../widgets/common.dart';
 import '../widgets/level_up_art.dart';
 import 'farm_page.dart';
@@ -121,17 +121,21 @@ Future<void> _celebrateLevelUp(BuildContext context, WidgetRef ref, int from, in
   try {
     reward = await ref.read(farmViewModelProvider).claimLevelUp(from, to);
   } catch (_) {}
-  if (context.mounted) await showLevelUpDialog(context, from, to, now, reward: reward);
+  final houses = ref.read(userDataProvider).greenhouses;
+  if (context.mounted) await showLevelUpDialog(context, from, to, now, reward: reward, houses: houses);
 }
 
-Future<void> showLevelUpDialog(BuildContext context, int from, int to, LevelInfo now, {LevelUpReward? reward}) => showDialog<void>(
+Future<void> showLevelUpDialog(BuildContext context, int from, int to, LevelInfo now, {LevelUpReward? reward, int houses = 0}) => showDialog<void>(
       context: context,
-      builder: (d) => _LevelUpDialog(from: from, to: to, now: now, reward: reward),
+      builder: (d) => _LevelUpDialog(from: from, to: to, now: now, reward: reward, houses: houses),
     );
 
 class _LevelUpDialog extends StatefulWidget {
-  const _LevelUpDialog({required this.from, required this.to, required this.now, this.reward});
+  const _LevelUpDialog({required this.from, required this.to, required this.now, this.reward, this.houses = 0});
   final int from, to;
+
+  /// 지은 하우스 수 (농장에 보이는 하우스 이름과 같은 이름을 보여 주려고)
+  final int houses;
   final LevelInfo now;
 
   /// 이번 레벨 업으로 받은 보상 (받지 못했으면 null)
@@ -269,7 +273,8 @@ class _LevelUpDialogState extends State<_LevelUpDialog> with SingleTickerProvide
       const SizedBox(width: 10),
       Expanded(
         child: newTier
-            ? _rewardCard('🏠', greenhouseNames[greenhouseTier(widget.to)], sub: '새 하우스 모양')
+            // 농장에 보이는 하우스 이름표와 똑같은 이름 (하우스가 없으면 모양 이름)
+            ? _rewardCard('🏠', widget.houses > 0 ? greenhouseStageName(greenhouseStage(widget.to, widget.houses)) : greenhouseNames[greenhouseTier(widget.to)], sub: '새 하우스 모양')
             : _rewardCard('🌱', '경험치 ${widget.now.need - widget.now.exp}', sub: '다음 레벨까지'),
       ),
     ]);

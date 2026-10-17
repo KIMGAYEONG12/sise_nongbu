@@ -3,14 +3,15 @@ import 'game_rules.dart';
 
 // ───────────────────────── 레벨 ─────────────────────────
 
-/// 현재 레벨에서 다음 레벨까지 필요한 경험치. Lv1 → 200, Lv2 → 300, Lv3 → 400 …
-int expToNext(int level) => 100 * (level + 1);
+/// 다음 레벨까지 필요한 경험치: 모든 레벨에서 300으로 똑같다 (예전에는 Lv1 200, Lv2 300 … 처럼 점점 늘어났다).
+const expPerLevel = 300;
+int expToNext(int level) => expPerLevel;
 
 /// 경험치를 얻는 모든 행동(파종·수확·판매·구매·미션·기부·게임)에 곱하는 배율. 레벨이 빨리 오른다.
 const expBoost = 3;
 
-/// 수확 한 번에 얻는 경험치 (예전 +60에서 +100으로 올렸다)
-const harvestExp = 100;
+/// 수확 한 번에 얻는 경험치 (+300: 한 번 수확하면 레벨이 하나 오른다)
+const harvestExp = 300;
 
 /// 판매 금액에 따라 얻는 경험치 (금액 700원당 1, 최소 3)
 int sellExp(int amount) => amount ~/ 700 < 3 ? 3 : amount ~/ 700;
@@ -31,6 +32,27 @@ int donateRewardPoints(int amount) {
               : 1.0;
   final p = (amount * rate / 100).round();
   return p < 1 ? 1 : p;
+}
+
+/// 농장 큰 집의 이름표: 레벨이 오르면 집 이름도 바뀐다 (최소 레벨, 이름)
+const farmHouseNames = <(int, String)>[
+  (1, '작은 오두막'),
+  (5, '아늑한 농가'),
+  (10, '따뜻한 시골집'),
+  (20, '멋진 농장 주택'),
+  (35, '근사한 농장 저택'),
+  (50, '황금 농장 저택'),
+  (70, '별빛 농장 대저택'),
+  (90, '전설의 농장 성'),
+];
+
+/// [level]에 맞는 농장 큰 집 이름
+String farmHouseName(int level) {
+  var name = farmHouseNames.first.$2;
+  for (final h in farmHouseNames) {
+    if (level >= h.$1) name = h.$2;
+  }
+  return name;
 }
 
 class LevelInfo {

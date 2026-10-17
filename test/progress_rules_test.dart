@@ -5,12 +5,12 @@ import 'package:sise_nongbu/core/progress_rules.dart';
 void main() {
   test('레벨 계산: 누적 경험치 → 레벨', () {
     expect(levelInfo(0).level, 1);
-    expect(levelInfo(199).level, 1);
-    expect(levelInfo(200).level, 2);
-    expect(levelInfo(200).exp, 0);
-    expect(levelInfo(499).level, 2); // 200 + 300 = 500부터 Lv3
-    expect(levelInfo(500).level, 3);
-    expect(levelInfo(100).ratio, closeTo(.5, 1e-9));
+    expect(levelInfo(299).level, 1);
+    expect(levelInfo(300).level, 2);
+    expect(levelInfo(300).exp, 0);
+    expect(levelInfo(599).level, 2); // 300 + 300 = 600부터 Lv3
+    expect(levelInfo(600).level, 3);
+    expect(levelInfo(150).ratio, closeTo(.5, 1e-9));
   });
 
   test('창고 용량과 확장 비용', () {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'veggie_art.dart';
 
 /// 작물 그림 (시안의 둥글고 풍성한 배추처럼 코드로 그린 벡터 그림 → 어떤 크기에서도 선명).
-/// [stage] 0.0~1.0 성장 진행률: 0.34 미만 새싹, 0.67 미만 어린 작물, 그 이상 다 자란 작물.
+/// [stage] 0.0~1.0 성장 진행률: 0.34 미만 작게(막 심음), 0.67 미만 중간(어린 작물), 그 이상 다 자란 작물.
 /// 배추·무·양파·사과·토마토·감자 모두 이모지가 아니라 직접 그린 그림이라 작물이 바뀌면 그림도 바뀐다.
 class CropArt extends StatelessWidget {
   const CropArt({super.key, required this.code, required this.size, this.stage = 1.0});
@@ -13,16 +13,16 @@ class CropArt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Widget art;
-    if (stage < .34) {
-      // 새싹: 작물마다 잎 색이 조금씩 다르다
-      art = CustomPaint(size: Size.square(size), painter: _SproutPainter(scale: .62, tint: _sproutTint(code)));
-    } else if (code == 'CABBAGE') {
-      art = CustomPaint(size: Size.square(size), painter: CabbagePainter(scale: stage < .67 ? .72 : 1));
-    } else {
-      // 어린 작물은 작게, 다 자라면 크게 (작물마다 모양이 다른 벡터 그림)
-      art = CustomPaint(size: Size.square(size), painter: VeggiePainter(code, scale: stage < .67 ? .62 : 1));
-    }
+    // 막 심은 작물도 초록 새싹 대신 그 작물 그림을 작게 보여 준다 (심은 작물이 무엇인지 바로 알 수 있게).
+    // 자라는 정도에 따라 작게(45%) → 중간(62%) → 크게(100%).
+    final scale = stage < .34
+        ? .45
+        : stage < .67
+            ? .62
+            : 1.0;
+    final Widget art = code == 'CABBAGE'
+        ? CustomPaint(size: Size.square(size), painter: CabbagePainter(scale: scale == .62 ? .72 : scale))
+        : CustomPaint(size: Size.square(size), painter: VeggiePainter(code, scale: scale));
     return SizedBox.square(dimension: size, child: art);
   }
 }
@@ -127,60 +127,4 @@ class CabbagePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CabbagePainter old) => old.scale != scale;
-}
-
-/// 새싹 / 어린 잎
-/// 새싹 잎 색 (작물마다 달라서 심은 작물이 바뀌면 새싹 색도 바뀐다)
-Color _sproutTint(String code) => switch (code) {
-      'RADISH' => const Color(0xFF7FC4B0),
-      'ONION' => const Color(0xFFB4D86A),
-      'APPLE' => const Color(0xFFE8A06A),
-      'TOMATO' => const Color(0xFFE67A6E),
-      'POTATO' => const Color(0xFFC9A76A),
-      _ => const Color(0xFF5DB33A),
-    };
-
-class _SproutPainter extends CustomPainter {
-  const _SproutPainter({this.scale = 1, this.tint = const Color(0xFF5DB33A)});
-  final double scale;
-  final Color tint;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final base = Offset(size.width / 2, size.height * .72);
-    final h = size.shortestSide * .5 * scale;
-    canvas.drawOval(Rect.fromCenter(center: base.translate(0, h * .08), width: h * .9, height: h * .2), Paint()..color = const Color(0x33000000));
-    final stem = Paint()
-      ..color = const Color(0xFF4E9A2E)
-      ..strokeWidth = math.max(2, h * .09)
-      ..strokeCap = StrokeCap.round;
-    final top = base.translate(0, -h * .62);
-    canvas.drawLine(base, top, stem);
-
-    void leaf(Offset at, double angle, double len) {
-      canvas.save();
-      canvas.translate(at.dx, at.dy);
-      canvas.rotate(angle);
-      final path = Path()
-        ..moveTo(0, 0)
-        ..quadraticBezierTo(len * .5, -len * .45, len, 0)
-        ..quadraticBezierTo(len * .5, len * .3, 0, 0)
-        ..close();
-      final rect = Rect.fromLTWH(0, -len * .45, len, len * .75);
-      canvas.drawPath(path, Paint()..shader = LinearGradient(colors: [tint, Color.lerp(tint, const Color(0xFF9AD562), .6)!]).createShader(rect));
-      canvas.drawPath(
-          path,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.2
-            ..color = const Color(0xFF3F8A2A));
-      canvas.restore();
-    }
-
-    leaf(top, -math.pi * .92, h * .62);
-    leaf(top, -math.pi * .08, h * .62);
-  }
-
-  @override
-  bool shouldRepaint(_SproutPainter old) => old.scale != scale || old.tint != tint;
 }

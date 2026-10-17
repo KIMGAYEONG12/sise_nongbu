@@ -229,6 +229,9 @@ class _FarmHero extends StatelessWidget {
 
   /// 우체통 기둥 아래 끝 자리 (그림 원본 픽셀: 집 오른쪽, 연못 바로 위 풀밭)
   static const _mailboxFoot = Offset(452, 432);
+
+  /// 농장 큰 집 이름표 자리 (그림 원본 픽셀: 주황 지붕 위쪽 가운데)
+  static const _houseTag = Offset(250, 168);
   static const _mailboxSize = 40.0;
 
   /// 하우스를 올려 놓을 자리 (그림 원본 픽셀: 집 왼쪽 앞 풀밭, 크게).
@@ -345,6 +348,25 @@ class _FarmHero extends StatelessWidget {
               top: imgTop + _mailboxFoot.dy * k - _mailboxSize * 1.5 * .97,
               child: mailbox!,
             ),
+          // 농장 큰 집 이름표: 레벨이 오르면 집 이름도 바뀐다 (작은 오두막 → … → 전설의 농장 성)
+          Positioned(
+            left: imgLeft + _houseTag.dx * k - 90,
+            width: 180,
+            top: imgTop + _houseTag.dy * k,
+            child: IgnorePointer(
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .93),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 4, offset: Offset(0, 1))],
+                  ),
+                  child: Text('🏡 ${farmHouseName(level)}', maxLines: 1, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF7A3E1D))),
+                ),
+              ),
+            ),
+          ),
           // 프로필·날씨
           Positioned(left: 16, right: 6, top: topInset + 2, child: header),
           // 그림 속 밭: 눌러서 작물 관리로 (화면에는 아무것도 덧그리지 않는다)
