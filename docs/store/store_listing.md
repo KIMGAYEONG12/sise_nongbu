@@ -47,7 +47,7 @@
 실제 농산물 거래나 투자는 반드시 스스로 판단해 주세요.
 ━━━━━━━━━━━━━━━━━━━━
 
-※ 개인정보처리방침: https://sise-nongbu.web.app/privacy.html
+(처리방침 링크는 설명에 넣지 않는다. 플레이 콘솔 '앱 콘텐츠 → 개인정보처리방침'에 https://sise-nongbu.web.app/privacy.html 로 등록돼 있어서 스토어 '앱 지원' 칸에 자동으로 나온다)
 
 ## 그래픽
 - 앱 아이콘 (512×512): `docs/store/app_icon_512.png` (로고 1번 시안)
