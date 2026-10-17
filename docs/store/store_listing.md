@@ -47,7 +47,7 @@
 실제 농산물 거래나 투자는 반드시 스스로 판단해 주세요.
 ━━━━━━━━━━━━━━━━━━━━
 
-※ 개인정보처리방침: https://kimgayeong12.github.io/sise_nongbu-policy/
+※ 개인정보처리방침: https://sise-nongbu.web.app/privacy.html
 
 ## 그래픽
 - 앱 아이콘 (512×512): `docs/store/app_icon_512.png` (로고 1번 시안)
