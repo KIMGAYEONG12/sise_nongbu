@@ -54,6 +54,21 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
     await runGuarded(context, () => ref.read(farmViewModelProvider).sellItem(key, qty), ok: '$name $qty개가 판매되었습니다! +${won(unit * qty)}');
   }
 
+  /// 씨앗 여러 종류를 골라(전체 선택 가능) 가진 개수만큼 한 번에 판다.
+  Future<void> _sellSeeds(List<MapEntry<String, int>> seeds) async {
+    final picked = await showModalBottomSheet<Map<String, int>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+      builder: (_) => _SeedSellSheet(seeds: seeds),
+    );
+    if (picked == null || picked.isEmpty || !mounted) return;
+    final total = picked.entries.fold<int>(0, (a, e) => a + itemSellPrice(e.key) * e.value);
+    final count = picked.values.fold<int>(0, (a, v) => a + v);
+    await runGuarded(context, () => ref.read(farmViewModelProvider).sellItems(picked), ok: '씨앗 ${picked.length}종 $count개가 판매되었습니다! +${won(total)}');
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(userDataProvider);
@@ -71,6 +86,7 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
     ];
 
     final showCrops = _tab != 2, showItems = _tab != 1;
+    final seeds = [for (final e in items) if (e.key.startsWith('seed_') && itemSellPrice(e.key) > 0) e];
 
     // 시안: 같은 작물은 한 줄로 합쳐서 보여준다
     final byCrop = <String, List<Lot>>{};
@@ -152,6 +168,12 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
       Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 8), child: PillTabs(labels: const ['전체', '작물', '아이템'], index: _tab, onChanged: (v) => setState(() => _tab = v))),
       Expanded(
         child: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), children: [
+          // 씨앗이 여러 종류 쌓였을 때 한 종류씩 누르지 않고 전체 선택으로 한 번에 판다
+          if (showItems && seeds.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: GreenButton(label: '🌱 씨앗 한꺼번에 팔기 (${seeds.length}종)', outlined: true, height: 44, onPressed: () => _sellSeeds(seeds)),
+            ),
           if (rows.isNotEmpty)
             SoftCard(
               color: Colors.white,
@@ -180,6 +202,68 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
         ),
       ),
     ]);
+  }
+}
+
+/// 씨앗 판매 창: 씨앗마다 체크해서 고르거나 "전체 선택"으로 모두 고른다. 고른 씨앗은 가진 개수를 모두 판다.
+/// 팔기를 누르면 고른 씨앗(키 → 개수)을 돌려준다.
+class _SeedSellSheet extends StatefulWidget {
+  const _SeedSellSheet({required this.seeds});
+  final List<MapEntry<String, int>> seeds;
+  @override
+  State<_SeedSellSheet> createState() => _SeedSellSheetState();
+}
+
+class _SeedSellSheetState extends State<_SeedSellSheet> {
+  final _picked = <String>{};
+
+  @override
+  Widget build(BuildContext context) {
+    final seeds = widget.seeds;
+    final allOn = _picked.length == seeds.length;
+    final chosen = {for (final e in seeds) if (_picked.contains(e.key)) e.key: e.value};
+    final total = chosen.entries.fold<int>(0, (a, e) => a + itemSellPrice(e.key) * e.value);
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .8),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Row(children: [
+              const Text('씨앗 팔기', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+              const Spacer(),
+              TextButton(
+                onPressed: () => setState(() => allOn ? _picked.clear() : _picked.addAll(seeds.map((e) => e.key))),
+                child: Text(allOn ? '선택 해제' : '전체 선택', style: const TextStyle(fontWeight: FontWeight.w800)),
+              ),
+            ]),
+            const Align(alignment: Alignment.centerLeft, child: Text('고른 씨앗은 가진 개수를 모두 팔아요 (상점 가격의 절반)', style: TextStyle(fontSize: 12, color: AppColors.sub))),
+            const SizedBox(height: 6),
+            Flexible(
+              child: ListView(shrinkWrap: true, children: [
+                for (final e in seeds)
+                  CheckboxListTile(
+                    value: _picked.contains(e.key),
+                    onChanged: (v) => setState(() => v == true ? _picked.add(e.key) : _picked.remove(e.key)),
+                    activeColor: AppColors.green,
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    secondary: Text(won(itemSellPrice(e.key) * e.value), style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.greenDark)),
+                    title: Text('${itemEmoji(e.key)} ${itemName(e.key)}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                    subtitle: Text('${e.value}개 · 1개 ${won(itemSellPrice(e.key))}', style: const TextStyle(fontSize: 12)),
+                  ),
+              ]),
+            ),
+            const SizedBox(height: 8),
+            GreenButton(
+              label: chosen.isEmpty ? '팔 씨앗을 골라 주세요' : '${chosen.length}종 팔기 +${won(total)}',
+              height: 50,
+              onPressed: chosen.isEmpty ? null : () => Navigator.pop(context, chosen),
+            ),
+          ]),
+        ),
+      ),
+    );
   }
 }
 

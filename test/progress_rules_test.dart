@@ -173,4 +173,12 @@ void main() {
     expect(itemName('water'), '물통');
     expect(itemName(seedKey('APPLE')), '사과 씨앗');
   });
+
+  test('Lv.90부터 농장 집이 전설의 농장 성 (그림도 성으로 바뀐다)', () {
+    expect(isCastleLevel(89), isFalse);
+    expect(farmHouseName(89), '별빛 농장 대저택');
+    expect(isCastleLevel(90), isTrue);
+    expect(farmHouseName(90), '전설의 농장 성');
+    expect(isCastleLevel(120), isTrue);
+  });
 }

@@ -46,6 +46,9 @@ const farmHouseNames = <(int, String)>[
   (90, '전설의 농장 성'),
 ];
 
+/// 마지막 단계(전설의 농장 성)가 되는 레벨: 이때부터 농장 그림의 오두막 자리에 성을 그린다
+bool isCastleLevel(int level) => level >= farmHouseNames.last.$1;
+
 /// [level]에 맞는 농장 큰 집 이름
 String farmHouseName(int level) {
   var name = farmHouseNames.first.$2;

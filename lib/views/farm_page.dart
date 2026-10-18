@@ -9,6 +9,7 @@ import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
 import '../widgets/crop_art.dart';
 import '../widgets/greenhouse_art.dart';
+import '../widgets/farm_castle.dart';
 import '../widgets/farm_life.dart';
 import '../widgets/farm_mailbox.dart';
 import '../widgets/pond_fish.dart';
@@ -239,6 +240,9 @@ class _FarmHero extends StatelessWidget {
   /// 가로 160 : 세로 150으로 키 큰 집 모양 (예전 170×120은 옆으로 넓어서 납작해 보였다). 아래 끝(548)은 그대로.
   static const _house = Rect.fromLTWH(2, 398, 160, 150);
 
+  /// Lv.90 전설의 농장 성을 그릴 자리 (그림 원본 픽셀): 그림 속 오두막(지붕·굴뚝·벽)을 다 덮도록 조금 넉넉하게
+  static const _castle = Rect.fromLTWH(10, 120, 410, 325);
+
   // 그림(farm_scene_gemini.jpg) 좌표 기준 크기 (실제 파일은 3배 고해상도 1728×2079)
   static const _srcW = 576.0, _srcH = 693.0;
 
@@ -329,6 +333,12 @@ class _FarmHero extends StatelessWidget {
             rect: Rect.fromLTRB(imgLeft + _pond.left * k, imgTop + _pond.top * k, imgLeft + _pond.right * k, imgTop + _pond.bottom * k),
             child: IgnorePointer(child: PondFish(active: fishActive)),
           ),
+          // Lv.90 전설의 농장 성: 그림 속 오두막 자리에 성을 덮어 그린다 (이름표가 성이면 집 그림도 성)
+          if (isCastleLevel(level))
+            Positioned.fromRect(
+              rect: Rect.fromLTWH(imgLeft + _castle.left * k, imgTop + _castle.top * k, _castle.width * k, _castle.height * k),
+              child: const FarmCastle(),
+            ),
           // 그림 윗가장자리를 가리는 구름 띠: 나무가 잘린 가장자리가 딱 끊겨 보이지 않고 하늘과 자연스럽게 이어져 보인다
           // 레벨이 오를수록 집이 조금씩 커진다 (최대 8%, 그림 속 집 둘레만 부드럽게 겹쳐 그린다)
           // (예전에는 레벨이 오르면 그림 속 집을 늘려 한 번 더 겹쳐 그렸는데, 늘린 가장자리가 흐릿하게 번져서 화질이 깨져 보여 뺐다. 하우스는 코드로 그려서 계속 커진다)
@@ -362,7 +372,7 @@ class _FarmHero extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 4, offset: Offset(0, 1))],
                   ),
-                  child: Text('🏡 ${farmHouseName(level)}', maxLines: 1, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF7A3E1D))),
+                  child: Text('${isCastleLevel(level) ? '🏰' : '🏡'} ${farmHouseName(level)}', maxLines: 1, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF7A3E1D))),
                 ),
               ),
             ),

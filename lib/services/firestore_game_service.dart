@@ -320,6 +320,29 @@ class FirestoreGameService {
         return amount;
       });
 
+  /// 창고의 아이템 여러 가지를 한 번에 판다 (씨앗 전체 선택 판매). [qtys]는 아이템 키 → 팔 개수. 받은 돈을 돌려준다.
+  Future<int> sellItems(Map<String, int> qtys) => _tx<int>((tx) async {
+        final u = (await tx.get(_user)).data()!;
+        final items = _asMap(u['items']);
+        final upd = <String, dynamic>{};
+        var amount = 0;
+        for (final e in qtys.entries) {
+          final unit = itemSellPrice(e.key);
+          if (unit <= 0 || e.value <= 0) continue;
+          final have = _int(items?[e.key]);
+          if (have < e.value) throw StateError('아이템이 모자라요');
+          upd['items.${e.key}'] = have - e.value;
+          amount += unit * e.value;
+        }
+        if (upd.isEmpty) throw StateError('팔 씨앗을 골라 주세요');
+        tx.update(_user, {
+          ...upd,
+          'money': _int(u['money']) + amount,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        return amount;
+      });
+
   /// 밭에 아이템을 쓴다. 성장 시간이 줄면 새 수확 시각을 돌려주고, 아니면 null.
   Future<DateTime?> useItem(int idx, String key, {DateTime? now}) => _tx<DateTime?>((tx) async {
         final t = now ?? DateTime.now();
