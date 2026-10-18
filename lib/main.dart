@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -6,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart'; // flutterfire configure로 생성
-import 'services/auth_service.dart';
 import 'services/notification_service.dart';
 import 'viewmodels/view_models.dart';
 import 'views/app_root.dart';
@@ -24,14 +22,7 @@ Future<void> main() async {
   // 로그인은 앱 안의 로그인·회원가입 화면에서 처리한다 (AppRoot → AuthGate)
   final noti = NotificationService();
   final prefs = await SharedPreferences.getInstance();
-  // 로그인할 때 "로그인 유지"를 끄셨으면 앱을 새로 켤 때 로그아웃해서 다시 로그인하게 한다.
-  // (게스트는 로그아웃하면 농장을 다시 찾을 수 없어서 항상 유지한다)
-  final user = FirebaseAuth.instance.currentUser;
-  if (!(prefs.getBool(keepLoginKey) ?? true) && user != null && !user.isAnonymous) {
-    try {
-      await AuthService().signOut();
-    } catch (_) {}
-  }
+  // 한 번 로그인하면 계속 로그인된 채로 둔다: 앱을 켜면 바로 농장 화면이 나온다 (로그아웃은 MY 화면에서)
   runApp(ProviderScope(
     overrides: [notificationProvider.overrideWithValue(noti), prefsProvider.overrideWithValue(prefs)],
     child: MaterialApp(

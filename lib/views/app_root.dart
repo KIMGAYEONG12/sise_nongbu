@@ -18,6 +18,16 @@ class AppRoot extends ConsumerStatefulWidget {
 class _AppRootState extends ConsumerState<AppRoot> {
   int _stage = 0; // 0 스플래시, 1 튜토리얼, 2 앱
 
+  @override
+  void initState() {
+    super.initState();
+    // 이미 로그인해 둔 사용자(튜토리얼도 봤음)는 스플래시 없이 바로 농장 화면으로 간다
+    try {
+      final done = ref.read(prefsProvider).getBool(tutorialDoneKey) ?? false;
+      if (done && FirebaseAuth.instance.currentUser != null) _stage = 2;
+    } catch (_) {} // Firebase가 없는 테스트 화면
+  }
+
   /// 이번 실행이 튜토리얼을 처음 보는 것인지 (처음이면 튜토리얼 다음에 로그인 화면을 꼭 보여준다)
   bool _firstTime = false;
 

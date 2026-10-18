@@ -17,8 +17,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _pw = TextEditingController();
   bool _hide = true, _busy = false;
 
-  /// 아이디(이메일) 저장 · 로그인 유지 (기기에 저장)
-  bool _rememberEmail = false, _keepLogin = true;
+  /// 아이디(이메일) 저장 (기기에 저장). 로그인은 한 번 하면 항상 유지된다.
+  bool _rememberEmail = false;
 
   @override
   void initState() {
@@ -26,17 +26,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     try {
       final prefs = ref.read(prefsProvider);
       _rememberEmail = prefs.getBool(rememberEmailKey) ?? false;
-      _keepLogin = prefs.getBool(keepLoginKey) ?? true;
       if (_rememberEmail) _email.text = prefs.getString(savedEmailKey) ?? '';
     } catch (_) {} // 저장소가 없는 테스트 화면
   }
 
-  /// 로그인에 성공하면 아이디 저장·로그인 유지 설정을 기기에 적어 둔다
+  /// 로그인에 성공하면 아이디 저장 설정을 기기에 적어 둔다
   Future<void> _saveLoginPrefs({String? email}) async {
     try {
       final prefs = ref.read(prefsProvider);
       await prefs.setBool(rememberEmailKey, _rememberEmail);
-      await prefs.setBool(keepLoginKey, _keepLogin);
       if (_rememberEmail && email != null && email.trim().isNotEmpty) {
         await prefs.setString(savedEmailKey, email.trim());
       } else if (!_rememberEmail) {
@@ -144,11 +142,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                // 아이디 저장 · 로그인 유지
+                // 아이디 저장 (로그인은 한 번 하면 항상 유지)
                 Row(children: [
                   _CheckOption(label: '아이디 저장', value: _rememberEmail, onChanged: (v) => setState(() => _rememberEmail = v)),
-                  const SizedBox(width: 10),
-                  _CheckOption(label: '로그인 유지', value: _keepLogin, onChanged: (v) => setState(() => _keepLogin = v)),
                 ]),
                 const SizedBox(height: 8),
                 GreenButton(label: '로그인', loading: _busy, height: 52, onPressed: _login),
