@@ -33,6 +33,12 @@ final prefsProvider =
 const rememberEmailKey = 'remember_email';
 const savedEmailKey = 'saved_email';
 
+/// 로그인 화면의 "로그인 유지" (기본 켬). 끄고 로그인하면 앱을 완전히 껐다 켤 때 다시 로그인하게 한다 (게스트는 항상 유지).
+const keepLoginKey = 'keep_login';
+
+/// 마지막으로 로그인한 방법 ('google' · 'email' · 'guest'). Google이면 앱을 켤 때 로그인이 비어 있어도 조용히 다시 로그인한다.
+const lastLoginMethodKey = 'last_login_method';
+
 /// 농장 우체통 색 번호 (farm_mailbox.dart의 mailboxColors). 기기에 저장해 두고 다음에도 같은 색으로 보여 준다.
 const mailboxColorKey = 'mailbox_color';
 final mailboxColorProvider = StateProvider<int>((ref) {

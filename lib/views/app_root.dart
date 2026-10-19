@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../viewmodels/view_models.dart';
 import '../widgets/common.dart';
 import 'home_shell.dart';
@@ -21,10 +22,12 @@ class _AppRootState extends ConsumerState<AppRoot> {
   @override
   void initState() {
     super.initState();
-    // 이미 로그인해 둔 사용자(튜토리얼도 봤음)는 스플래시 없이 바로 농장 화면으로 간다
+    // 이미 로그인해 둔 사용자(튜토리얼도 봤음)는 스플래시 없이 바로 농장 화면으로 간다.
+    // Google 사용자는 기기에 로그인 정보가 없어도 AuthGate가 조용히 다시 로그인하므로 똑같이 바로 간다.
     try {
-      final done = ref.read(prefsProvider).getBool(tutorialDoneKey) ?? false;
-      if (done && FirebaseAuth.instance.currentUser != null) _stage = 2;
+      final prefs = ref.read(prefsProvider);
+      final done = prefs.getBool(tutorialDoneKey) ?? false;
+      if (done && (FirebaseAuth.instance.currentUser != null || canQuietGoogleLogin(prefs))) _stage = 2;
     } catch (_) {} // Firebase가 없는 테스트 화면
   }
 
@@ -62,16 +65,48 @@ class _AppRootState extends ConsumerState<AppRoot> {
   }
 }
 
-class AuthGate extends ConsumerWidget {
+/// 마지막에 Google로 로그인했고 "로그인 유지"가 켜져 있으면, 앱을 켤 때 그 Google 계정으로 조용히 다시 로그인한다.
+bool canQuietGoogleLogin(SharedPreferences prefs) =>
+    (prefs.getBool(keepLoginKey) ?? true) && prefs.getString(lastLoginMethodKey) == 'google';
+
+class AuthGate extends ConsumerStatefulWidget {
   const AuthGate({super.key});
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends ConsumerState<AuthGate> {
+  /// 앱을 켠 뒤 조용한 Google 재로그인을 한 번만 시도한다 (로그아웃한 뒤에는 다시 시도하지 않는다)
+  static bool _quietTried = false;
+  bool _quietRunning = false;
+
+  /// 로그인 정보가 비어 있으면 Google 계정으로 화면 없이 다시 로그인해 본다. 실패하면 로그인 화면을 보여 준다.
+  void _tryQuietGoogle() {
+    _quietTried = true;
+    try {
+      if (!canQuietGoogleLogin(ref.read(prefsProvider))) return;
+    } catch (_) {
+      return;
+    }
+    _quietRunning = true;
+    ref.read(authServiceProvider).signInWithGoogleQuietly().catchError((Object e) {
+      debugPrint('조용한 Google 로그인 실패: $e');
+      return false;
+    }).whenComplete(() {
+      if (mounted) setState(() => _quietRunning = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final auth = ref.watch(authStateProvider);
     final askLogin = ref.watch(loginAfterTutorialProvider);
     return auth.when(
       loading: () => const _Loading(),
       error: (e, _) => Scaffold(body: Center(child: Padding(padding: const EdgeInsets.all(24), child: Text('로그인 상태를 확인하지 못했어요\n$e', textAlign: TextAlign.center)))),
       data: (user) {
+        if (user == null && !_quietTried) _tryQuietGoogle();
+        if (user == null && _quietRunning) return const _Loading();
         // 로그인 안 함 → 로그인 화면. 튜토리얼 직후인데 게스트 세션만 남아 있음 → 그래도 로그인 화면 먼저.
         if (user == null || (askLogin && user.isAnonymous)) return const LoginPage();
         return _UserReady(key: ValueKey(user.uid), user: user);
@@ -104,6 +139,12 @@ class _UserReadyState extends ConsumerState<_UserReady> {
   }
 
   Future<void> _prepare() async {
+    // 로그인한 방법을 적어 둔다: Google 계정이면 다음에 기기에 로그인 정보가 없어도 조용히 다시 로그인한다
+    try {
+      final providers = widget.user.providerData.map((p) => p.providerId);
+      final method = providers.contains('google.com') ? 'google' : (widget.user.isAnonymous ? 'guest' : 'email');
+      await ref.read(prefsProvider).setString(lastLoginMethodKey, method);
+    } catch (_) {}
     final nick = ref.read(pendingNicknameProvider) ?? widget.user.displayName;
     final repo = ref.read(farmRepoProvider);
     await repo.ensureUser(nickname: nick);

@@ -47,7 +47,12 @@ class MyPage extends ConsumerWidget {
     );
     if (ok != true || !context.mounted) return;
     ref.read(shellIndexProvider.notifier).state = 1;
-    // 튜토리얼은 앱을 처음 켰을 때 한 번만 나온다 (로그아웃해도 다시 나오지 않는다)
+    // 튜토리얼은 앱을 처음 켰을 때 한 번만 나온다 (로그아웃해도 다시 나오지 않는다).
+    // 스스로 로그아웃했으면 다음에 앱을 켤 때 Google로 조용히 다시 로그인하지 않는다.
+    try {
+      await ref.read(prefsProvider).remove(lastLoginMethodKey);
+    } catch (_) {}
+    if (!context.mounted) return;
     await runGuarded(context, ref.read(authServiceProvider).signOut);
   }
 

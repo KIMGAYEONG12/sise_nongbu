@@ -51,6 +51,9 @@ class _SignupPageState extends ConsumerState<SignupPage> {
       // 게스트 농장을 이어받았으면 농장 문서가 이미 있으니 닉네임만 새로 적는다.
       // (농장 저장소는 로그인한 뒤에만 만들 수 있어서, 가입이 끝난 뒤에 꺼낸다. 미리 꺼내면 "로그인이 필요해요" 오류가 난다)
       if (linked && mounted) await ref.read(farmRepoProvider).setNickname(_nick.text);
+      try {
+        await ref.read(prefsProvider).setString(lastLoginMethodKey, 'email');
+      } catch (_) {}
       flag.state = false;
       if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
     } catch (e) {
@@ -66,6 +69,10 @@ class _SignupPageState extends ConsumerState<SignupPage> {
     final flag = ref.read(loginAfterTutorialProvider.notifier);
     try {
       await ref.read(authServiceProvider).signInWithGoogle();
+      try {
+        // 다음에 앱을 켤 때 로그인 정보가 비어 있어도 이 Google 계정으로 조용히 다시 로그인한다
+        await ref.read(prefsProvider).setString(lastLoginMethodKey, 'google');
+      } catch (_) {}
       flag.state = false;
       if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
     } catch (e) {

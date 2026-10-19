@@ -17,8 +17,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _pw = TextEditingController();
   bool _hide = true, _busy = false;
 
-  /// 아이디(이메일) 저장 (기기에 저장). 로그인은 한 번 하면 항상 유지된다.
-  bool _rememberEmail = false;
+  /// 아이디(이메일) 저장 · 로그인 유지 (기기에 저장). 로그인 유지는 기본으로 켜져 있다.
+  bool _rememberEmail = false, _keepLogin = true;
 
   @override
   void initState() {
@@ -26,15 +26,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     try {
       final prefs = ref.read(prefsProvider);
       _rememberEmail = prefs.getBool(rememberEmailKey) ?? false;
+      _keepLogin = prefs.getBool(keepLoginKey) ?? true;
       if (_rememberEmail) _email.text = prefs.getString(savedEmailKey) ?? '';
     } catch (_) {} // 저장소가 없는 테스트 화면
   }
 
-  /// 로그인에 성공하면 아이디 저장 설정을 기기에 적어 둔다
-  Future<void> _saveLoginPrefs({String? email}) async {
+  /// 로그인에 성공하면 아이디 저장·로그인 유지 설정과 로그인 방법을 기기에 적어 둔다
+  Future<void> _saveLoginPrefs({String? email, required String method}) async {
     try {
       final prefs = ref.read(prefsProvider);
       await prefs.setBool(rememberEmailKey, _rememberEmail);
+      await prefs.setBool(keepLoginKey, _keepLogin);
+      await prefs.setString(lastLoginMethodKey, method);
       if (_rememberEmail && email != null && email.trim().isNotEmpty) {
         await prefs.setString(savedEmailKey, email.trim());
       } else if (!_rememberEmail) {
@@ -71,7 +74,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final email = _email.text;
     _run(() async {
       await ref.read(authServiceProvider).signIn(email, _pw.text);
-      await _saveLoginPrefs(email: email);
+      await _saveLoginPrefs(email: email, method: 'email');
       flag.state = false;
     });
   }
@@ -80,7 +83,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final flag = ref.read(loginAfterTutorialProvider.notifier);
     _run(() async {
       await ref.read(authServiceProvider).signInWithGoogle();
-      await _saveLoginPrefs(email: ref.read(authServiceProvider).currentUser?.email);
+      await _saveLoginPrefs(email: ref.read(authServiceProvider).currentUser?.email, method: 'google');
       flag.state = false;
     });
   }
@@ -141,12 +144,28 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 6),
-                // 아이디 저장 (로그인은 한 번 하면 항상 유지)
+                const SizedBox(height: 12),
+                // 아이디 저장 · 로그인 유지: 눌러서 켜고 끄는 둥근 버튼 두 개
                 Row(children: [
-                  _CheckOption(label: '아이디 저장', value: _rememberEmail, onChanged: (v) => setState(() => _rememberEmail = v)),
+                  Expanded(
+                    child: _ToggleChip(
+                      icon: Icons.badge_outlined,
+                      label: '아이디 저장',
+                      value: _rememberEmail,
+                      onChanged: (v) => setState(() => _rememberEmail = v),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _ToggleChip(
+                      icon: Icons.lock_clock_outlined,
+                      label: '로그인 유지',
+                      value: _keepLogin,
+                      onChanged: (v) => setState(() => _keepLogin = v),
+                    ),
+                  ),
                 ]),
-                const SizedBox(height: 8),
+                const SizedBox(height: 14),
                 GreenButton(label: '로그인', loading: _busy, height: 52, onPressed: _login),
                 const OrDivider(),
                 GreenButton(label: 'Google로 로그인', outlined: true, height: 52, icon: const GoogleG(), onPressed: _busy ? null : _google),
@@ -207,31 +226,52 @@ class OrDivider extends StatelessWidget {
       );
 }
 
-/// 체크 상자 + 글자 (글자를 눌러도 켜고 끌 수 있다)
-class _CheckOption extends StatelessWidget {
-  const _CheckOption({required this.label, required this.value, required this.onChanged});
+/// 눌러서 켜고 끄는 둥근 버튼: 켜지면 연두색 바탕 + 초록 테두리 + 체크 표시, 꺼지면 흰 바탕
+class _ToggleChip extends StatelessWidget {
+  const _ToggleChip({required this.icon, required this.label, required this.value, required this.onChanged});
+  final IconData icon;
   final String label;
   final bool value;
   final ValueChanged<bool> onChanged;
   @override
-  Widget build(BuildContext context) => InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () => onChanged(!value),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            SizedBox(
-              width: 32,
-              height: 32,
-              child: Checkbox(
-                value: value,
-                activeColor: AppColors.green,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-                onChanged: (v) => onChanged(v ?? false),
-              ),
+  Widget build(BuildContext context) => Semantics(
+        toggled: value,
+        button: true,
+        label: label,
+        child: GestureDetector(
+          onTap: () => onChanged(!value),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            height: 46,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: value ? const Color(0xFFE7F5DF) : Colors.white,
+              borderRadius: BorderRadius.circular(23),
+              border: Border.all(color: value ? AppColors.green : const Color(0xFFD5DECF), width: value ? 1.8 : 1.2),
+              boxShadow: [BoxShadow(color: AppColors.green.withValues(alpha: value ? .16 : .06), blurRadius: 8, offset: const Offset(0, 2))],
             ),
-            Text(label, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: Color(0xFF3D4A40))),
-          ]),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                child: Icon(
+                  value ? Icons.check_circle_rounded : icon,
+                  key: ValueKey(value),
+                  size: 20,
+                  color: value ? AppColors.green : AppColors.sub,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: value ? AppColors.greenDark : const Color(0xFF5B6A5E)),
+                ),
+              ),
+            ]),
+          ),
         ),
       );
 }

@@ -47,13 +47,16 @@ class App : Application() {
         }
     }
 
+    /** 열쇠로 실제로 암호화했다가 다시 풀어 본다 (열쇠를 불러오기만 하고 쓰지 못하는 경우도 잡아낸다). */
     private fun keyWorks(keyStore: KeyStore, alias: String): Boolean = try {
         val key = keyStore.getKey(alias, null) as? SecretKey
         if (key == null) {
             false
         } else {
-            Cipher.getInstance("AES/GCM/NoPadding").init(Cipher.ENCRYPT_MODE, key)
-            true
+            val enc = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key) }
+            val data = enc.doFinal(byteArrayOf(1, 2, 3))
+            val dec = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.DECRYPT_MODE, key, enc.parameters) }
+            dec.doFinal(data).contentEquals(byteArrayOf(1, 2, 3))
         }
     } catch (_: Exception) {
         false

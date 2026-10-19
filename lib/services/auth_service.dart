@@ -32,17 +32,38 @@ class AuthService {
   /// 그 값을 지워 버려서 "clientConfigurationError"로 구글 로그인이 실패했다. 그래서 코드에 직접 넣는다.
   static const googleWebClientId = '641118692037-0nk84mc3sd42dr1rpo6meqkepl75kel7.apps.googleusercontent.com';
 
-  /// 브라우저 없이 기기의 Google 계정 고르기 창으로 로그인해 Firebase 자격 증명을 만든다.
-  Future<AuthCredential> _googleCredential() async {
+  /// 이 앱에서 전에 고른 Google 계정이 있으면 창 없이 조용히 가져온다. 없으면 null.
+  Future<GoogleSignInAccount?> _quietGoogleAccount() async {
     final google = GoogleSignIn.instance;
     await (_googleInit ??= google.initialize(serverClientId: googleWebClientId));
-    final account = await google.authenticate();
+    try {
+      return await (google.attemptLightweightAuthentication() ?? Future<GoogleSignInAccount?>.value());
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 기기의 Google 계정으로 Firebase 자격 증명을 만든다. 계정 고르기 창은 처음 한 번만 나오고,
+  /// 그 뒤로는 전에 고른 계정으로 바로 로그인한다 (로그아웃하면 다시 고른다).
+  Future<AuthCredential> _googleCredential() async {
+    final account = await _quietGoogleAccount() ?? await GoogleSignIn.instance.authenticate();
     return GoogleAuthProvider.credential(idToken: account.authentication.idToken);
   }
 
   /// Firebase 콘솔에서 Google 로그인이 켜져 있어야 한다.
   Future<void> signInWithGoogle() async {
     await _auth.signInWithCredential(await _googleCredential());
+  }
+
+  /// 앱을 켤 때 Firebase 로그인이 비어 있으면(일부 기기는 로그인 정보를 기기에 저장하지 못한다)
+  /// 전에 고른 Google 계정으로 화면 없이 다시 로그인한다. 성공하면 true.
+  Future<bool> signInWithGoogleQuietly() async {
+    if (_auth.currentUser != null) return true;
+    final account = await _quietGoogleAccount();
+    final token = account?.authentication.idToken;
+    if (token == null) return false;
+    await _auth.signInWithCredential(GoogleAuthProvider.credential(idToken: token));
+    return true;
   }
 
   Future<void> signInAsGuest() async {
@@ -74,12 +95,12 @@ class AuthService {
   Future<void> sendPasswordReset(String email) => _auth.sendPasswordResetEmail(email: email.trim());
 
   Future<void> signOut() async {
-    // 다음 로그인 때 계정 고르기 창이 다시 나오도록 Google 쪽도 로그아웃한다.
-    if (_googleInit != null) {
-      try {
-        await GoogleSignIn.instance.signOut();
-      } catch (_) {}
-    }
+    // 다음 로그인 때 계정 고르기 창이 다시 나오고, 앱을 켤 때 조용히 다시 로그인되지 않도록 Google 쪽도 로그아웃한다.
+    try {
+      final google = GoogleSignIn.instance;
+      await (_googleInit ??= google.initialize(serverClientId: googleWebClientId));
+      await google.signOut();
+    } catch (_) {}
     await _auth.signOut();
   }
 
