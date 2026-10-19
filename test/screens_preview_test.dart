@@ -293,6 +293,20 @@ void main() {
       await tester.pumpWidget(const SizedBox()); // 반복 애니메이션이 화면을 닫을 때 정리된다
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('밭이 모두 비어 있으면 위 카드에 "작물 대기 중"이 나온다 (트랙터 그림 대신)', (tester) async {
+      final plots = <Plot>[for (var i = 0; i < 9; i++) Plot(i, null, null)];
+      await _open(tester, const CropGrowthPage(), overrides: [
+        userDataProvider.overrideWithValue(const UserData({'exp': 1100, 'money': 64787})),
+        plotsProvider.overrideWith((ref) => Stream.value(plots)),
+        tickProvider.overrideWith((ref) => Stream.value(_day)),
+      ]);
+      expect(find.text('작물 대기 중'), findsOneWidget);
+      expect(find.text('심기'), findsOneWidget);
+      expect(find.byIcon(Icons.agriculture_rounded), findsNothing);
+      expect(tester.takeException(), isNull);
+      await savePreview(tester, _shot, 'crop_growth_empty');
+    });
   });
 
   group('특별 상점', () {

@@ -184,7 +184,7 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
             PageHeader(
               title: '작물 성장',
               center: false,
-              leading: spec == null ? const Icon(Icons.agriculture_rounded, size: 28, color: Color(0xFF9A6B3F)) : CropArt(code: spec.code, size: 30),
+              leading: spec == null ? const Icon(Icons.hourglass_top_rounded, size: 26, color: Color(0xFF9A6B3F)) : CropArt(code: spec.code, size: 30),
               onBack: () => Navigator.of(context).maybePop(),
             ),
             Expanded(
@@ -193,15 +193,8 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
                   // 작물이 없을 때는 카드를 눌러 바로 심을 수 있다
                   onTap: spec == null ? () => _plantNow(list, now) : null,
                   child: spec == null
-                      ? const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 10),
-                          child: Row(children: [
-                            // 빈 밭 안내: 초록 새싹(다른 앱과 비슷해 보임) 대신 갈색 트랙터
-                            Icon(Icons.agriculture_rounded, size: 34, color: Color(0xFF9A6B3F)),
-                            SizedBox(width: 10),
-                            Expanded(child: Text('심어진 작물이 없어요.\n여기나 아래 빈 밭(+)을 눌러 작물을 심어보세요!', style: TextStyle(height: 1.4))),
-                          ]),
-                        )
+                      // 빈 밭 안내: 작은 트랙터 아이콘이 자전거처럼 보여서 "작물 대기 중" 카드로 바꿨다
+                      ? const _WaitingCard()
                       : _GrowthHeader(spec: spec, plot: sel!, now: now, onReplant: () => _replant(sel)),
                 ),
                 const SizedBox(height: 12),
@@ -284,6 +277,91 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
     );
     return ok == true;
   }
+}
+
+/// 고른 밭에 작물이 없을 때 위 카드: 흙 위 모래시계 그림 + "작물 대기 중" + 초록 "심기" 버튼 (카드를 누르면 바로 심기)
+class _WaitingCard extends StatelessWidget {
+  const _WaitingCard();
+
+  static const _brown = Color(0xFF9A6B3F);
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(children: [
+          // 흙더미 위에서 씨앗을 기다리는 모래시계
+          SizedBox(
+            width: 64,
+            height: 64,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFBF3E4), Color(0xFFF1DFC2)]),
+                border: Border.all(color: const Color(0xFFE6CFA9)),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(17),
+                child: Stack(alignment: Alignment.center, children: [
+                  // 흙더미
+                  Positioned(
+                    left: -6,
+                    right: -6,
+                    bottom: -14,
+                    height: 30,
+                    child: DecoratedBox(decoration: BoxDecoration(color: const Color(0xFFB98352), borderRadius: BorderRadius.circular(30))),
+                  ),
+                  // 흙 위 작은 씨앗 자리 세 개
+                  for (final dx in const [-14.0, 0.0, 14.0])
+                    Positioned(
+                      bottom: 6,
+                      left: 32 + dx - 3,
+                      child: Container(width: 6, height: 4, decoration: BoxDecoration(color: const Color(0xFF7A4E2A), borderRadius: BorderRadius.circular(3))),
+                    ),
+                  Positioned(
+                    top: 9,
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: _brown.withValues(alpha: .18), blurRadius: 6, offset: const Offset(0, 2))],
+                      ),
+                      child: const Icon(Icons.hourglass_top_rounded, size: 20, color: _brown),
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Text('작물 대기 중', style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Color(0xFF5A3B1F))),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(color: const Color(0xFFFFF1D6), borderRadius: BorderRadius.circular(8)),
+                  child: const Text('빈 밭', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _brown)),
+                ),
+              ]),
+              const SizedBox(height: 4),
+              const Text('씨앗을 기다리고 있어요.\n눌러서 작물을 심어 보세요!', style: TextStyle(fontSize: 12.5, height: 1.4, color: AppColors.sub)),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(color: AppColors.green, borderRadius: BorderRadius.circular(16)),
+            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.add_rounded, size: 16, color: Colors.white),
+              SizedBox(width: 2),
+              Text('심기', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.white)),
+            ]),
+          ),
+        ]),
+      );
 }
 
 class _GrowthHeader extends StatelessWidget {

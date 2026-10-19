@@ -126,32 +126,33 @@ String errMsg(Object e) {
   return s;
 }
 
-/// 알림 문구를 화면 위쪽(상태바 바로 아래)에 글자만 잠깐 띄운다. 새 알림이 오면 앞의 것을 바로 바꾼다.
+/// 알림 문구를 화면 아래쪽(하단 탭 바로 위)에 글자만 잠깐 띄운다. 새 알림이 오면 앞의 것을 바로 바꾼다.
 void showMsg(BuildContext context, String msg) {
   if (!context.mounted) return;
   final overlay = Overlay.maybeOf(context, rootOverlay: true);
   if (overlay == null) return;
-  _topNotice?.remove();
+  _notice?.remove();
   late final OverlayEntry entry;
-  entry = OverlayEntry(builder: (_) => _TopNotice(msg: msg, onDone: () {
-        if (_topNotice == entry) {
+  entry = OverlayEntry(builder: (_) => _Notice(msg: msg, onDone: () {
+        if (_notice == entry) {
           entry.remove();
-          _topNotice = null;
+          _notice = null;
         }
       }));
-  _topNotice = entry;
+  _notice = entry;
   overlay.insert(entry);
 }
 
-OverlayEntry? _topNotice;
+OverlayEntry? _notice;
 
 /// 작물 알림 (수확·파종). 그림이나 이모티콘 없이 글만 보여 준다. 예) "수박을 수확했습니다!"
 /// [cropCode]는 호출하는 쪽과 맞추기 위해 남겨 둔 값이고 화면에는 쓰지 않는다.
 void showCropMsg(BuildContext context, String cropCode, String msg) => showMsg(context, msg);
 
-/// 위에서 내려왔다가(0.25초) 잠시 보이고(2.2초) 다시 올라가는 글자 알림. 타이머 대신 애니메이션으로 시간을 잰다.
-class _TopNotice extends StatelessWidget {
-  const _TopNotice({required this.msg, required this.onDone});
+/// 아래에서 올라왔다가(0.27초) 잠시 보이고(2.2초) 다시 내려가는 글자 알림. 타이머 대신 애니메이션으로 시간을 잰다.
+/// 하단 탭(약 80px)을 가리지 않도록 그 위에 띄운다.
+class _Notice extends StatelessWidget {
+  const _Notice({required this.msg, required this.onDone});
   final String msg;
   final VoidCallback onDone;
 
@@ -160,16 +161,16 @@ class _TopNotice extends StatelessWidget {
     return Positioned(
       left: 16,
       right: 16,
-      top: MediaQuery.paddingOf(context).top + 8,
+      bottom: MediaQuery.paddingOf(context).bottom + 96,
       child: IgnorePointer(
         child: TweenAnimationBuilder<double>(
           tween: Tween(begin: 0, end: 1),
           duration: const Duration(milliseconds: 2700),
           onEnd: onDone,
           builder: (_, t, child) {
-            // 0~0.1 내려오기, 0.1~0.9 머물기, 0.9~1 올라가기
+            // 0~0.1 올라오기, 0.1~0.9 머물기, 0.9~1 내려가기
             final show = t < .1 ? t / .1 : (t > .9 ? (1 - t) / .1 : 1.0);
-            return Opacity(opacity: show, child: Transform.translate(offset: Offset(0, -24 * (1 - show)), child: child));
+            return Opacity(opacity: show, child: Transform.translate(offset: Offset(0, 24 * (1 - show)), child: child));
           },
           child: Material(
             color: const Color(0xF0263A2B),
