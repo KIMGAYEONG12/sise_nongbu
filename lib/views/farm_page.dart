@@ -233,12 +233,14 @@ class _FarmHero extends StatelessWidget {
 
   /// 농장 큰 집 이름표 자리 (그림 원본 픽셀: 주황 지붕 위쪽 가운데)
   static const _houseTag = Offset(250, 168);
-  static const _mailboxSize = 40.0;
+  /// 하우스와 우체통이 그림 속 집보다 튀지 않게, 둘의 높이를 똑같이 맞춘다 (그림 원본 픽셀). 하우스는 지어도 농장 그림에서는 커지지 않고, 단계는 모양·이름으로 보인다.
+  static const _propHeight = 86.0;
+  static const _mailboxRatio = 0.8667; // 우체통 가로/세로 (FarmMailbox 1.3 : 1.5)
 
   /// 하우스를 올려 놓을 자리 (그림 원본 픽셀: 집 왼쪽 앞 풀밭, 크게).
   /// 아래 끝(566)이 갈색 밭이 시작되는 높이(약 590)보다 위라서 밭과 겹치지 않는다.
   /// 가로 160 : 세로 150으로 키 큰 집 모양 (예전 170×120은 옆으로 넓어서 납작해 보였다). 아래 끝(548)은 그대로.
-  static const _house = Rect.fromLTWH(2, 398, 160, 150);
+  static const _house = Rect.fromLTWH(50, 462, 92, _propHeight);
 
   /// Lv.90 전설의 농장 성을 그릴 자리 (그림 원본 픽셀): 그림 속 오두막(지붕·굴뚝·벽)을 다 덮도록 조금 넉넉하게
   static const _castle = Rect.fromLTWH(10, 120, 410, 325);
@@ -258,7 +260,8 @@ class _FarmHero extends StatelessWidget {
 
   /// 하우스 그림 자리: 기본 자리(_house)의 왼쪽 아래를 고정하고 [scale]배로 키운다. 화면 왼쪽 밖으로 나가지 않게 한다.
   Rect _houseRect(double imgLeft, double imgTop, double k, double scale) {
-    final w = _house.width * k * scale, h = _house.height * k * scale;
+    // scale은 쓰지 않는다: 하우스 크기를 우체통과 똑같이 고정
+    final w = _house.width * k, h = _house.height * k;
     final left = math.max(10.0, imgLeft + _house.left * k);
     final bottom = imgTop + _house.bottom * k;
     return Rect.fromLTWH(left, bottom - h, w, h);
@@ -354,9 +357,11 @@ class _FarmHero extends StatelessWidget {
           // 농장 우체통
           if (mailbox != null)
             Positioned(
-              left: imgLeft + _mailboxFoot.dx * k - _mailboxSize * .65,
-              top: imgTop + _mailboxFoot.dy * k - _mailboxSize * 1.5 * .97,
-              child: mailbox!,
+              left: imgLeft + _mailboxFoot.dx * k - _propHeight * _mailboxRatio * k / 2,
+              top: imgTop + _mailboxFoot.dy * k - _propHeight * k * .97,
+              width: _propHeight * _mailboxRatio * k,
+              height: _propHeight * k,
+              child: FittedBox(fit: BoxFit.contain, child: mailbox!),
             ),
           // 농장 큰 집 이름표: 레벨이 오르면 집 이름도 바뀐다 (작은 오두막 → … → 전설의 농장 성)
           Positioned(
