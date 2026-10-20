@@ -535,10 +535,11 @@ class FirestoreGameService {
       });
 
   /// 레벨이 [from]에서 [to]로 올랐을 때 보상(포인트·희귀 씨앗)을 한 번만 준다.
-  /// 받은 레벨을 `levelRewarded`에 적어 두어서, 같은 레벨 업 보상이 두 번 들어가지 않는다. 이미 받았으면 null.
+  /// 레벨이 올라간 만큼(from → to) 보상을 준다. 올라가지 않았으면 null. (`levelRewarded`는 기록용으로만 적는다)
   Future<LevelUpReward?> claimLevelUpReward(int from, int to) => _tx<LevelUpReward?>((tx) async {
         final u = (await tx.get(_user)).data()!;
-        final done = u['levelRewarded'] is num ? (u['levelRewarded'] as num).toInt() : from;
+        // 레벨이 오를 때마다 항상 보상(포인트·씨앗)을 준다. 예전에 받은 레벨이어도 다시 오르면 받는다 (레벨 규칙이 바뀌어 내려갔다 오른 경우 포함).
+        final done = from;
         if (to <= done) return null;
         final code = levelUpSeedCrop(to);
         final k = seedKey(code);
