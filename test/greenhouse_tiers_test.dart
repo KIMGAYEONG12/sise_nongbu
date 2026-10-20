@@ -23,7 +23,11 @@ void main() {
     expect(greenhouseStageName(12), '나노 바이오 팜'); // AI 퀀텀 팜 다음에도 더 좋은 이름이 이어진다
     expect(greenhouseStageName(14), '플라즈마 에너지 팜');
     expect(greenhouseStageName(20), '우주 문명 농장');
-    expect(greenhouseStageName(21), '우주 문명 농장 2세대');
+    expect(greenhouseStageName(21), '은하 연합 농장'); // 20단계 뒤에는 세대 숫자 대신 새 이름이 이어진다
+    final names = [for (var s = 1; s <= 900; s++) greenhouseStageName(s)];
+    expect(names.toSet().length, names.length, reason: '900단계까지 이름이 겹치지 않아요');
+    expect(names.any((e) => e.contains('세대')), isFalse);
+    expect(greenhouseStageName(200).contains('200'), isFalse);
     expect(greenhouseStageNames.toSet().length, greenhouseStageNames.length);
     for (var s = 1; s < 40; s++) {
       expect(greenhouseStageName(s) == greenhouseStageName(s + 1), isFalse, reason: '$s단계와 ${s + 1}단계 이름이 달라야 해요');

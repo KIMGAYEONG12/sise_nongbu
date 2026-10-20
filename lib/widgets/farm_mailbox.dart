@@ -140,17 +140,30 @@ class MailboxPainter extends CustomPainter {
     canvas.drawPath(body, line);
     // 반짝임
     canvas.drawOval(Rect.fromLTWH(w * .24, h * .27, w * .12, h * .1), Paint()..color = const Color(0x66FFFFFF));
-    // 몸통 아래쪽의 작은 하트 스티커 (귀엽게)
-    final hc = Offset(w * .5, h * .505), hr = w * .055;
-    final heart = Path()
-      ..moveTo(hc.dx, hc.dy + hr * .9)
-      ..cubicTo(hc.dx - hr * 1.6, hc.dy - hr * .2, hc.dx - hr * .7, hc.dy - hr * 1.3, hc.dx, hc.dy - hr * .4)
-      ..cubicTo(hc.dx + hr * .7, hc.dy - hr * 1.3, hc.dx + hr * 1.6, hc.dy - hr * .2, hc.dx, hc.dy + hr * .9)
-      ..close();
-    canvas.drawPath(heart, Paint()..color = light ? const Color(0xFFF28FA8) : Colors.white.withValues(alpha: .9));
-    // 편지 넣는 구멍
-    final slot =RRect.fromRectAndRadius(Rect.fromLTWH(w * .32, h * .42, w * .36, h * .045), Radius.circular(h * .02));
-    canvas.drawRRect(slot, Paint()..color = const Color(0xFF3A2620));
+    // 몸통 앞면의 흰 편지 봉투 무늬 (시안 속 우체통처럼)
+    final er = Rect.fromLTWH(w * .26, h * .385, w * .3, h * .13);
+    final erR = RRect.fromRectAndRadius(er, Radius.circular(w * .02));
+    canvas.drawRRect(erR, Paint()..color = const Color(0xFFFFFBF2));
+    canvas.drawRRect(erR, Paint()..style = PaintingStyle.stroke..strokeWidth = math.max(1, w * .022)..color = light ? const Color(0xFF6B5A4A) : Color.lerp(color, Colors.black, .45)!);
+    final flap = Path()
+      ..moveTo(er.left, er.top + er.height * .08)
+      ..lineTo(er.center.dx, er.top + er.height * .58)
+      ..lineTo(er.right, er.top + er.height * .08);
+    canvas.drawPath(flap, Paint()..style = PaintingStyle.stroke..strokeWidth = math.max(1, w * .02)..strokeJoin = StrokeJoin.round..color = light ? const Color(0xFF6B5A4A) : Color.lerp(color, Colors.black, .45)!);
+    // 오른쪽 옆면의 작은 손잡이
+    final handle = RRect.fromRectAndRadius(Rect.fromLTWH(w * .66, h * .43, w * .13, h * .06), Radius.circular(h * .02));
+    canvas.drawRRect(handle, Paint()..color = Color.lerp(color, Colors.black, light ? .1 : .22)!);
+    canvas.drawRRect(handle, Paint()..style = PaintingStyle.stroke..strokeWidth = math.max(1, w * .02)..color = line.color);
+    // 기둥 아래 풀과 하얀 꽃
+    final grass = Paint()..color = const Color(0xFF6BBF59);
+    canvas.drawOval(Rect.fromLTWH(w * .26, h * .9, w * .24, h * .1), grass);
+    canvas.drawOval(Rect.fromLTWH(w * .5, h * .91, w * .24, h * .09), Paint()..color = const Color(0xFF58AA4A));
+    final fc = Offset(w * .66, h * .91), fr = w * .035;
+    for (var i = 0; i < 5; i++) {
+      final ang = i * 2 * math.pi / 5;
+      canvas.drawCircle(fc + Offset(math.cos(ang), math.sin(ang)) * fr, fr * .75, Paint()..color = Colors.white);
+    }
+    canvas.drawCircle(fc, fr * .6, Paint()..color = const Color(0xFFFFC93C));
     // 편지가 있으면 흰 봉투 끝이 구멍 위로 살짝 보인다
     if (flagUp) {
       final env = Rect.fromLTWH(w * .36, h * .37, w * .28, h * .065);

@@ -170,21 +170,35 @@ final weatherProvider = FutureProvider<Weather?>((ref) async {
 
 /// 품목 상세 화면용: 최근 [days]일 시세 (인자는 (작물 코드, 일 수))와 거래량
 /// 서버가 저장해 둔 값이 있으면 그것을, 없으면 앱이 API로 직접 받는다.
+/// 서버 시세를 처음 한 번 받을 때까지 잠깐(최대 2초) 기다린다. 화면이 서버 값보다 먼저 떠서 느린 API 호출로 넘어가는 일을 막는다.
+Future<ServerMarket?> _serverMarketReady(Ref ref) async {
+  final now = ref.read(serverMarketProvider).valueOrNull;
+  if (now != null) return now;
+  try {
+    return await ref.read(serverMarketProvider.future).timeout(const Duration(seconds: 2), onTimeout: () => null);
+  } catch (_) {
+    return null;
+  }
+}
+
 final priceHistoryProvider = FutureProvider.autoDispose
     .family<List<double?>, (String, int)>((ref, key) async {
   final (code, days) = key;
-  final server = ref.read(serverMarketProvider).valueOrNull;
+  final server = await _serverMarketReady(ref);
   if (server != null && server.usable(appHasKey: auctionApiKey.isNotEmpty)) {
     final h = server.history(code, count: days);
-    if (h.any((v) => v != null)) return h;
+    if (h.any((v) => v != null)) return h; // 서버 값은 바로 계산되므로 기간 탭을 바꿔도 즉시 뜬다
   }
+  final link = ref.keepAlive(); // API로 받은 값은 상세 화면을 다시 열어도 바로 보이게 남겨 둔다
+  final timer = Timer(const Duration(minutes: 10), link.close);
+  ref.onDispose(timer.cancel);
   return ref.read(marketRepoProvider).history(code, days: days);
 });
 final priceVolumeProvider =
     FutureProvider.autoDispose.family<double?, String>((ref, code) async {
   final asOf = ref.read(marketViewModelProvider).valueOrNull?[code]?.asOf ??
       DateTime.now();
-  final server = ref.read(serverMarketProvider).valueOrNull;
+  final server = await _serverMarketReady(ref);
   if (server != null && server.usable(appHasKey: auctionApiKey.isNotEmpty)) {
     final v = server.volumeKg(code, asOf);
     if (v != null) return v;

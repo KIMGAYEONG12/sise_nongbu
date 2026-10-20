@@ -242,15 +242,12 @@ class _SeedSellSheetState extends State<_SeedSellSheet> {
             Flexible(
               child: ListView(shrinkWrap: true, children: [
                 for (final e in seeds)
-                  CheckboxListTile(
-                    value: _picked.contains(e.key),
-                    onChanged: (v) => setState(() => v == true ? _picked.add(e.key) : _picked.remove(e.key)),
-                    activeColor: AppColors.green,
-                    contentPadding: EdgeInsets.zero,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    secondary: Text(won(itemSellPrice(e.key) * e.value), style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.greenDark)),
-                    title: Text('${itemEmoji(e.key)} ${itemName(e.key)}', style: const TextStyle(fontWeight: FontWeight.w800)),
-                    subtitle: Text('${e.value}개 · 1개 ${won(itemSellPrice(e.key))}', style: const TextStyle(fontSize: 12)),
+                  _SeedPickTile(
+                    picked: _picked.contains(e.key),
+                    title: '${itemEmoji(e.key)} ${itemName(e.key)}',
+                    sub: '${e.value}개 · 1개 ${won(itemSellPrice(e.key))}',
+                    price: won(itemSellPrice(e.key) * e.value),
+                    onTap: () => setState(() => _picked.contains(e.key) ? _picked.remove(e.key) : _picked.add(e.key)),
                   ),
               ]),
             ),
@@ -265,6 +262,62 @@ class _SeedSellSheetState extends State<_SeedSellSheet> {
       ),
     );
   }
+}
+
+/// 씨앗 판매 창의 한 줄: 동그란 초록 체크 표시가 톡 튀어나오고, 고르면 연두색 카드가 된다
+class _SeedPickTile extends StatelessWidget {
+  const _SeedPickTile({required this.picked, required this.title, required this.sub, required this.price, required this.onTap});
+  final bool picked;
+  final String title, sub, price;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: picked ? const Color(0xFFEAF8DC) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: picked ? AppColors.green : const Color(0xFFE3EADB), width: picked ? 1.6 : 1),
+              ),
+              child: Row(children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: picked ? AppColors.green : Colors.white,
+                    border: Border.all(color: picked ? AppColors.green : const Color(0xFFC9D4BD), width: 2),
+                    boxShadow: picked ? [BoxShadow(color: AppColors.green.withValues(alpha: .35), blurRadius: 6, offset: const Offset(0, 2))] : null,
+                  ),
+                  child: AnimatedScale(
+                    scale: picked ? 1 : 0,
+                    duration: const Duration(milliseconds: 160),
+                    curve: Curves.easeOutBack,
+                    child: const Icon(Icons.check_rounded, size: 18, color: Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                    Text(sub, style: const TextStyle(fontSize: 12, color: AppColors.sub)),
+                  ]),
+                ),
+                Text(price, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.greenDark)),
+              ]),
+            ),
+          ),
+        ),
+      );
 }
 
 /// 창고 목록 한 줄: 그림 · 이름(+작은 설명) · 오른쪽 수량

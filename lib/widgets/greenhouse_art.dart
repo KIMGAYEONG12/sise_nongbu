@@ -47,12 +47,49 @@ const greenhouseStageNames = [
   '우주 문명 농장',
 ];
 
-/// [stage]단계의 이름. 가장 높은 이름을 넘으면 "우주 문명 농장 2세대"처럼 세대가 붙는다.
+/// 20단계를 넘은 뒤 이어지는 이름들 (세대 숫자 대신 새 이름이 계속 나온다)
+const greenhouseExtraNames = [
+  '은하 연합 농장',
+  '성운 정원 농장',
+  '월광 수정 농장',
+  '태양풍 에너지 팜',
+  '오로라 바이오 팜',
+  '혜성 씨앗 농장',
+  '별자리 온실 도시',
+  '차원 문 스마트팜',
+  '시간 정원 농장',
+  '천상의 황금 정원',
+  '무지개 은하 농장',
+  '우주 방주 농장',
+  '블랙홀 에너지 팜',
+  '생명의 나무 농장',
+  '영원의 봄 농장',
+  '신화 속 낙원 농장',
+  '별의 요람 농장',
+  '빛의 대지 농장',
+  '구름 위 천공 농장',
+  '해와 달의 농장',
+];
+
+const _gAdjectives = ['찬란한', '고요한', '신비한', '눈부신', '웅장한', '영롱한', '아득한', '포근한', '드높은', '해맑은', '은은한', '당당한'];
+const _gNouns = ['별빛 정원', '달빛 농원', '황금 들판', '구름 목장', '무지개 온실', '바람 언덕', '새벽 농장', '꽃구름 농원', '이슬 정원', '노을 들판', '은하수 농장', '햇살 온실'];
+const _gEpithets = ['', '영원의 ', '태초의 ', '불멸의 ', '무한의 ', '전설의 '];
+
+/// [stage]단계의 이름. 20단계까지는 정해진 이름, 그 뒤는 새 이름이 이어지고(최소 800단계쯤까지 겹치지 않는다),
+/// 그보다 더 높으면 처음부터 다시 돌아가며 쓴다.
 String greenhouseStageName(int stage) {
   if (stage <= 0) return greenhouseStageNames.first;
   final n = greenhouseStageNames.length;
   if (stage <= n) return greenhouseStageNames[stage - 1];
-  return '${greenhouseStageNames.last} ${stage - n + 1}세대';
+  var j = stage - n - 1;
+  if (j < greenhouseExtraNames.length) return greenhouseExtraNames[j];
+  j -= greenhouseExtraNames.length;
+  final combos = _gAdjectives.length * _gNouns.length * _gEpithets.length;
+  j %= combos;
+  final adj = _gAdjectives[j % _gAdjectives.length];
+  final noun = _gNouns[(j ~/ _gAdjectives.length) % _gNouns.length];
+  final epi = _gEpithets[j ~/ (_gAdjectives.length * _gNouns.length)];
+  return '$epi$adj $noun';
 }
 
 /// [stage]단계에서 그리는 모양(0~5). 두 단계마다 모양이 한 번 바뀐다.
