@@ -71,7 +71,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('판매하기'));
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('판매할 작물이 없어요. 밭에서 작물을 수확하면 여기에 쌓여요'), findsOneWidget);
+    expect(find.text('판매할 작물이나 아이템이 없어요. 밭에서 작물을 수확하면 여기에 쌓여요'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

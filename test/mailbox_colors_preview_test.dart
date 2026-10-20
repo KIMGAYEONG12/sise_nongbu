@@ -1,14 +1,14 @@
-// 우체통 색 8가지가 모두 에러 없이 그려지는지 확인하고, 환경변수 PREVIEW_DIR 이 있으면 한 장에 모아 저장한다.
+// 우체통 색 10가지가 모두 에러 없이 그려지는지 확인하고, 환경변수 PREVIEW_DIR 이 있으면 한 장에 모아 저장한다.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sise_nongbu/widgets/farm_mailbox.dart';
 import 'preview_font.dart';
 
 void main() {
-  testWidgets('우체통 색 8가지 (편지 있음)', (tester) async {
+  testWidgets('우체통 색 10가지 (편지 있음)', (tester) async {
     await loadPreviewFonts();
     final key = GlobalKey();
-    tester.view.physicalSize = const Size(960, 220);
+    tester.view.physicalSize = const Size(1280, 220);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(MaterialApp(

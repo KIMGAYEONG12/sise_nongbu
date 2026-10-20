@@ -3,20 +3,22 @@ import 'package:flutter/material.dart';
 import 'common.dart';
 
 /// 우체통 색 (이름, 색). 편지 창 아래에서 고를 수 있고, 고른 색은 기기에 저장된다.
-/// 파스텔 느낌의 예쁜 색 (농장 그림과 어울리게 채도를 살짝 낮췄다)
+/// 맑고 선명한 색 10가지 (첫 번째 빨강이 기본)
 const mailboxColors = <(String, Color)>[
-  ('체리', Color(0xFFEF6461)),
-  ('벚꽃', Color(0xFFF6A5C5)),
-  ('라벤더', Color(0xFFB79CE0)),
-  ('크림', Color(0xFFFFF6E6)),
-  ('하늘', Color(0xFF8ED1F2)),
-  ('민트', Color(0xFF7FD6BC)),
-  ('레몬', Color(0xFFFFD966)),
-  ('밤하늘', Color(0xFF45415A)),
+  ('빨강', Color(0xFFE8453C)),
+  ('코랄', Color(0xFFFF7A6B)),
+  ('핑크', Color(0xFFFF86B3)),
+  ('주황', Color(0xFFFF9A3D)),
+  ('노랑', Color(0xFFFFC83D)),
+  ('연두', Color(0xFF7CCB5B)),
+  ('민트', Color(0xFF38CDB0)),
+  ('하늘', Color(0xFF4DA8F5)),
+  ('보라', Color(0xFF9B7BE8)),
+  ('크림', Color(0xFFFFF3DC)),
 ];
 
-/// 레몬색 우체통 (깃발을 노랑 대신 빨강으로 그린다)
-const _lemon = Color(0xFFFFD966);
+/// 노란색 우체통 (깃발을 노랑 대신 빨강으로 그린다)
+const _lemon = Color(0xFFFFC83D);
 
 /// 저장된 번호를 안전하게 색으로 바꾼다 (범위를 벗어나면 빨강)
 Color mailboxColorOf(int index) => mailboxColors[(index >= 0 && index < mailboxColors.length) ? index : 0].$2;
@@ -24,7 +26,7 @@ Color mailboxColorOf(int index) => mailboxColors[(index >= 0 && index < mailboxC
 /// 농장에 서 있는 작은 우체통. 새 버전이 나오면 편지가 와서 노란 깃발이 서고 빨간 숫자 1이 통통 튄다.
 /// 누르면 [onTap] (편지 창 열기). 코드로 그려서 큰 화면에서도 선명하다.
 class FarmMailbox extends StatefulWidget {
-  const FarmMailbox({super.key, required this.hasLetter, required this.onTap, this.size = 46, this.active = true, this.color = const Color(0xFFEF6461)});
+  const FarmMailbox({super.key, required this.hasLetter, required this.onTap, this.size = 46, this.active = true, this.color = const Color(0xFFE8453C)});
   final bool hasLetter;
   final VoidCallback onTap;
   final double size;
@@ -110,7 +112,7 @@ class _FarmMailboxState extends State<FarmMailbox> with SingleTickerProviderStat
 
 /// 나무 기둥 + 둥근 지붕의 우체통 + 편지 넣는 구멍 + 옆의 노란 깃발 (편지가 있으면 서 있다)
 class MailboxPainter extends CustomPainter {
-  const MailboxPainter({required this.flagUp, this.color = const Color(0xFFEF6461)});
+  const MailboxPainter({required this.flagUp, this.color = const Color(0xFFE8453C)});
   final bool flagUp;
   final Color color;
 
@@ -136,7 +138,7 @@ class MailboxPainter extends CustomPainter {
       ..arcToPoint(Offset(w * .86, h * .36), radius: Radius.circular(w * .36))
       ..lineTo(w * .86, h * .56)
       ..close();
-    canvas.drawPath(body, Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color.lerp(color, Colors.white, .28)!, Color.lerp(color, Colors.black, light ? .12 : .2)!]).createShader(Rect.fromLTWH(0, h * .18, w, h * .4)));
+    canvas.drawPath(body, Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color.lerp(color, Colors.white, .16)!, Color.lerp(color, Colors.black, light ? .1 : .16)!]).createShader(Rect.fromLTWH(0, h * .18, w, h * .4)));
     canvas.drawPath(body, line);
     // 반짝임
     canvas.drawOval(Rect.fromLTWH(w * .24, h * .27, w * .12, h * .1), Paint()..color = const Color(0x66FFFFFF));

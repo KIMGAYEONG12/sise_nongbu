@@ -55,18 +55,60 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
   }
 
   /// 씨앗 여러 종류를 골라(전체 선택 가능) 가진 개수만큼 한 번에 판다.
-  Future<void> _sellSeeds(List<MapEntry<String, int>> seeds) async {
+  Future<void> _sellSeeds(List<MapEntry<String, int>> seeds) => _sellMany(seeds, title: '씨앗', noun: '씨앗');
+
+  /// 창고의 아이템(물통·영양제·성장촉진제·씨앗)을 여러 종류 골라 한 번에 판다.
+  Future<void> _sellMany(List<MapEntry<String, int>> list, {required String title, required String noun}) async {
     final picked = await showModalBottomSheet<Map<String, int>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
-      builder: (_) => _SeedSellSheet(seeds: seeds),
+      builder: (_) => _SeedSellSheet(seeds: list, title: title),
     );
     if (picked == null || picked.isEmpty || !mounted) return;
     final total = picked.entries.fold<int>(0, (a, e) => a + itemSellPrice(e.key) * e.value);
     final count = picked.values.fold<int>(0, (a, v) => a + v);
-    await runGuarded(context, () => ref.read(farmViewModelProvider).sellItems(picked), ok: '씨앗 ${picked.length}종 $count개가 판매되었습니다! +${won(total)}');
+    await runGuarded(context, () => ref.read(farmViewModelProvider).sellItems(picked), ok: '$noun ${picked.length}종 $count개가 판매되었습니다! +${won(total)}');
+  }
+
+  /// "판매하기" 버튼: 팔 수 있는 작물과 아이템을 모두 판다. 둘 다 있으면 무엇을 팔지 먼저 묻는다.
+  Future<void> _sellAny(List<Lot> lots, List<MapEntry<String, int>> sellable) async {
+    if (lots.isEmpty && sellable.isEmpty) {
+      showMsg(context, '판매할 작물이나 아이템이 없어요. 밭에서 작물을 수확하면 여기에 쌓여요');
+      return;
+    }
+    if (sellable.isEmpty) {
+      await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SellPage()));
+      return;
+    }
+    if (lots.isEmpty) {
+      await _sellMany(sellable, title: '아이템', noun: '아이템');
+      return;
+    }
+    final pick = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+      builder: (sheet) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const Text('무엇을 팔까요?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 14),
+            GreenButton(label: '🥬 수확한 작물 팔기', height: 50, onPressed: () => Navigator.pop(sheet, 'crops')),
+            const SizedBox(height: 10),
+            GreenButton(label: '🎒 아이템 팔기 (${sellable.length}종)', outlined: true, height: 50, onPressed: () => Navigator.pop(sheet, 'items')),
+          ]),
+        ),
+      ),
+    );
+    if (!mounted || pick == null) return;
+    if (pick == 'crops') {
+      await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SellPage()));
+    } else {
+      await _sellMany(sellable, title: '아이템', noun: '아이템');
+    }
   }
 
   @override
@@ -87,6 +129,8 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
 
     final showCrops = _tab != 2, showItems = _tab != 1;
     final seeds = [for (final e in items) if (e.key.startsWith('seed_') && itemSellPrice(e.key) > 0) e];
+    // 판매하기 버튼으로 팔 수 있는 아이템 (물통·영양제·성장촉진제·씨앗 중 판매 가격이 있는 것)
+    final sellable = [for (final e in items) if (itemSellPrice(e.key) > 0) e];
 
     // 시안: 같은 작물은 한 줄로 합쳐서 보여준다
     final byCrop = <String, List<Lot>>{};
@@ -141,17 +185,11 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
               SizedBox(
                 height: 30,
                 child: ElevatedButton(
-                  // 창고가 비어 있어도 눌러지고, 이유를 알려 준다 (예전엔 비활성이라 "안 눌린다"처럼 보였다)
-                  onPressed: () {
-                    if (lots.isEmpty) {
-                      showMsg(context, '판매할 작물이 없어요. 밭에서 작물을 수확하면 여기에 쌓여요');
-                      return;
-                    }
-                    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SellPage()));
-                  },
+                  // 창고가 비어 있어도 눌러지고, 이유를 알려 준다. 작물·아이템을 모두 팔 수 있다
+                  onPressed: () => _sellAny(lots, sellable),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: lots.isEmpty ? AppColors.greenLight : AppColors.green,
-                    foregroundColor: lots.isEmpty ? AppColors.greenDark : Colors.white,
+                    backgroundColor: lots.isEmpty && sellable.isEmpty ? AppColors.greenLight : AppColors.green,
+                    foregroundColor: lots.isEmpty && sellable.isEmpty ? AppColors.greenDark : Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -208,8 +246,9 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
 /// 씨앗 판매 창: 씨앗마다 체크해서 고르거나 "전체 선택"으로 모두 고른다. 고른 씨앗은 가진 개수를 모두 판다.
 /// 팔기를 누르면 고른 씨앗(키 → 개수)을 돌려준다.
 class _SeedSellSheet extends StatefulWidget {
-  const _SeedSellSheet({required this.seeds});
+  const _SeedSellSheet({required this.seeds, this.title = '씨앗'});
   final List<MapEntry<String, int>> seeds;
+  final String title;
   @override
   State<_SeedSellSheet> createState() => _SeedSellSheetState();
 }
@@ -230,14 +269,14 @@ class _SeedSellSheetState extends State<_SeedSellSheet> {
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Row(children: [
-              const Text('씨앗 팔기', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+              Text('${widget.title} 팔기', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
               const Spacer(),
               TextButton(
                 onPressed: () => setState(() => allOn ? _picked.clear() : _picked.addAll(seeds.map((e) => e.key))),
                 child: Text(allOn ? '선택 해제' : '전체 선택', style: const TextStyle(fontWeight: FontWeight.w800)),
               ),
             ]),
-            const Align(alignment: Alignment.centerLeft, child: Text('고른 씨앗은 가진 개수를 모두 팔아요 (상점 가격의 절반)', style: TextStyle(fontSize: 12, color: AppColors.sub))),
+            const Align(alignment: Alignment.centerLeft, child: Text('고른 것은 가진 개수를 모두 팔아요 (상점 가격의 절반)', style: TextStyle(fontSize: 12, color: AppColors.sub))),
             const SizedBox(height: 6),
             Flexible(
               child: ListView(shrinkWrap: true, children: [
@@ -253,7 +292,7 @@ class _SeedSellSheetState extends State<_SeedSellSheet> {
             ),
             const SizedBox(height: 8),
             GreenButton(
-              label: chosen.isEmpty ? '팔 씨앗을 골라 주세요' : '${chosen.length}종 팔기 +${won(total)}',
+              label: chosen.isEmpty ? '팔 것을 골라 주세요' : '${chosen.length}종 팔기 +${won(total)}',
               height: 50,
               onPressed: chosen.isEmpty ? null : () => Navigator.pop(context, chosen),
             ),

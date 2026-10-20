@@ -71,11 +71,22 @@ const greenhouseExtraNames = [
   '해와 달의 농장',
 ];
 
-const _gAdjectives = ['찬란한', '고요한', '신비한', '눈부신', '웅장한', '영롱한', '아득한', '포근한', '드높은', '해맑은', '은은한', '당당한'];
-const _gNouns = ['별빛 정원', '달빛 농원', '황금 들판', '구름 목장', '무지개 온실', '바람 언덕', '새벽 농장', '꽃구름 농원', '이슬 정원', '노을 들판', '은하수 농장', '햇살 온실'];
-const _gEpithets = ['', '영원의 ', '태초의 ', '불멸의 ', '무한의 ', '전설의 '];
+// 20단계 뒤의 이름은 "<등급> <우주 말> <농장 종류>"로 만든다 (예: 웜홀 스테이션 팜, 프라임 퀘이사 에너지 팜). 1,400가지가 넘게 겹치지 않는다.
+const _gBodies = [
+  '은하', '성운', '혜성', '오로라', '별자리', '태양풍', '월광', '쌍성', '항성', '행성',
+  '위성', '소행성', '블랙홀', '웜홀', '차원', '시공간', '양자', '나노', '플라즈마', '핵융합',
+  '반물질', '암흑물질', '초신성', '퀘이사', '펄사', '성간', '은하단', '초은하', '천체', '광속',
+  '중력', '에테르', '크리스탈', '홀로그램', '사이버', '미래', '신화', '낙원', '생명수', '세계수',
+  '태초', '영원', '무한', '별빛', '달빛', '햇살', '무지개', '우주 방주', '천공', '은하수',
+  '북극성', '수성', '금성', '화성', '목성', '토성', '천왕성', '해왕성', '명왕성', '노바',
+];
+const _gSuffixes = ['농장', '스마트팜', '바이오 돔', '에너지 팜', '문명 농장', '연방 농장', '아크 팜', '스테이션 팜'];
+const _gGrades = ['', '프라임 ', '얼티밋 '];
 
-/// [stage]단계의 이름. 20단계까지는 정해진 이름, 그 뒤는 새 이름이 이어지고(최소 800단계쯤까지 겹치지 않는다),
+/// 이름을 만들 수 있는 가짓수 (20단계 뒤 고정 이름 20개 + 조합)
+final greenhouseNameCount = greenhouseStageNames.length + greenhouseExtraNames.length + _gBodies.length * _gSuffixes.length * _gGrades.length;
+
+/// [stage]단계의 이름. 20단계까지는 정해진 이름, 그 뒤는 새 이름이 이어지고(1,400단계가 넘도록 겹치지 않는다),
 /// 그보다 더 높으면 처음부터 다시 돌아가며 쓴다.
 String greenhouseStageName(int stage) {
   if (stage <= 0) return greenhouseStageNames.first;
@@ -84,13 +95,17 @@ String greenhouseStageName(int stage) {
   var j = stage - n - 1;
   if (j < greenhouseExtraNames.length) return greenhouseExtraNames[j];
   j -= greenhouseExtraNames.length;
-  final combos = _gAdjectives.length * _gNouns.length * _gEpithets.length;
+  final combos = _gBodies.length * _gSuffixes.length * _gGrades.length;
   j %= combos;
-  final adj = _gAdjectives[j % _gAdjectives.length];
-  final noun = _gNouns[(j ~/ _gAdjectives.length) % _gNouns.length];
-  final epi = _gEpithets[j ~/ (_gAdjectives.length * _gNouns.length)];
-  return '$epi$adj $noun';
+  final body = _gBodies[j % _gBodies.length];
+  final suffix = _gSuffixes[(j ~/ _gBodies.length) % _gSuffixes.length];
+  final grade = _gGrades[j ~/ (_gBodies.length * _gSuffixes.length)];
+  final name = '$grade$body $suffix';
+  // 앞의 정해진 이름(예: 플라즈마 에너지 팜)과 겹치면 '골드'를 붙여 구분한다
+  return _reservedNames.contains(name) ? '골드 $name' : name;
 }
+
+final _reservedNames = <String>{...greenhouseStageNames, ...greenhouseExtraNames};
 
 /// [stage]단계에서 그리는 모양(0~5). 두 단계마다 모양이 한 번 바뀐다.
 int greenhouseTierOfStage(int stage) => ((stage - 1) ~/ 2).clamp(0, greenhouseMaxTier).toInt();
