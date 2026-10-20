@@ -15,7 +15,8 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const packageName = 'com.sise_nongbu';
 const keyFile = join(root, 'android', 'play-service-account.json');
 const aab = join(root, 'build', 'app', 'outputs', 'bundle', 'release', 'app-release.aab');
-const track = 'internal';
+// 기본은 내부 테스트. 비공개 테스트(Alpha)에 올리려면 PLAY_TRACK=alpha
+const track = process.env.PLAY_TRACK || 'internal';
 
 if (!existsSync(keyFile)) throw new Error(`서비스 계정 키가 없어요: ${keyFile}`);
 if (!existsSync(aab)) throw new Error(`AAB가 없어요. 먼저 flutter build appbundle 을 실행하세요: ${aab}`);
@@ -52,4 +53,4 @@ await play.edits.tracks.update({
 });
 
 const { data: done } = await play.edits.commit({ packageName, editId: edit.id });
-console.log(`내부 테스트 출시 완료: 버전 ${bundle.versionCode} (edit ${done.id})`);
+console.log(`출시 완료 (${track} 트랙): 버전 ${bundle.versionCode} (edit ${done.id})`);
