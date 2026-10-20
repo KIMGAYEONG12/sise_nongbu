@@ -159,9 +159,13 @@ class FirestoreGameService {
   Stream<FundData> fund() => _fund.snapshots().map((s) => FundData.fromMap(s.data()));
 
   /// 미션 카운터(일일·주간)를 한 번에 올리는 업데이트 항목
-  Map<String, dynamic> _bumps(Map<String, dynamic> u, DateTime t, List<String> keys) {
+  Map<String, dynamic> _bumps(Map<String, dynamic> u, DateTime t, List<String> keys, {String? plantedCrop}) {
     var d = _asMap(u['daily']);
     var w = _asMap(u['weekly']);
+    if (plantedCrop != null) {
+      d = bumpVariety(d, dayTag(t), plantedCrop);
+      w = bumpVariety(w, weekTag(t), plantedCrop);
+    }
     for (final k in keys) {
       d = bumpPeriod(d, dayTag(t), k);
       w = bumpPeriod(w, weekTag(t), k);
@@ -185,7 +189,7 @@ class FirestoreGameService {
           'totalProfit': _int(u['totalProfit']) - (useSeed ? 0 : c.seedCost),
           'exp': _int(u['exp']) + 5 * expBoost,
           'stats.plant': FieldValue.increment(1),
-          ..._bumps(u, t, ['plant']),
+          ..._bumps(u, t, ['plant'], plantedCrop: c.code),
           'updatedAt': FieldValue.serverTimestamp(),
         };
         if (useSeed) upd['items.$key'] = seeds - 1;

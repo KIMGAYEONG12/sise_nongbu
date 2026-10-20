@@ -279,6 +279,18 @@ Map<String, dynamic> bumpPeriod(Map<String, dynamic>? old, String tag, String ke
   return m;
 }
 
+/// 이번 기간에 처음 심는 작물이면 종류 수('variety')를 1 올린다. 같은 작물을 또 심어도 늘지 않는다.
+Map<String, dynamic> bumpVariety(Map<String, dynamic>? old, String tag, String cropCode) {
+  final m = (old != null && old['tag'] == tag) ? Map<String, dynamic>.from(old) : <String, dynamic>{'tag': tag};
+  final seen = (m['crops'] is List) ? (m['crops'] as List).map((e) => '$e').toList() : <String>[];
+  if (!seen.contains(cropCode)) {
+    seen.add(cropCode);
+    m['crops'] = seen;
+    m['variety'] = ((m['variety'] as num?)?.toInt() ?? 0) + 1;
+  }
+  return m;
+}
+
 int periodCount(Map<String, dynamic>? m, String tag, String key) =>
     (m != null && m['tag'] == tag) ? ((m[key] as num?)?.toInt() ?? 0) : 0;
 
@@ -312,15 +324,15 @@ const dailyMissions = [
   MissionDef('d_harvest', '작물 1개 수확하기', '🧺', 'harvest', 1, 20, false),
   MissionDef('d_shop', '농장 상점 이용하기', '🛒', 'shop', 1, 30, false),
   MissionDef('d_sell', '작물 1번 판매하기', '💰', 'sell', 1, 25, false),
-  MissionDef('d_game', '작물 매칭 1번 하기', '🥬', 'game', 1, 20, false),
+  MissionDef('d_variety', '다양한 작물 2종 심기', '🥕', 'variety', 2, 20, false),
 ];
 
 const weeklyMissions = [
   MissionDef('w_harvest', '작물 10번 수확하기', '🧺', 'harvest', 10, 100, true),
   MissionDef('w_sell', '작물 5번 판매하기', '💰', 'sell', 5, 100, true),
   MissionDef('w_plant', '작물 15번 파종하기', '🌱', 'plant', 15, 80, true),
-  MissionDef('w_game', '작물 매칭 3번 하기', '🥬', 'game', 3, 50, true),
-  MissionDef('w_water', '작물에 물 20회 주기', '💧', 'water', 20, 80, true),
+  MissionDef('w_game', '작물 매칭 1번 하기', '🥬', 'game', 1, 30, true),
+  MissionDef('w_water', '작물에 물 1회 주기', '💧', 'water', 1, 20, true),
   MissionDef('w_shop', '농장 상점 5번 이용하기', '🛒', 'shop', 5, 70, true),
 ];
 
