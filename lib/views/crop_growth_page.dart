@@ -184,7 +184,7 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
             PageHeader(
               title: '작물 성장',
               center: false,
-              leading: spec == null ? const Icon(Icons.hourglass_top_rounded, size: 26, color: Color(0xFF9A6B3F)) : CropArt(code: spec.code, size: 30),
+              leading: spec == null ? const CropArt(code: 'TOMATO', size: 30) : CropArt(code: spec.code, size: 30),
               onBack: () => Navigator.of(context).maybePop(),
             ),
             Expanded(
@@ -289,50 +289,17 @@ class _WaitingCard extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Row(children: [
-          // 흙더미 위에서 씨앗을 기다리는 모래시계
-          SizedBox(
+          // 예쁜 토마토 그림 (씨앗·모래시계 없이)
+          Container(
             width: 64,
             height: 64,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFBF3E4), Color(0xFFF1DFC2)]),
-                border: Border.all(color: const Color(0xFFE6CFA9)),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(17),
-                child: Stack(alignment: Alignment.center, children: [
-                  // 흙더미
-                  Positioned(
-                    left: -6,
-                    right: -6,
-                    bottom: -14,
-                    height: 30,
-                    child: DecoratedBox(decoration: BoxDecoration(color: const Color(0xFFB98352), borderRadius: BorderRadius.circular(30))),
-                  ),
-                  // 흙 위 작은 씨앗 자리 세 개
-                  for (final dx in const [-14.0, 0.0, 14.0])
-                    Positioned(
-                      bottom: 6,
-                      left: 32 + dx - 3,
-                      child: Container(width: 6, height: 4, decoration: BoxDecoration(color: const Color(0xFF7A4E2A), borderRadius: BorderRadius.circular(3))),
-                    ),
-                  Positioned(
-                    top: 9,
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: _brown.withValues(alpha: .18), blurRadius: 6, offset: const Offset(0, 2))],
-                      ),
-                      child: const Icon(Icons.hourglass_top_rounded, size: 20, color: _brown),
-                    ),
-                  ),
-                ]),
-              ),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFFF6E6), Color(0xFFFBE3C2)]),
+              border: Border.all(color: const Color(0xFFF1D3A6)),
             ),
+            child: const CropArt(code: 'TOMATO', size: 46),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -347,7 +314,7 @@ class _WaitingCard extends StatelessWidget {
                 ),
               ]),
               const SizedBox(height: 4),
-              const Text('씨앗을 기다리고 있어요.\n눌러서 작물을 심어 보세요!', style: TextStyle(fontSize: 12.5, height: 1.4, color: AppColors.sub)),
+              const Text('맛있는 작물을 기다리고 있어요.\n눌러서 작물을 심어 보세요!', style: TextStyle(fontSize: 12.5, height: 1.4, color: AppColors.sub)),
             ]),
           ),
           const SizedBox(width: 8),

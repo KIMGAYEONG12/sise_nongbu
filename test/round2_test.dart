@@ -98,11 +98,11 @@ void main() {
       expect(titleRankOf(13, 5), 1); // 농업 명인은 Lv.13부터 → Lv.13은 1단계 (MY 화면의 "1단계")
       expect(titleRankOf(14, 5), 2);
       expect(titleRankOf(13, 1), 11); // 초보 농부(Lv.3부터)를 달고 있으면 11단계
-      final lv = levelInfo(3600); // Lv.13
+      final lv = levelInfo(6000); // Lv.13
       expect(lv.level, 13);
       // 농업 명인(Lv.13) → 전설의 농부(Lv.17): 4레벨 구간에서 경험치 막대만큼
       expect(titleProgress(lv), closeTo(lv.ratio / 4, 1e-9));
-      expect(titleProgress(levelInfo(3600 + 300 * 2)), greaterThan(titleProgress(lv))); // 레벨이 오르면 진행률도 오른다
+      expect(titleProgress(levelInfo(6000 + 500 * 2)), greaterThan(titleProgress(lv))); // 레벨이 오르면 진행률도 오른다
       expect(titleProgress(levelInfo(999999)), 1.0); // 마지막 칭호
       expect(titleProgress(levelInfo(0)), closeTo(0.0, 1e-9));
     });
@@ -114,7 +114,7 @@ void main() {
       await _screen(tester);
       await tester.pumpWidget(ProviderScope(
         overrides: [
-          userDataProvider.overrideWithValue(const UserData({'exp': 3600, 'nickname': '농부'})),
+          userDataProvider.overrideWithValue(const UserData({'exp': 6000, 'nickname': '농부'})),
           farmViewModelProvider.overrideWith(_FakeVm.new),
         ],
         child: const MaterialApp(home: Scaffold(body: TitleSheet())),
@@ -136,7 +136,7 @@ void main() {
       await _screen(tester);
       await tester.pumpWidget(ProviderScope(
         overrides: [
-          userDataProvider.overrideWithValue(const UserData({'exp': 3600, 'nickname': '농부', 'titleIdx': 1})),
+          userDataProvider.overrideWithValue(const UserData({'exp': 6000, 'nickname': '농부', 'titleIdx': 1})),
           authServiceProvider.overrideWithValue(_FakeAuth()),
           isGuestProvider.overrideWith((ref) => Stream.value(false)),
           farmViewModelProvider.overrideWith(_FakeVm.new),
@@ -262,7 +262,7 @@ void main() {
     testWidgets('"무화과를 수확했습니다!"에는 이모티콘이 붙지 않는다', (tester) async {
       await _screen(tester);
       await tester.pumpWidget(ProviderScope(
-        overrides: [marketViewModelProvider.overrideWith(_FakeMarket.new), userDataProvider.overrideWithValue(const UserData({'exp': 3600}))],
+        overrides: [marketViewModelProvider.overrideWith(_FakeMarket.new), userDataProvider.overrideWithValue(const UserData({'exp': 6000}))],
         child: const MaterialApp(home: HarvestResultPage(cropCode: 'FIG', kg: 4)),
       ));
       await tester.pump();

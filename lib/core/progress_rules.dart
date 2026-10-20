@@ -3,14 +3,14 @@ import 'game_rules.dart';
 
 // ───────────────────────── 레벨 ─────────────────────────
 
-/// 다음 레벨까지 필요한 경험치: 모든 레벨에서 300으로 똑같다 (예전에는 Lv1 200, Lv2 300 … 처럼 점점 늘어났다).
-const expPerLevel = 300;
+/// 다음 레벨까지 필요한 경험치: 모든 레벨에서 500으로 똑같다 (예전에는 300이었다).
+const expPerLevel = 500;
 int expToNext(int level) => expPerLevel;
 
 /// 경험치를 얻는 모든 행동(파종·수확·판매·구매·미션·기부·게임)에 곱하는 배율. 레벨이 빨리 오른다.
 const expBoost = 3;
 
-/// 수확 한 번에 얻는 경험치 (+300: 한 번 수확하면 레벨이 하나 오른다)
+/// 수확 한 번에 얻는 경험치 (한 번 수확하면 레벨 경험치의 60%가 찬다)
 const harvestExp = 300;
 
 /// 판매 금액에 따라 얻는 경험치 (금액 700원당 1, 최소 3)
@@ -231,7 +231,7 @@ const maxDecor = 5;
 const coinBagMoney = 10000;
 
 /// 농부 교본으로 얻는 경험치
-const farmBookExp = 300;
+const farmBookExp = 500;
 
 class PointItem {
   const PointItem(this.key, this.name, this.emoji, this.cost, this.desc);
@@ -249,7 +249,7 @@ const pointItems = [
   PointItem(pointBoosterPack, '번개 촉진제', '⚡', 45, '성장촉진제 2개를 받아요'),
   PointItem(pointSeedBox, '씨앗 선물 상자', '🎁', 40, '기본 작물 여섯 가지의 씨앗을 1개씩 받아요'),
   PointItem(pointCoinBag, '금화 주머니', '💰', 55, '게임 돈 10,000P를 받아요'),
-  PointItem(pointFarmBook, '농부 교본', '📘', 70, '경험치 300을 받아 레벨을 올려요'),
+  PointItem(pointFarmBook, '농부 교본', '📘', 70, '경험치 500을 받아 레벨을 올려요'),
 ];
 
 // ───────────────────────── 기간별 카운터 (일일/주간) ─────────────────────────

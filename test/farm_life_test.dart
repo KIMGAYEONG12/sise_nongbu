@@ -45,7 +45,7 @@ void main() {
     ];
     await tester.pumpWidget(ProviderScope(
       overrides: [
-        userDataProvider.overrideWithValue(const UserData({'exp': 1200, 'money': 50000, 'greenhouses': 3})),
+        userDataProvider.overrideWithValue(const UserData({'exp': 2000, 'money': 50000, 'greenhouses': 3})),
         weatherProvider.overrideWith((ref) async => const Weather(18, '맑음', '☀️')),
         tickProvider.overrideWith((ref) => Stream.value(now)),
         plotsProvider.overrideWith((ref) => Stream.value(plots)),
@@ -60,7 +60,7 @@ void main() {
     // 심은 밭 3곳의 작물이 그려진다 (빈 밭은 안 그린다)
     expect(find.descendant(of: find.byType(FarmLife), matching: find.byType(CropArt)), findsNWidgets(3)); // 작물 그림은 한 번만 만들어 흔들기만 한다
     expect(find.descendant(of: find.byType(FarmLife), matching: find.byType(CustomPaint)), findsWidgets);
-    // 레벨·칭호 줄은 "…"로 잘리지 않고 전체가 보인다 (exp 1200 = Lv.5 성실한 농부)
+    // 레벨·칭호 줄은 "…"로 잘리지 않고 전체가 보인다 (exp 2000 = Lv.5 성실한 농부)
     expect(find.text('Lv. 5  ·  🌾 성실한 농부'), findsOneWidget);
     expect(tester.takeException(), isNull);
     final dir = Platform.environment['PREVIEW_DIR'];
