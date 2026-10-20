@@ -185,7 +185,8 @@ final priceHistoryProvider = FutureProvider.autoDispose
     .family<List<double?>, (String, int)>((ref, key) async {
   final (code, days) = key;
   final server = await _serverMarketReady(ref);
-  if (server != null && server.usable(appHasKey: auctionApiKey.isNotEmpty)) {
+  // 지난 날짜의 기록은 서버 시세가 조금 오래됐어도 그대로 쓸 수 있어서, 느린 API 호출 없이 바로 보여 준다
+  if (server != null && server.prices.isNotEmpty) {
     final h = server.history(code, count: days);
     if (h.any((v) => v != null)) return h; // 서버 값은 바로 계산되므로 기간 탭을 바꿔도 즉시 뜬다
   }
@@ -199,10 +200,13 @@ final priceVolumeProvider =
   final asOf = ref.read(marketViewModelProvider).valueOrNull?[code]?.asOf ??
       DateTime.now();
   final server = await _serverMarketReady(ref);
-  if (server != null && server.usable(appHasKey: auctionApiKey.isNotEmpty)) {
+  if (server != null && server.prices.isNotEmpty) {
     final v = server.volumeKg(code, asOf);
     if (v != null) return v;
   }
+  final link = ref.keepAlive(); // 거래량도 상세 화면을 다시 열면 바로 보이게 남겨 둔다
+  final timer = Timer(const Duration(minutes: 10), link.close);
+  ref.onDispose(timer.cancel);
   return ref.read(marketRepoProvider).volumeKg(code, asOf);
 });
 
@@ -247,6 +251,11 @@ class MarketViewModel extends AsyncNotifier<Map<String, AuctionPrice>> {
     try {
       final s = await ref.read(serverMarketProvider.future).timeout(const Duration(seconds: 6));
       if (s != null && s.usable(appHasKey: auctionApiKey.isNotEmpty)) return s.prices;
+      if (s != null && s.prices.isNotEmpty) {
+        // 서버 시세가 조금 오래됐어도 일단 바로 보여 주고, 뒤에서 API로 최신 시세로 조용히 바꾼다 (처음 화면이 몇 초씩 비는 것을 막는다)
+        Future<void>.delayed(const Duration(milliseconds: 600), () => _autoRefresh(force: true));
+        return s.prices;
+      }
     } catch (_) {
       // 서버 시세를 못 읽으면 아래 직접 조회로 넘어간다
     }

@@ -30,7 +30,7 @@ android {
 
     defaultConfig {
         applicationId = "com.sise_nongbu"
-        minSdk = flutter.minSdkVersion                              // flutter.minSdkVersion → 23
+        minSdk = 31 // 안드로이드 12(API 31)를 최소 버전으로 (과제 요구)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
