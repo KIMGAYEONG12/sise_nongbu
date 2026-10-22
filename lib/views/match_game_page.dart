@@ -914,7 +914,7 @@ class _MatchGamePageState extends ConsumerState<MatchGamePage> {
             height: 24,
             child: CircularProgressIndicator(strokeWidth: 2.4))
       else if (_rewarded == true)
-        Text('보상 ${won(money)} + ${pts}P',
+        Text('보상 ${won(money)} + ${cash(pts)}',
             style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,

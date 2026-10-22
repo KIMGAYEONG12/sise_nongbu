@@ -56,7 +56,7 @@ class MyPage extends ConsumerWidget {
     await runGuarded(context, ref.read(authServiceProvider).signOut);
   }
 
-  /// 보유 포인트 / 보유 금액 카드
+  /// 보유 캐시 / 보유 금액 카드
   Widget _walletCard({required Widget icon, required String label, required String value, required VoidCallback onTap}) => SoftCard(
         color: Colors.white,
         onTap: onTap,
@@ -198,11 +198,11 @@ class MyPage extends ConsumerWidget {
         ),
       ]),
       const SizedBox(height: 18),
-      // 시안: 보유 포인트 · 보유 금액 두 장
+      // 시안: 보유 캐시 · 보유 금액 두 장
       // (ListView 안에서는 높이가 정해져 있지 않아서 IntrinsicHeight 로 두 카드 높이를 맞춘다)
       IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Expanded(child: _walletCard(icon: const Icon(Icons.star_rounded, color: AppColors.coin, size: 34), label: '보유 포인트', value: '${commaNum(user.points)}P', onTap: () => _push(context, const PointShopPage()))),
+        Expanded(child: _walletCard(icon: const CashCoin(size: 34), label: '보유 캐시', value: cash(user.points), onTap: () => _push(context, const PointShopPage()))),
         const SizedBox(width: 12),
         Expanded(child: _walletCard(icon: const CoinIcon(size: 32), label: '보유 금액', value: won(user.money), onTap: () => showCropStats(context))),
         ]),

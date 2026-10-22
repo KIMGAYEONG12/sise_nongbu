@@ -189,9 +189,9 @@ void main() {
         child: const MaterialApp(home: MissionPage()),
       ));
       await tester.pump();
-      // 물 20 + 파종 20 + 수확 20 = 60P, 3개 → 위·아래 버튼이 같은 문구
-      expect(find.text('전체 받기 +60P (3개)'), findsNWidgets(2));
-      await tester.tap(find.text('전체 받기 +60P (3개)').first); // 위쪽 버튼
+      // 물 20 + 파종 20 + 수확 20 = 60 캐시, 3개 → 위·아래 버튼이 같은 문구
+      expect(find.text('전체 받기 +60 캐시 (3개)'), findsNWidgets(2));
+      await tester.tap(find.text('전체 받기 +60 캐시 (3개)').first); // 위쪽 버튼
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       expect(_FakeVm.claimed, ['d_water', 'd_plant', 'd_harvest']);
@@ -222,7 +222,7 @@ void main() {
       await tester.tap(find.descendant(of: find.byType(PillTabs), matching: find.text('이벤트')));
       await tester.pump();
       expect(find.byIcon(Icons.chevron_right_rounded), findsWidgets); // 눌러서 갈 수 있다는 표시
-      await tester.tap(find.byWidgetPredicate((w) => w is KoText && w.data == '미션을 완료하고 포인트를 받아요'));
+      await tester.tap(find.byWidgetPredicate((w) => w is KoText && w.data == '미션을 완료하고 캐시를 받아요'));
       await tester.pumpAndSettle();
       expect(find.text('일일 미션'), findsOneWidget);
       expect(tester.takeException(), isNull);

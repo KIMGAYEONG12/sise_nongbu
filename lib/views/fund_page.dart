@@ -21,7 +21,7 @@ class _FundPageState extends ConsumerState<FundPage> {
     setState(() => _busy = true);
     try {
       final reward = await ref.read(farmViewModelProvider).donate(amount);
-      if (mounted) showMsg(context, '${won(amount)}을 기부해 주셔서 감사합니다! 보상으로 $reward포인트를 드렸어요');
+      if (mounted) showMsg(context, '${won(amount)}을 기부해 주셔서 감사합니다! 보상으로 $reward 캐시를 드렸어요');
     } catch (e) {
       if (mounted) showMsg(context, errMsg(e));
     } finally {
@@ -73,7 +73,7 @@ class _FundPageState extends ConsumerState<FundPage> {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(color: const Color(0xFFEAF5DF), borderRadius: BorderRadius.circular(18)),
-                  child: const Text('🌿  기부할 때마다 바로 포인트 보상! 많이 기부할수록 더 많이!  🌿', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.greenDark)),
+                  child: const Text('🌿  기부할 때마다 바로 캐시 보상! 많이 기부할수록 더 많이!  🌿', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.greenDark)),
                 ),
                 const SizedBox(height: 10),
                 SoftCard(
@@ -129,7 +129,7 @@ class _FundPageState extends ConsumerState<FundPage> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(color: const Color(0xFFFFF4D6), borderRadius: BorderRadius.circular(12)),
-                      child: Text('🎁 기부하시면 바로 +${commaNum(donateRewardPoints(amount))}포인트와 경험치를 드려요', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF7A5200))),
+                      child: Text('🎁 기부하시면 바로 +${cash(donateRewardPoints(amount))}와 경험치를 드려요', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF7A5200))),
                     ),
                     const SizedBox(height: 10),
                     GreenButton(label: '${won(amount)} 기부하기', loading: _busy, onPressed: user.money < amount ? null : () => _donate(amount)),
@@ -150,7 +150,7 @@ class _FundPageState extends ConsumerState<FundPage> {
                         Expanded(
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Text('기금 ${m.percent}% 달성', style: const TextStyle(fontWeight: FontWeight.w800)),
-                            Text('+${m.points}P · 기부한 농부에게 지급', style: const TextStyle(fontSize: 12, color: AppColors.sub)),
+                            Text('+${cash(m.points)} · 기부한 농부에게 지급', style: const TextStyle(fontSize: 12, color: AppColors.sub)),
                           ]),
                         ),
                         if (got)
@@ -159,7 +159,7 @@ class _FundPageState extends ConsumerState<FundPage> {
                           SizedBox(
                             height: 34,
                             child: ElevatedButton(
-                              onPressed: reached ? () => runGuarded(context, () => ref.read(farmViewModelProvider).claimFund(m), ok: '+${m.points}P를 받았어요') : null,
+                              onPressed: reached ? () => runGuarded(context, () => ref.read(farmViewModelProvider).claimFund(m), ok: '+${cash(m.points)}를 받았어요') : null,
                               style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, foregroundColor: Colors.white, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17))),
                               child: const Text('받기', style: TextStyle(fontWeight: FontWeight.w900)),
                             ),

@@ -492,7 +492,7 @@ class FirestoreGameService {
         if (item == null) throw StateError('알 수 없는 상품이에요');
         final u = (await tx.get(_user)).data()!;
         final pts = _int(u['points']);
-        if (pts < item.cost) throw StateError('오늘 상품을 다 썼습니다!');
+        if (pts < item.cost) throw StateError('캐시가 부족합니다');
         final upd = <String, dynamic>{'points': pts - item.cost, 'updatedAt': FieldValue.serverTimestamp()};
         final items = _asMap(u['items']) ?? {};
         switch (key) {

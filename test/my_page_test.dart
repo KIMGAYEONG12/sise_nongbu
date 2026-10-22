@@ -1,4 +1,4 @@
-// MY 화면이 비지 않고 그려진다 (보유 포인트·금액 카드, 나의 칭호, 메뉴).
+// MY 화면이 비지 않고 그려진다 (보유 캐시·금액 카드, 나의 칭호, 메뉴).
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -52,7 +52,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       expect(tester.takeException(), isNull); // "BoxConstraints forces an infinite height" 같은 오류가 없어야 한다
       expect(find.text('농부이서'), findsOneWidget);
-      expect(find.text('보유 포인트'), findsOneWidget);
+      expect(find.text('보유 캐시'), findsOneWidget);
       expect(find.text('보유 금액'), findsOneWidget);
       expect(find.text('나의 칭호'), findsOneWidget);
       expect(find.text('업적'), findsOneWidget);

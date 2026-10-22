@@ -249,7 +249,7 @@ class _CropGrowthPageState extends ConsumerState<CropGrowthPage> {
                     else
                       Row(children: [
                         Expanded(child: Text('${nextMission.title} (${periodCount(user.daily, tag, nextMission.key)}/${nextMission.target})', style: const TextStyle(fontSize: 13))),
-                        Text('+${nextMission.points}P', style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFF39A1E))),
+                        Text('+${cash(nextMission.points)}', style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFF39A1E))),
                       ]),
                   ]),
                 ),

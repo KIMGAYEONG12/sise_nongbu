@@ -60,12 +60,17 @@ git push
 - 레벨업 창(시안 그림 사용)과 보상(레벨이 높을수록 증가), 나의 칭호(레벨마다 단계 상승)
 - 업적·미션 "전체 받기", MY 화면(보유 포인트/금액, 칭호, 메뉴)
 - AI 도우미: 글·사진·음성 질문, 추천 질문 옆으로 밀기
+- 재화 두 가지: 작물을 사고파는 돈은 **P**(포인트 상점), 미션·업적·레벨업·판매 보상은 **캐시**(클로버 금화, 특별 상점). 그림·표기는 `lib/widgets/cash_art.dart`(`cash()`, `CashCoin`, `CashPill`)
+- 농장 하우스 → 아파트: 하우스 단계 1~4는 지붕 있는 농장 하우스, 5~10은 기본·중형·대형·프리미엄·럭셔리·스카이 아파트, 그 위는 "스카이 아파트 +n" (`lib/core/home_rules.dart`, 그림 `lib/widgets/home_art.dart`). 단계가 오를수록 농장에서 커진다
+- 하우스 둘러보기(`lib/views/home_tour_page.dart`): 확대·이동·자동 둘러보기, 레벨별 미리보기, 안으로 들어가기(거실·주방·침실·발코니·유리 온실, 방 그림 `home_interior_art.dart`), 아파트 편의 시설
+- 우체통 새 디자인(색은 고른 색 유지, 편지 오면 깃발+노란 빛줄기, 편지 창에는 문이 열린 우체통), 농장 첫 화면 아래 "작물 관리가 있어요" 스크롤 안내 알림창(`scroll_hint.dart`)
 
 ## 주요 파일
 - `lib/core/` 순수 규칙(작물 `game_rules.dart`, 진행·하우스·보상 `progress_rules.dart`, 매칭 `match_logic.dart`)
 - `lib/views/` 화면, `lib/widgets/` 공용 그림(`greenhouse_art.dart`, `farm_life.dart`, `pond_fish.dart` …)
 - `lib/services/firestore_game_service.dart` 저장 규칙(거래·구매·보상은 트랜잭션)
 - `test/` 테스트 약 110개: `flutter test`, 점검: `flutter analyze`
+- `docs/design/` UI/UX 피그마 디자인: `시세농부_UIUX.fig`(피그마 홈에 끌어다 놓으면 열림), 공유 링크는 `피그마주소.txt`
 
 ## 알아둘 점
 - 새 작물의 씨앗값·수확량은 임의로 정한 값이다(시세 코드는 실제 가락시장 품목코드).

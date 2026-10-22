@@ -28,9 +28,9 @@ class _AchievementPageState extends ConsumerState<AchievementPage> {
         got++;
         pts += a.points;
       }
-      if (mounted) showMsg(context, '업적 $got개를 한 번에 받았어요 (+${pts}P)');
+      if (mounted) showMsg(context, '업적 $got개를 한 번에 받았어요 (+${cash(pts)})');
     } catch (e) {
-      if (mounted) showMsg(context, got > 0 ? '$got개(+${pts}P)를 받고 멈췄어요: ${errMsg(e)}' : errMsg(e));
+      if (mounted) showMsg(context, got > 0 ? '$got개(+${cash(pts)})를 받고 멈췄어요: ${errMsg(e)}' : errMsg(e));
     }
   }
 
@@ -108,13 +108,13 @@ class _AchievementPageState extends ConsumerState<AchievementPage> {
                           SizedBox(
                             height: 34,
                             child: ElevatedButton(
-                              onPressed: () => runGuarded(context, () => ref.read(farmViewModelProvider).claimAchievement(a), ok: '+${a.points}P를 받았어요'),
+                              onPressed: () => runGuarded(context, () => ref.read(farmViewModelProvider).claimAchievement(a), ok: '+${cash(a.points)}를 받았어요'),
                               style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17))),
-                              child: Text('받기 +${a.points}P', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
+                              child: Text('받기 +${cash(a.points)}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
                             ),
                           )
                         else
-                          Text('+${a.points}P', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFFE08A00))),
+                          Text('+${cash(a.points)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFFE08A00))),
                       ]),
                     );
                   }),
@@ -124,7 +124,7 @@ class _AchievementPageState extends ConsumerState<AchievementPage> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
               child: GreenButton(
-                label: claimable.isEmpty ? '받을 보상이 없어요' : '전체 받기 +${claimablePts}P (${claimable.length}개)',
+                label: claimable.isEmpty ? '받을 보상이 없어요' : '전체 받기 +${cash(claimablePts)} (${claimable.length}개)',
                 onPressed: claimable.isEmpty ? null : () => _claimAll(claimable),
               ),
             ),

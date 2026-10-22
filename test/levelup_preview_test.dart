@@ -30,7 +30,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 2500));
       expect(find.text('Lv.9'), findsOneWidget);
       expect(find.text('확인'), findsOneWidget);
-      expect(find.text(withReward ? '500P' : '레벨이 올랐어요!'), findsOneWidget);
+      expect(find.text(withReward ? '500 캐시' : '레벨이 올랐어요!'), findsOneWidget);
       expect(tester.takeException(), isNull);
       final dir = Platform.environment['PREVIEW_DIR'];
       if (dir != null) {

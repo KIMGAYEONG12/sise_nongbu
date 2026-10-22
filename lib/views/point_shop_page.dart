@@ -43,31 +43,31 @@ class PointShopBody extends ConsumerWidget {
     final goal = costs.firstWhere((c) => c > user.points, orElse: () => costs.last);
     final ratio = goal <= 0 ? 1.0 : (user.points / goal).clamp(0.0, 1.0).toDouble();
     return ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
-      // 시안: 큰 별 · Point · 보유 포인트 · 초록 막대
+      // 시안: 캐시 보물 상자 · 캐시 · 보유 캐시 · 초록 막대
       SoftCard(
         color: Colors.white,
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
         child: Row(children: [
-          const Text('⭐', style: TextStyle(fontSize: 42, height: 1)),
+          const CashCoin(size: 52, kind: CashKind.chest),
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                const Text('Point', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.ink)),
+                const Text('캐시', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.ink)),
                 const Spacer(),
-                Text('보유 ⭐ ${commaNum(user.points)}P', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF55655A))),
+                CashPill(amount: user.points),
               ]),
               const SizedBox(height: 8),
               ThinBar(value: ratio, height: 12, color: const Color(0xFF34A34A), track: const Color(0xFFE4EAE6)),
               const SizedBox(height: 5),
-              Text(user.points >= goal ? '모든 아이템을 살 수 있어요!' : '다음 아이템까지 ${commaNum(goal - user.points)}P',
+              Text(user.points >= goal ? '모든 아이템을 살 수 있어요!' : '다음 아이템까지 ${cash(goal - user.points)}',
                   style: const TextStyle(fontSize: 11, color: Color(0xFF55655A), fontWeight: FontWeight.w600)),
             ]),
           ),
         ]),
       ),
-      // 포인트 상점과 같은 카드(그림 · 이름 · 설명 · 오른쪽 초록 버튼). 포인트가 모자라면 설명 아래에 얼마 더 필요한지 알려 준다.
+      // 포인트 상점과 같은 카드(그림 · 이름 · 설명 · 오른쪽 초록 버튼). 캐시가 모자라면 설명 아래에 얼마 더 필요한지 알려 준다.
       for (final item in pointItems)
         Builder(builder: (_) {
           String? blocked;
@@ -78,15 +78,15 @@ class PointShopBody extends ConsumerWidget {
           return ShopRow(
             emoji: item.emoji,
             title: item.name,
-            sub: '${item.desc}${blocked == null && short ? '\n🔒 ${commaNum(item.cost - user.points)}P 더 모으면 열려요' : ''}',
-            action: ShopBuyButton(blocked ?? '${item.cost}P', enabled ? () => _buy(context, ref, item) : null),
+            sub: '${item.desc}${blocked == null && short ? '\n🔒 ${cash(item.cost - user.points)} 더 모으면 열려요' : ''}',
+            action: ShopBuyButton(blocked ?? cash(item.cost), enabled ? () => _buy(context, ref, item) : null),
           );
         }),
       const SizedBox(height: 4),
       const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Text('✨', style: TextStyle(fontSize: 12)),
+        CashCoin(size: 14),
         SizedBox(width: 4),
-        Flexible(child: Text('Point는 미션, 업적, 이벤트를 통해 획득할 수 있어요.', textAlign: TextAlign.center, style: TextStyle(fontSize: 11.5, color: Color(0xFF55655A), fontWeight: FontWeight.w600))),
+        Flexible(child: Text('캐시는 미션, 업적, 레벨업, 판매로 모을 수 있어요.', textAlign: TextAlign.center, style: TextStyle(fontSize: 11.5, color: Color(0xFF55655A), fontWeight: FontWeight.w600))),
       ]),
     ]);
   }
@@ -105,7 +105,7 @@ class PointShopPage extends ConsumerWidget {
               title: '특별 상점',
               onBack: () => Navigator.of(context).pop(),
               trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                MoneyPill(money: user.money),
+                CashPill(amount: user.points),
                 IconButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const AboutPage())), icon: const Icon(Icons.settings_outlined, color: AppColors.ink)),
               ]),
             ),

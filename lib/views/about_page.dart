@@ -110,7 +110,7 @@ class AboutPage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     _info('가상 게임 안내', [
-                      '이 앱의 Point(P)는 게임 안에서만 쓰는 가상 화폐예요. 실제 돈과 아무 관련이 없고, 현금으로 바꾸거나 인출할 수 없어요.',
+                      '이 앱의 Point(P)와 캐시는 게임 안에서만 쓰는 가상 화폐예요. 실제 돈과 아무 관련이 없고, 현금으로 바꾸거나 인출할 수 없어요.',
                       '실제 투자·거래 조언이 아니에요.',
                     ]),
                     const SizedBox(height: 8),

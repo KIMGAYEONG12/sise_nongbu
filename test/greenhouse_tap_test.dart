@@ -10,6 +10,7 @@ import 'package:sise_nongbu/services/weather_service.dart';
 import 'package:sise_nongbu/viewmodels/view_models.dart';
 import 'package:sise_nongbu/views/farm_page.dart';
 import 'package:sise_nongbu/views/inventory_page.dart';
+import 'package:sise_nongbu/widgets/home_art.dart';
 
 void main() {
   final shot = GlobalKey();
@@ -43,8 +44,8 @@ void main() {
         File('$dir/farm.png').writeAsBytesSync(bytes!.buffer.asUint8List());
       });
     }
-    // 농장에 그려진 하우스 그림을 누른다
-    final house = find.byWidgetPredicate((w) => w is CustomPaint && w.painter is GreenhousePainter);
+    // 농장에 그려진 하우스(단계가 오르면 아파트) 그림을 누른다
+    final house = find.byWidgetPredicate((w) => w is CustomPaint && w.painter is HomeBuildingPainter);
     expect(house, findsOneWidget);
     await tester.tap(house);
     await tester.pump(const Duration(milliseconds: 500));

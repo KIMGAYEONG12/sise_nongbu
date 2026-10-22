@@ -40,9 +40,9 @@ class _MissionPageState extends ConsumerState<MissionPage> {
         got++;
         pts += m.points;
       }
-      if (mounted) showMsg(context, '미션 $got개를 한 번에 받았어요 (+${pts}P)');
+      if (mounted) showMsg(context, '미션 $got개를 한 번에 받았어요 (+${cash(pts)})');
     } catch (e) {
-      if (mounted) showMsg(context, got > 0 ? '$got개(+${pts}P)를 받고 멈췄어요: ${errMsg(e)}' : errMsg(e));
+      if (mounted) showMsg(context, got > 0 ? '$got개(+${cash(pts)})를 받고 멈췄어요: ${errMsg(e)}' : errMsg(e));
     }
   }
 
@@ -70,7 +70,7 @@ class _MissionPageState extends ConsumerState<MissionPage> {
               child: GreenButton(
                 height: 44,
                 icon: const Icon(Icons.redeem_rounded, size: 20),
-                label: claimable.isEmpty ? '받을 보상이 없어요' : '전체 받기 +${claimablePts}P (${claimable.length}개)',
+                label: claimable.isEmpty ? '받을 보상이 없어요' : '전체 받기 +${cash(claimablePts)} (${claimable.length}개)',
                 onPressed: claimable.isEmpty ? null : () => _claimAll(claimable),
               ),
             ),
@@ -105,13 +105,13 @@ class _MissionPageState extends ConsumerState<MissionPage> {
                           SizedBox(
                             height: 34,
                             child: ElevatedButton(
-                              onPressed: () => runGuarded(context, () => ref.read(farmViewModelProvider).claimMission(m), ok: '+${m.points}P를 받았어요'),
+                              onPressed: () => runGuarded(context, () => ref.read(farmViewModelProvider).claimMission(m), ok: '+${cash(m.points)}를 받았어요'),
                               style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17))),
-                              child: Text('받기 +${m.points}P', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900)),
+                              child: Text('받기 +${cash(m.points)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900)),
                             ),
                           )
                         else
-                          Text('+${m.points}P', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.coin)),
+                          Text('+${cash(m.points)}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.coin)),
                       ]),
                     );
                   }),
@@ -123,7 +123,7 @@ class _MissionPageState extends ConsumerState<MissionPage> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
               child: GreenButton(
-                label: claimable.isEmpty ? '받을 보상이 없어요' : '전체 받기 +${claimablePts}P (${claimable.length}개)',
+                label: claimable.isEmpty ? '받을 보상이 없어요' : '전체 받기 +${cash(claimablePts)} (${claimable.length}개)',
                 onPressed: claimable.isEmpty ? null : () => _claimAll(claimable),
               ),
             ),

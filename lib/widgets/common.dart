@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'cash_art.dart';
+export 'cash_art.dart';
 
 /// 앱 전체 글꼴 (assets/fonts/NotoSansKR.ttf)
 const appFontFamily = 'NotoSansKR';
@@ -595,19 +597,12 @@ class IllustCard extends StatelessWidget {
   Widget _frame(Widget child) => fill ? SizedBox.expand(child: child) : AspectRatio(aspectRatio: aspect, child: child);
 }
 
+/// 보유 캐시 알약 (예전 이름 그대로 두어 여러 화면에서 같이 쓴다)
 class PointPill extends StatelessWidget {
   const PointPill({super.key, required this.points});
   final int points;
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(color: Colors.white.withValues(alpha: .9), borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.line)),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const Text('⭐', style: TextStyle(fontSize: 15)),
-          const SizedBox(width: 4),
-          Text('${commaNum(points)} P', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-        ]),
-      );
+  Widget build(BuildContext context) => CashPill(amount: points);
 }
 
 /// 이모지를 둥근 배경에 담은 아이콘

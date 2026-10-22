@@ -5,7 +5,8 @@ import '../core/progress_rules.dart';
 import '../models/models.dart';
 import '../viewmodels/view_models.dart';
 import '../core/game_rules.dart' show cropOf;
-import '../widgets/greenhouse_art.dart' show greenhouseNames, greenhouseTier, greenhouseStage, greenhouseStageName;
+import '../core/home_rules.dart' show homeName;
+import '../widgets/greenhouse_art.dart' show greenhouseStage, greenhouseTier;
 import '../widgets/common.dart';
 import '../widgets/level_up_art.dart';
 import 'farm_page.dart';
@@ -263,7 +264,7 @@ class _LevelUpDialogState extends State<_LevelUpDialog> with SingleTickerProvide
     if (r != null) {
       final seed = cropOf(r.seedCode);
       return Row(children: [
-        Expanded(child: _rewardCard(null, '${commaNum(r.points)}P', sub: '포인트', leading: _coin())),
+        Expanded(child: _rewardCard(null, cash(r.points), sub: '보유 캐시에 추가', leading: const CashCoin(size: 44, kind: CashKind.stack))),
         const SizedBox(width: 10),
         Expanded(child: _rewardCard(null, '희귀 씨앗 ×${r.seedCount}', sub: seed.name, leading: const LevelUpLeaf(size: 44))),
       ]);
@@ -274,26 +275,12 @@ class _LevelUpDialogState extends State<_LevelUpDialog> with SingleTickerProvide
       Expanded(
         child: newTier
             // 농장에 보이는 하우스 이름표와 똑같은 이름 (하우스가 없으면 모양 이름)
-            ? _rewardCard('🏠', widget.houses > 0 ? greenhouseStageName(greenhouseStage(widget.to, widget.houses)) : greenhouseNames[greenhouseTier(widget.to)], sub: '새 하우스 모양')
+            ? _rewardCard('🏠', homeName(greenhouseStage(widget.to, widget.houses > 0 ? widget.houses : 1)), sub: '새 하우스 모양')
             // 이 레벨의 보상(포인트·씨앗)은 전에 이미 받았을 때: 씨앗 그림 대신 이유를 알려 준다 (레벨이 내려갔다가 다시 오른 경우 등)
             : _rewardCard('🎁', '보상은 이미 받았어요', sub: '다음 레벨까지 경험치 ${widget.now.need - widget.now.exp}'),
       ),
     ]);
   }
-
-  /// 금화 모양 (시안의 500P 카드 그림)
-  Widget _coin() => Container(
-        width: 44,
-        height: 44,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: const RadialGradient(center: Alignment(-.3, -.4), colors: [Color(0xFFFFE27A), Color(0xFFF2A81D)]),
-          border: Border.all(color: const Color(0xFFD98A0B), width: 3),
-          boxShadow: [BoxShadow(color: const Color(0xFFD98A0B).withValues(alpha: .4), blurRadius: 6, offset: const Offset(0, 2))],
-        ),
-        child: Container(width: 26, height: 26, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFFD98A0B).withValues(alpha: .6), width: 2))),
-      );
 
   Widget _rewardCard(String? emoji, String label, {String? sub, Widget? leading}) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),

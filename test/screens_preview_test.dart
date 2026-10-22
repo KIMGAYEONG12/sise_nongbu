@@ -213,7 +213,7 @@ void main() {
   group('판매할 작물 선택', () {
     final now = DateTime.now(); // 신선도가 날짜에 따라 변하므로 방금 수확한 것으로 둔다
     final lots = [Lot('1', 'CABBAGE', 20, now), Lot('2', 'RADISH', 15, now), Lot('3', 'ONION', 12, now)];
-    testWidgets('작물 그림·무게·금액, 예상 수익(총 판매금액·판매이익·Point)이 시안처럼 나온다', (tester) async {
+    testWidgets('작물 그림·무게·금액, 예상 수익(총 판매금액·판매이익·캐시)이 시안처럼 나온다', (tester) async {
       await _open(tester, const SellPage(), overrides: [lotsProvider.overrideWith((ref) => Stream.value(lots))]);
       expect(find.text('판매할 작물 선택'), findsOneWidget);
       expect(find.text('배추'), findsOneWidget);
@@ -223,19 +223,20 @@ void main() {
       expect(find.text('예상 수익'), findsOneWidget);
       expect(find.text('총 판매금액'), findsOneWidget);
       expect(find.text('판매이익'), findsOneWidget);
-      expect(find.text('Point'), findsOneWidget);
-      expect(find.text('+0P'), findsNWidgets(2)); // 아직 아무것도 안 골랐다 (판매이익·Point)
+      expect(find.text('캐시'), findsOneWidget);
+      expect(find.text('+0P'), findsOneWidget); // 판매이익
+      expect(find.text('+0 캐시'), findsOneWidget); // 판매 보상 캐시 (아직 아무것도 안 골랐다)
       await savePreview(tester, _shot, 'sell_none');
 
       await tester.tap(find.text('배추'));
       await tester.pump(const Duration(milliseconds: 200));
       expect(find.text('+${won(saleAmount(20, 1850, 1))}'), findsOneWidget); // 판매이익
-      expect(find.text('+${sellPointReward}P'), findsOneWidget); // +10P
+      expect(find.text('+${cash(sellPointReward)}'), findsOneWidget); // +10 캐시
       await savePreview(tester, _shot, 'sell_one');
 
       await tester.tap(find.text('전체 선택'));
       await tester.pump(const Duration(milliseconds: 200));
-      expect(find.text('+${3 * sellPointReward}P'), findsOneWidget);
+      expect(find.text('+${cash(3 * sellPointReward)}'), findsOneWidget);
       expect(find.text('선택 해제'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await savePreview(tester, _shot, 'sell_all');
@@ -247,7 +248,8 @@ void main() {
       expect(find.text('무'), findsOneWidget);
       expect(find.text('배추'), findsNothing);
       expect(find.byIcon(Icons.check_circle_rounded), findsNothing); // 아무것도 안 골라져 있다
-      expect(find.text('+0P'), findsNWidgets(2));
+      expect(find.text('+0P'), findsOneWidget); // 판매이익
+      expect(find.text('+0 캐시'), findsOneWidget); // 판매 보상 캐시 (아직 아무것도 안 골랐다)
       await tester.tap(find.text('무'));
       await tester.pump(const Duration(milliseconds: 200));
       expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget); // 직접 누르면 골라진다
@@ -310,7 +312,7 @@ void main() {
   });
 
   group('특별 상점', () {
-    testWidgets('상품이 9가지이고 값이 낮아졌으며 모두 포인트로 산다', (tester) async {
+    testWidgets('상품이 9가지이고 값이 낮아졌으며 모두 캐시로 산다', (tester) async {
       await _open(tester, const PointShopPage(), overrides: [
         userDataProvider.overrideWithValue(const UserData({'points': 3045, 'money': 64787})),
       ]);
@@ -319,10 +321,10 @@ void main() {
       expect(find.byType(ShopRow), findsWidgets);
       for (final item in pointItems.take(5)) {
         expect(named(item.name), findsOneWidget);
-        expect(find.text('${item.cost}P'), findsWidgets);
+        expect(find.text(cash(item.cost)), findsWidgets);
       }
       expect(named('희귀 씨앗'), findsOneWidget);
-      expect(find.text('40P'), findsWidgets);
+      expect(find.text(cash(40)), findsWidgets);
       expect(find.text('모든 아이템을 살 수 있어요!'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await savePreview(tester, _shot, 'point_shop');

@@ -52,7 +52,7 @@ class _TutorialPageState extends ConsumerState<TutorialPage>
     '빈 밭을 눌러 원하는 작물을 심고\n정성껏 키워주세요.',
     '시간이 지나면 작물이 성장하고,\n수확할 수 있게 됩니다.',
     '시세를 확인하고, 가격이 높을 때\n판매하면 더 많은 수익을 얻을 수 있어요.',
-    '미션과 업적을 달성하면 포인트를 받아요.\n이제 나만의 농장을 키워볼까요?',
+    '미션과 업적을 달성하면 캐시를 받아요.\n이제 나만의 농장을 키워볼까요?',
   ];
 
   @override
@@ -1201,7 +1201,7 @@ class _SellOverlay extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(22)),
                               child: Text(
                                   sold
-                                      ? '판매 완료 ✓  +${commaNum((p?.pricePerKg ?? 0) * 20)}원 · +${sellPointReward}P'
+                                      ? '판매 완료 ✓  +${commaNum((p?.pricePerKg ?? 0) * 20)}원 · +${cash(sellPointReward)}'
                                       : '판매하기',
                                   style: const TextStyle(
                                       color: Colors.white,

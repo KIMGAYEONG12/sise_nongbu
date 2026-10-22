@@ -19,7 +19,7 @@ String soldMessage(List<String> cropNames) {
   return '${names.first} 외 ${names.length - 1}종이 판매되었습니다!';
 }
 
-/// 판매 완료 창: 판 작물 그림(여러 종이면 나란히)과 "토마토가 판매되었습니다!" 문구, 받은 금액·포인트를 보여 준다.
+/// 판매 완료 창: 판 작물 그림(여러 종이면 나란히)과 "토마토가 판매되었습니다!" 문구, 받은 금액·캐시를 보여 준다.
 Future<void> showSoldDialog(BuildContext context, List<String> cropCodes, List<String> cropNames, int total, int points) => showDialog<void>(
       context: context,
       builder: (d) => Dialog(
@@ -44,7 +44,7 @@ Future<void> showSoldDialog(BuildContext context, List<String> cropCodes, List<S
             const SizedBox(height: 10),
             Text('+${won(total)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.ink)),
             const SizedBox(height: 2),
-            Text('Point +${points}P', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.greenDark)),
+            Text('+${cash(points)}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.greenDark)),
             const SizedBox(height: 18),
             GreenButton(label: '확인', onPressed: () => Navigator.of(d).pop()),
           ]),
@@ -149,7 +149,7 @@ class _SellPageState extends ConsumerState<SellPage> {
                     const Divider(height: 22, color: AppColors.line),
                     _Row(icon: const Text('💧', style: TextStyle(fontSize: 18, height: 1)), label: '판매이익', value: '+${won(total)}', color: AppColors.green),
                     const SizedBox(height: 10),
-                    _Row(icon: const Text('⭐', style: TextStyle(fontSize: 18, height: 1)), label: 'Point', value: '+${points}P', color: const Color(0xFF2057B5)),
+                    _Row(icon: const CashCoin(size: 20), label: '캐시', value: '+${cash(points)}', color: const Color(0xFF2057B5)),
                   ]),
                 ),
               ]),
