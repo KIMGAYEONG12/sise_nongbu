@@ -1,4 +1,5 @@
 import '../core/game_rules.dart';
+import '../core/home_decor_rules.dart';
 import '../core/progress_rules.dart';
 import '../models/models.dart';
 import '../services/firestore_game_service.dart';
@@ -87,6 +88,8 @@ class FarmRepository {
   Future<int> donateToFund(int amount) => _db.donateToFund(amount);
   Future<void> claimFundMilestone(FundMilestone m) => _db.claimFundMilestone(m);
   Future<bool> gameReward(int score) => _db.gameReward(score);
+  Future<void> saveRoomDecor(String roomKey, List<DecorPlacement> list) => _db.saveRoomDecor(roomKey, list);
+  Future<FacilityPerk> useFacility(int index, int stage) => _db.useFacility(index, stage);
 
   Future<String?> fcmToken() => _noti.fcmToken();
 }

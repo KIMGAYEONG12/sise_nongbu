@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/home_decor_rules.dart';
 import '../core/home_rules.dart';
 import '../core/progress_rules.dart';
 import '../viewmodels/view_models.dart';
@@ -148,6 +149,8 @@ class _HomeTourPageState extends ConsumerState<HomeTourPage> with TickerProvider
                                   top: box.maxHeight * .05,
                                   child: Center(child: AspectRatio(aspectRatio: 1, child: RepaintBoundary(child: CustomPaint(painter: HomeBuildingPainter(stage: showStage, anim: _life))))),
                                 ),
+                                // 아파트 편의 시설: 단계가 오를 때마다 건물 옆 앞마당에 하나씩 생긴다
+                                if (facilities.isNotEmpty) Positioned.fill(child: CustomPaint(painter: HomeFacilitiesPainter(count: facilities.length, anim: _life))),
                               ]),
                             ),
                           ),
@@ -245,16 +248,9 @@ class _HomeTourPageState extends ConsumerState<HomeTourPage> with TickerProvider
                     _line('들어가 볼 수 있는 방', homeRoomsOf(showStage).map(homeRoomName).join('·')),
                     if (facilities.isNotEmpty) ...[
                       const SizedBox(height: 10),
-                      const Text('편의 시설', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: Color(0xFF3D4A40))),
+                      const Text('편의 시설 (시설마다 하루 한 번 이용)', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: Color(0xFF3D4A40))),
                       const SizedBox(height: 6),
-                      Wrap(spacing: 6, runSpacing: 6, children: [
-                        for (final f in facilities)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(color: const Color(0xFFFFF3DC), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFF2D59A))),
-                            child: Text('${f.$1} ${f.$2}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF7A5200))),
-                          ),
-                      ]),
+                      FacilityList(stage: showStage, myStage: has ? stage : 0),
                     ],
                   ]),
                 ),
@@ -263,7 +259,7 @@ class _HomeTourPageState extends ConsumerState<HomeTourPage> with TickerProvider
                   label: unlocked ? '${apt ? '아파트' : '하우스'} 안으로 들어가기' : (more > 0 ? '하우스를 $more채 더 지으면 열려요' : '레벨을 올리면 열려요'),
                   icon: const Icon(Icons.meeting_room_rounded, size: 22),
                   height: 52,
-                  onPressed: unlocked ? () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => HomeInteriorPage(stage: showStage, title: homeName(showStage, houses: houses)))) : null,
+                  onPressed: unlocked ? () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => HomeInteriorPage(stage: showStage, myStage: stage, title: homeName(showStage, houses: houses)))) : null,
                 ),
                 const SizedBox(height: 10),
                 GreenButton(
@@ -294,23 +290,36 @@ class _HomeTourPageState extends ConsumerState<HomeTourPage> with TickerProvider
 }
 
 /// 집 안: 방 탭(거실·주방·침실·발코니·온실)을 골라 들어가 보고, 손가락으로 확대해 구석구석 둘러본다.
-class HomeInteriorPage extends StatefulWidget {
-  const HomeInteriorPage({super.key, required this.stage, this.title, this.tips});
+/// "꾸미기"를 누르면 가구를 골라 놓고, 끌어서 옮기고, 지울 수 있다 (내 계정에 저장돼 다음에도 그대로).
+class HomeInteriorPage extends ConsumerStatefulWidget {
+  const HomeInteriorPage({super.key, required this.stage, this.myStage, this.title, this.tips, this.mansion = false});
   final int stage;
+
+  /// 지금 내 집 단계 (편의 시설을 쓸 수 있는지 볼 때). 없으면 [stage]
+  final int? myStage;
 
   /// 위 제목에 쓸 집 이름 (없으면 단계 이름). 저택에서 들어올 때는 저택 이름을 준다.
   final String? title;
 
   /// 방마다 보여 줄 한 줄 설명 (없으면 기본 설명)
   final Map<HomeRoom, String>? tips;
+
+  /// 농장 저택 안인지 (저택과 하우스·아파트는 따로 꾸민다)
+  final bool mansion;
   @override
-  State<HomeInteriorPage> createState() => _HomeInteriorPageState();
+  ConsumerState<HomeInteriorPage> createState() => _HomeInteriorPageState();
 }
 
-class _HomeInteriorPageState extends State<HomeInteriorPage> with SingleTickerProviderStateMixin {
+class _HomeInteriorPageState extends ConsumerState<HomeInteriorPage> with SingleTickerProviderStateMixin {
   late final AnimationController _life = AnimationController(vsync: this, duration: const Duration(seconds: 5))..repeat();
   final _tc = TransformationController();
   int _room = 0;
+
+  /// 꾸미는 중이면 지금 고친 가구 목록 (저장 전). null이면 꾸미기 중이 아니다.
+  List<DecorPlacement>? _draft;
+  int? _sel;
+  bool _saving = false;
+  Size _area = Size.zero;
 
   static const _roomTips = {
     HomeRoom.living: '푹신한 소파에서 쉬며 오늘의 시세를 확인해요',
@@ -327,102 +336,235 @@ class _HomeInteriorPageState extends State<HomeInteriorPage> with SingleTickerPr
     super.dispose();
   }
 
+  bool get _editing => _draft != null;
+
   void _go(int i, int count) {
+    if (_editing) return; // 꾸미는 중에는 방을 바꾸지 않는다 (먼저 저장)
     setState(() {
       _room = (i % count + count) % count;
       _tc.value = Matrix4.identity();
     });
   }
 
+  String _roomKey(HomeRoom room) => decorRoomKey(mansion: widget.mansion, room: room);
+
+  void _startEdit(List<DecorPlacement> saved) => setState(() {
+        _tc.value = Matrix4.identity();
+        _draft = List.of(saved);
+        _sel = null;
+      });
+
+  void _add(DecorItem item) {
+    final d = _draft!;
+    if (d.length >= maxDecorPerRoom) {
+      showMsg(context, '한 방에는 가구를 $maxDecorPerRoom개까지 놓을 수 있어요');
+      return;
+    }
+    // 방 가운데 근처에, 겹치지 않게 조금씩 비켜 놓는다
+    final off = (d.length % 5) * .06;
+    setState(() {
+      _draft = [...d, DecorPlacement(item.key, .45 + off, .5 + off * .5)];
+      _sel = _draft!.length - 1;
+    });
+  }
+
+  void _remove() {
+    final s = _sel;
+    if (s == null) return;
+    setState(() {
+      _draft = [..._draft!]..removeAt(s);
+      _sel = null;
+    });
+  }
+
+  /// 손가락 아래 가장 가까운 가구 번호
+  int? _hit(Offset o) {
+    final d = _draft!;
+    int? best;
+    var bestDist = double.infinity;
+    for (var i = 0; i < d.length; i++) {
+      final p = interiorFloorToScreen(_area, d[i].x, d[i].y);
+      // 가구는 바닥 위로 솟아 있으니 바닥점보다 조금 위를 중심으로 본다
+      final dist = (o - (p - Offset(0, _area.width * .05))).distance;
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = i;
+      }
+    }
+    return bestDist < _area.width * .12 ? best : null;
+  }
+
+  void _moveTo(Offset o) {
+    final s = _sel;
+    if (s == null) return;
+    final (x, y) = interiorScreenToFloor(_area, o + Offset(0, _area.width * .03));
+    setState(() => _draft = [..._draft!]..[s] = _draft![s].moved(x, y));
+  }
+
+  Future<void> _save(HomeRoom room) async {
+    setState(() => _saving = true);
+    final ok = await runGuarded(context, () => ref.read(farmViewModelProvider).saveRoomDecor(_roomKey(room), _draft!), ok: '${homeRoomName(room)}을(를) 꾸몄어요 🏡');
+    if (!mounted) return;
+    setState(() {
+      _saving = false;
+      if (ok) {
+        _draft = null;
+        _sel = null;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(userDataProvider);
     final rooms = homeRoomsOf(widget.stage);
     final room = rooms[_room.clamp(0, rooms.length - 1)];
     final apt = isApartmentStage(widget.stage);
-    final facilities = homeFacilitiesOf(widget.stage);
-    return Scaffold(
-      body: GameBackground(
-        child: SafeArea(
-          child: Column(children: [
-            PageHeader(title: '${widget.title ?? homeName(widget.stage)} 안', onBack: () => Navigator.of(context).pop()),
-            Padding(padding: const EdgeInsets.fromLTRB(16, 2, 16, 8), child: PillTabs(labels: [for (final r in rooms) homeRoomName(r)], index: _room.clamp(0, rooms.length - 1), onChanged: (i) => _go(i, rooms.length))),
-            // 방 그림은 스크롤 목록 밖에 고정 (확대·이동 손가락 동작이 목록 스크롤과 부딪치지 않게)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
+    final facilities = widget.mansion ? const <(String, String)>[] : homeFacilitiesOf(widget.stage);
+    final saved = decorOfRoom(user.homeDecor, _roomKey(room));
+    final shown = _draft ?? saved;
+    return PopScope(
+      canPop: !_editing,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _editing) setState(() => _draft = null); // 뒤로 가기: 저장하지 않고 꾸미기만 끝낸다
+      },
+      child: Scaffold(
+        body: GameBackground(
+          child: SafeArea(
+            child: Column(children: [
+              PageHeader(title: '${widget.title ?? homeName(widget.stage)} 안', onBack: () => Navigator.of(context).maybePop()),
+              Padding(padding: const EdgeInsets.fromLTRB(16, 2, 16, 8), child: PillTabs(labels: [for (final r in rooms) homeRoomName(r)], index: _room.clamp(0, rooms.length - 1), onChanged: (i) => _go(i, rooms.length))),
+              // 방 그림은 스크롤 목록 밖에 고정 (확대·이동 손가락 동작이 목록 스크롤과 부딪치지 않게)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(22),
                     gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: apt ? const [Color(0xFFFFF9EE), Color(0xFFF3E7D2)] : const [Color(0xFFFFF6E4), Color(0xFFEAF3DC)]),
-                    border: Border.all(color: const Color(0xFFEADBC0)),
+                    border: Border.all(color: _editing ? const Color(0xFFF2B526) : const Color(0xFFEADBC0), width: _editing ? 2.4 : 1),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(22),
                     child: AspectRatio(
                       aspectRatio: 1.05,
-                      child: Stack(children: [
-                        Positioned.fill(
-                          child: InteractiveViewer(
-                            transformationController: _tc,
-                            minScale: 1,
-                            maxScale: 4,
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 280),
-                              child: CustomPaint(
-                                key: ValueKey(room),
-                                size: Size.infinite,
-                                painter: HomeInteriorPainter(stage: widget.stage, room: room, anim: _life),
-                              ),
-                            ),
+                      child: LayoutBuilder(builder: (context, box) {
+                        _area = Size(box.maxWidth, box.maxHeight);
+                        final paint = CustomPaint(
+                          key: ValueKey(room),
+                          size: Size.infinite,
+                          painter: HomeInteriorPainter(stage: widget.stage, room: room, anim: _life, decor: shown, selected: _editing ? _sel : null),
+                        );
+                        return Stack(children: [
+                          Positioned.fill(
+                            child: _editing
+                                // 꾸미는 중: 눌러서 가구 고르기, 끌어서 옮기기 (확대는 잠시 끈다)
+                                ? GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTapUp: (e) => setState(() => _sel = _hit(e.localPosition)),
+                                    onPanStart: (e) => setState(() => _sel = _hit(e.localPosition) ?? _sel),
+                                    onPanUpdate: (e) => _moveTo(e.localPosition),
+                                    child: paint,
+                                  )
+                                : InteractiveViewer(
+                                    transformationController: _tc,
+                                    minScale: 1,
+                                    maxScale: 4,
+                                    child: AnimatedSwitcher(duration: const Duration(milliseconds: 280), child: paint),
+                                  ),
                           ),
-                        ),
-                        Positioned(left: 12, top: 12, child: _Badge(text: homeRoomName(room), color: AppColors.greenDark)),
-                        // 이전 방 / 다음 방
-                        Positioned(left: 6, top: 0, bottom: 0, child: Center(child: _ArrowBtn(icon: Icons.chevron_left_rounded, onTap: () => _go(_room - 1, rooms.length)))),
-                        Positioned(right: 6, top: 0, bottom: 0, child: Center(child: _ArrowBtn(icon: Icons.chevron_right_rounded, onTap: () => _go(_room + 1, rooms.length)))),
-                      ]),
+                          Positioned(left: 12, top: 12, child: _Badge(text: _editing ? '✏️ ${homeRoomName(room)} 꾸미는 중' : homeRoomName(room), color: _editing ? const Color(0xFF9A6A00) : AppColors.greenDark)),
+                          if (!_editing) ...[
+                            // 이전 방 / 다음 방
+                            Positioned(left: 6, top: 0, bottom: 0, child: Center(child: _ArrowBtn(icon: Icons.chevron_left_rounded, onTap: () => _go(_room - 1, rooms.length)))),
+                            Positioned(right: 6, top: 0, bottom: 0, child: Center(child: _ArrowBtn(icon: Icons.chevron_right_rounded, onTap: () => _go(_room + 1, rooms.length)))),
+                          ],
+                          if (_editing && _sel != null)
+                            Positioned(
+                              right: 10,
+                              top: 10,
+                              child: _RoundBtn(icon: Icons.delete_outline_rounded, label: '빼기', onTap: _remove),
+                            ),
+                        ]);
+                      }),
                     ),
                   ),
                 ),
-            ),
-            Expanded(
-              child: ListView(padding: const EdgeInsets.fromLTRB(16, 10, 16, 24), children: [
-                SoftCard(
-                  color: Colors.white,
-                  child: Row(children: [
-                    Text(_emoji(room), style: const TextStyle(fontSize: 28)),
-                    const SizedBox(width: 12),
-                    Expanded(child: KoText(widget.tips?[room] ?? _roomTips[room] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink, height: 1.35))),
-                  ]),
-                ),
-                const SizedBox(height: 6),
-                const Center(child: Text('👆 두 손가락으로 확대 · 밀어서 방을 둘러보세요', style: TextStyle(fontSize: 12, color: AppColors.sub, fontWeight: FontWeight.w600))),
-                if (facilities.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  const Padding(padding: EdgeInsets.only(left: 4, bottom: 8), child: Text('아파트 편의 시설', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.ink))),
-                  GridView.count(
-                    crossAxisCount: 3,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 1.15,
-                    children: [
-                      for (final f in facilities)
-                        SoftCard(
-                          padding: const EdgeInsets.all(6),
-                          onTap: () => showMsg(context, '${f.$1} ${f.$2}에서 잠시 쉬어 갔어요'),
-                          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            Text(f.$1, style: const TextStyle(fontSize: 26, height: 1.1)),
-                            const SizedBox(height: 4),
-                            Text(f.$2, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800)),
-                          ]),
+              ),
+              Expanded(
+                child: ListView(padding: const EdgeInsets.fromLTRB(16, 10, 16, 24), children: [
+                  if (_editing) ...[
+                    // ── 꾸미기: 가구 고르기 + 저장 ──
+                    Text('가구를 누르면 방에 놓여요 (${shown.length}/$maxDecorPerRoom) · 놓은 가구는 끌어서 옮겨요', style: const TextStyle(fontSize: 12.5, color: AppColors.sub, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 8),
+                    GridView.count(
+                      crossAxisCount: 5,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: 6,
+                      crossAxisSpacing: 6,
+                      childAspectRatio: .9,
+                      children: [
+                        for (final d in decorItems)
+                          SoftCard(
+                            padding: const EdgeInsets.all(4),
+                            onTap: () => _add(d),
+                            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              Text(d.emoji, style: const TextStyle(fontSize: 22, height: 1.1)),
+                              const SizedBox(height: 3),
+                              Text(d.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
+                            ]),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(children: [
+                      Expanded(
+                        child: GreenButton(
+                          label: '취소',
+                          outlined: true,
+                          height: 48,
+                          onPressed: _saving ? null : () => setState(() => _draft = null),
                         ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: GreenButton(
+                          label: _saving ? '저장하는 중…' : '다 꾸몄어요 (저장)',
+                          icon: const Icon(Icons.check_rounded, size: 22),
+                          height: 48,
+                          onPressed: _saving ? null : () => _save(room),
+                        ),
+                      ),
+                    ]),
+                  ] else ...[
+                    SoftCard(
+                      color: Colors.white,
+                      child: Row(children: [
+                        Text(_emoji(room), style: const TextStyle(fontSize: 28)),
+                        const SizedBox(width: 12),
+                        Expanded(child: KoText(widget.tips?[room] ?? _roomTips[room] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink, height: 1.35))),
+                      ]),
+                    ),
+                    const SizedBox(height: 10),
+                    GreenButton(
+                      label: saved.isEmpty ? '${homeRoomName(room)} 꾸미기' : '${homeRoomName(room)} 다시 꾸미기 (가구 ${saved.length}개)',
+                      icon: const Icon(Icons.chair_rounded, size: 22),
+                      height: 50,
+                      onPressed: () => _startEdit(saved),
+                    ),
+                    const SizedBox(height: 6),
+                    const Center(child: Text('👆 두 손가락으로 확대 · 밀어서 방을 둘러보세요', style: TextStyle(fontSize: 12, color: AppColors.sub, fontWeight: FontWeight.w600))),
+                    if (facilities.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      const Padding(padding: EdgeInsets.only(left: 4, bottom: 8), child: Text('아파트 편의 시설 (시설마다 하루 한 번)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.ink))),
+                      FacilityList(stage: widget.stage, myStage: widget.myStage ?? widget.stage),
                     ],
-                  ),
-                ],
-              ]),
-            ),
-          ]),
+                  ],
+                ]),
+              ),
+            ]),
+          ),
         ),
       ),
     );
@@ -435,6 +577,60 @@ class _HomeInteriorPageState extends State<HomeInteriorPage> with SingleTickerPr
         HomeRoom.balcony => '🌿',
         HomeRoom.greenhouse => '🌱',
       };
+}
+
+/// 아파트 편의 시설 목록: [stage] 집에 있는 시설을 보여 주고, 지금 내 집([myStage])에 있는 시설은 눌러서 이용한다.
+/// 시설마다 하루(한국 날짜) 한 번 물통·영양제·성장촉진제·경험치·캐시를 받는다.
+class FacilityList extends ConsumerWidget {
+  const FacilityList({super.key, required this.stage, required this.myStage});
+  final int stage, myStage;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(userDataProvider);
+    final now = ref.watch(tickProvider).valueOrNull ?? DateTime.now();
+    final list = homeFacilitiesOf(stage);
+    return Column(children: [
+      for (var i = 0; i < list.length; i++)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Builder(builder: (context) {
+            final mine = canUseFacility(myStage, i);
+            final used = mine && facilityUsedToday(user.facilityDaily, i, now);
+            final perk = i < facilityPerks.length ? facilityPerks[i] : null;
+            return SoftCard(
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+              onTap: !mine || used || perk == null
+                  ? null
+                  : () => runGuarded(context, () async {
+                        final got = await ref.read(farmViewModelProvider).useFacility(i, myStage);
+                        if (context.mounted) showMsg(context, '${list[i].$1} ${list[i].$2} 이용! ${got.rewardText} 받았어요');
+                      }),
+              child: Row(children: [
+                Text(list[i].$1, style: const TextStyle(fontSize: 24)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(list[i].$2, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w900, color: AppColors.ink)),
+                    if (perk != null) Text('${perk.desc} (${perk.rewardText})', style: const TextStyle(fontSize: 11.5, color: AppColors.sub, fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: !mine ? const Color(0xFFEDEDED) : (used ? const Color(0xFFE8F3E2) : AppColors.green),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(!mine ? '🔒 잠김' : (used ? '오늘 이용함' : '이용하기'), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: !mine ? AppColors.sub : (used ? AppColors.greenDark : Colors.white))),
+                ),
+              ]),
+            );
+          }),
+        ),
+    ]);
+  }
 }
 
 class _Badge extends StatelessWidget {

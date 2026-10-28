@@ -6,10 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sise_nongbu/core/home_decor_rules.dart';
 import 'package:sise_nongbu/core/home_rules.dart';
 import 'package:sise_nongbu/models/models.dart';
 import 'package:sise_nongbu/viewmodels/view_models.dart';
 import 'package:sise_nongbu/views/home_tour_page.dart';
+import 'package:sise_nongbu/views/mansion_tour_page.dart';
 import 'package:sise_nongbu/widgets/common.dart';
 import 'package:sise_nongbu/widgets/farm_mailbox.dart';
 import 'package:sise_nongbu/widgets/home_art.dart';
@@ -116,6 +118,36 @@ void main() {
     await _save(tester, key, 'home_rooms');
   });
 
+  testWidgets('꾸민 가구 14가지·벽시계와 아파트 편의 시설 6곳이 에러 없이 그려진다', (tester) async {
+    tester.view.physicalSize = const Size(2400, 900);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    final key = GlobalKey();
+    final all = [
+      for (var i = 0; i < decorItems.length; i++) DecorPlacement(decorItems[i].key, .2 + (i % 4) * .22, .25 + (i ~/ 4) * .2),
+    ];
+    await tester.pumpWidget(MaterialApp(
+      home: RepaintBoundary(
+        key: key,
+        child: Container(
+          color: Colors.white,
+          child: Row(children: [
+            Expanded(child: CustomPaint(size: Size.infinite, painter: HomeInteriorPainter(stage: 8, room: HomeRoom.living, decor: all.sublist(0, 7), selected: 2))),
+            Expanded(child: CustomPaint(size: Size.infinite, painter: HomeInteriorPainter(stage: 4, room: HomeRoom.bedroom, decor: all.sublist(7)))),
+            Expanded(
+              child: Stack(children: [
+                Positioned.fill(child: CustomPaint(painter: HomeSceneryPainter(apartment: true))),
+                Positioned.fill(child: CustomPaint(painter: HomeFacilitiesPainter(count: homeFacilities.length))),
+              ]),
+            ),
+          ]),
+        ),
+      ),
+    ));
+    expect(tester.takeException(), isNull);
+    await _save(tester, key, 'home_decor');
+  });
+
   testWidgets('캐시 그림 4가지와 우체통(닫힘·편지 도착·열림)이 그려진다', (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
@@ -138,6 +170,25 @@ void main() {
         overrides: [userDataProvider.overrideWithValue(UserData(data))],
         child: MaterialApp(home: home),
       );
+
+  testWidgets('황금 농장 저택: 저택 둘러보기에서 단계·시설을 보고 집 안으로 들어가 꾸밀 수 있다', (tester) async {
+    tester.view.physicalSize = const Size(411, 891) * 3;
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(tourApp({'money': 5000, 'exp': 71 * 500}, const MansionTourPage())); // Lv.72
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('농장 저택 둘러보기'), findsOneWidget);
+    expect(find.text('황금 농장 저택'), findsWidgets);
+    expect(find.text('👑 황금 홀', skipOffstage: false), findsOneWidget);
+    final enter = find.text('황금 농장 저택 안으로 들어가기');
+    await tester.scrollUntilVisible(enter, 200, scrollable: find.byType(Scrollable).first);
+    await tester.tap(enter);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('황금 농장 저택 안'), findsOneWidget);
+    expect(find.textContaining('꾸미기'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('하우스가 없으면 미리보기만 되고 들어가기는 잠겨 있다', (tester) async {
     tester.view.physicalSize = const Size(411, 891) * 3;
@@ -178,7 +229,23 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.tap(find.byIcon(Icons.chevron_right_rounded));
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('아파트 편의 시설', skipOffstage: false), findsOneWidget);
+    expect(find.text('아파트 편의 시설 (시설마다 하루 한 번)', skipOffstage: false), findsOneWidget);
+    expect(find.text('이용하기', skipOffstage: false), findsWidgets);
+    // 꾸미기: 가구를 놓고, 골라서 빼고, 취소하면 꾸미기 전으로 돌아간다
+    final deco = find.textContaining('꾸미기');
+    await tester.scrollUntilVisible(deco, -200, scrollable: find.byType(Scrollable).last);
+    await tester.tap(deco);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.textContaining('꾸미는 중'), findsOneWidget);
+    await tester.tap(find.text('곰인형'));
+    await tester.pump();
+    expect(find.text('빼기'), findsOneWidget); // 방금 놓은 가구가 골라져 있다
+    await tester.tap(find.text('빼기'));
+    await tester.pump();
+    expect(find.text('빼기'), findsNothing);
+    await tester.tap(find.text('취소'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.textContaining('꾸미는 중'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

@@ -99,6 +99,12 @@ class UserData {
   int get titleIndex => effectiveTitleIndex(level.level, titleIdx);
   int get fundGiven => _i('fundGiven');
   /// 지은 하우스 수 (예전 데이터의 greenhouse: true 는 1채로 읽는다)
+  /// 집 꾸미기: 방 이름 → 놓은 가구 목록 (home_decor_rules의 decorOfRoom으로 읽는다)
+  Object? get homeDecor => raw['homeDecor'];
+
+  /// 오늘 이용한 아파트 편의 시설 기록
+  Map<String, dynamic>? get facilityDaily => raw['facilityDaily'] is Map ? Map<String, dynamic>.from(raw['facilityDaily'] as Map) : null;
+
   int get greenhouses {
     // 최대 [maxGreenhouses]채까지만 센다 (예전에 더 지은 계정도 320채로 보인다)
     final n = _i('greenhouses');

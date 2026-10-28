@@ -1,15 +1,22 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../core/home_decor_rules.dart';
 import '../core/home_rules.dart';
 
 /// 집 안 그림: 시안의 "아파트 인테리어 미리보기"처럼 앞쪽 두 벽을 걷어 낸 방을 비스듬히 위에서 내려다본다.
 /// 바닥(마름모) + 뒤쪽 두 벽 + 창문(밖 풍경) + 가구. 단계가 높을수록 가구가 늘고 더 고급스러워진다.
 /// 모두 코드로 그려서 확대해도 선명하다. [anim]이 있으면 TV·조명·물결·식물이 살짝 움직인다.
 class HomeInteriorPainter extends CustomPainter {
-  HomeInteriorPainter({required this.stage, required this.room, this.anim}) : super(repaint: anim);
+  HomeInteriorPainter({required this.stage, required this.room, this.anim, this.decor = const [], this.selected}) : super(repaint: anim);
   final int stage;
   final HomeRoom room;
   final Animation<double>? anim;
+
+  /// 사용자가 이 방에 놓은 가구
+  final List<DecorPlacement> decor;
+
+  /// 꾸미기 중에 고른 가구 번호 (없으면 null)
+  final int? selected;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -42,10 +49,12 @@ class HomeInteriorPainter extends CustomPainter {
 
     if (room == HomeRoom.balcony) {
       _balcony(canvas, iso, lv, apt, sky, t);
+      _decor(canvas, iso, t);
       return;
     }
     if (room == HomeRoom.greenhouse) {
       _greenhouse(canvas, iso, t);
+      _decor(canvas, iso, t);
       return;
     }
 
@@ -61,16 +70,136 @@ class HomeInteriorPainter extends CustomPainter {
     switch (room) {
       case HomeRoom.living:
         _living(canvas, iso, lv, t);
+        _clock(canvas, iso, .16, .74);
       case HomeRoom.kitchen:
         _kitchen(canvas, iso, lv, t);
+        _clock(canvas, iso, .87, .82);
       case HomeRoom.bedroom:
         _bedroom(canvas, iso, lv, t);
+        _clock(canvas, iso, .55, .72);
       case HomeRoom.balcony:
       case HomeRoom.greenhouse:
         break;
     }
+    _decor(canvas, iso, t);
     // 높은 단계: 천장 샹들리에
     if (lv >= 8) _chandelier(canvas, iso, t);
+  }
+
+  // ───────────────────────── 벽시계 · 꾸민 가구 ─────────────────────────
+
+  /// 오른쪽 벽의 둥근 벽시계: 기기의 지금 시각을 시침·분침·초침으로 가리킨다
+  void _clock(Canvas canvas, _Iso iso, double cx, double cz) {
+    final now = DateTime.now();
+    const r = .075, rz = r * 1.25; // 벽 위에서 동그랗게 보이도록 높이 쪽을 조금 늘린다
+    Offset at(double ang, double len) => iso.p(cx + math.sin(ang) * r * len, 0, cz + math.cos(ang) * rz * len);
+    final face = Path()..addPolygon([for (var k = 0; k < 36; k++) at(k * math.pi * 2 / 36, 1)], true);
+    canvas.drawPath(face, Paint()..color = Colors.white);
+    canvas.drawPath(face, Paint()..style = PaintingStyle.stroke..strokeWidth = math.max(1.5, iso.a * .012)..color = const Color(0xFFB27546));
+    final tick = Paint()..strokeWidth = math.max(1, iso.a * .005)..color = const Color(0xFF5E5E5E);
+    for (var k = 0; k < 12; k++) {
+      canvas.drawLine(at(k * math.pi / 6, .78), at(k * math.pi / 6, .92), tick);
+    }
+    final m = now.minute + now.second / 60, h = (now.hour % 12) + m / 60;
+    final hand = Paint()..strokeCap = StrokeCap.round..color = const Color(0xFF26313D);
+    final c = iso.p(cx, 0, cz);
+    canvas.drawLine(c, at(h * math.pi / 6, .5), hand..strokeWidth = math.max(1.6, iso.a * .012));
+    canvas.drawLine(c, at(m * math.pi / 30, .75), hand..strokeWidth = math.max(1.2, iso.a * .008));
+    canvas.drawLine(c, at(now.second * math.pi / 30, .82), Paint()..strokeWidth = math.max(.8, iso.a * .004)..color = const Color(0xFFE5513F));
+    canvas.drawCircle(c, math.max(1.5, iso.a * .008), Paint()..color = const Color(0xFF26313D));
+  }
+
+  /// 사용자가 꾸민 가구들 (뒤쪽부터 그려서 앞 가구가 위에 온다). 고른 가구는 바닥에 노란 동그라미를 그린다.
+  void _decor(Canvas canvas, _Iso iso, double t) {
+    for (final i in decorDrawOrder(decor)) {
+      final d = decor[i];
+      if (i == selected) {
+        final f = iso.p(d.x, d.y, 0);
+        final ring = Rect.fromCenter(center: f, width: iso.a * .2, height: iso.a * .1);
+        canvas.drawOval(ring, Paint()..color = const Color(0x55FFC93C));
+        canvas.drawOval(ring, Paint()..style = PaintingStyle.stroke..strokeWidth = math.max(1.5, iso.a * .008)..color = const Color(0xFFF2B526));
+      }
+      _drawDecorItem(canvas, iso, d.key, d.x, d.y, t);
+    }
+  }
+
+  static void _drawDecorItem(Canvas canvas, _Iso iso, String key, double x, double y, double t) {
+    final a = iso.a;
+    switch (key) {
+      case 'plant':
+        _plant(canvas, iso, x, y, .2, t);
+      case 'bigplant':
+        _plant(canvas, iso, x, y, .42, t);
+      case 'vase':
+        iso.box(canvas, x - .025, y - .025, 0, .05, .05, .1, top: const Color(0xFF8EC9F0), left: const Color(0xFF6FB0DE), right: const Color(0xFF5A9BCB));
+        final top = iso.p(x, y, .16);
+        for (final f in [(-.025, const Color(0xFFFF8FB1)), (.0, const Color(0xFFFFD36B)), (.025, const Color(0xFFE5513F))]) {
+          canvas.drawLine(iso.p(x, y, .1), top + Offset(a * f.$1, 0), Paint()..strokeWidth = math.max(1, a * .004)..color = const Color(0xFF3E8E3A));
+          canvas.drawCircle(top + Offset(a * f.$1, 0), a * .018, Paint()..color = f.$2);
+        }
+      case 'rug':
+        final c = iso.p(x, y, .003);
+        canvas.drawOval(Rect.fromCenter(center: c, width: a * .34, height: a * .17), Paint()..color = const Color(0xFFC9A7E8));
+        canvas.drawOval(Rect.fromCenter(center: c, width: a * .22, height: a * .11), Paint()..color = const Color(0xFFE3D0F5));
+      case 'chair':
+        iso.box(canvas, x - .05, y - .05, 0, .1, .1, .09, top: const Color(0xFFC98E5A), left: const Color(0xFFB27546), right: const Color(0xFF9A6234));
+        iso.box(canvas, x - .05, y - .05, .09, .1, .02, .14, top: const Color(0xFFC98E5A), left: const Color(0xFFB27546), right: const Color(0xFF9A6234));
+      case 'stool':
+        iso.box(canvas, x - .04, y - .04, 0, .08, .08, .08, top: const Color(0xFFFFD36B), left: const Color(0xFFE8BC55), right: const Color(0xFFD4A944));
+      case 'lamp':
+        _floorLamp(canvas, iso, x, y, t);
+      case 'shelf':
+        iso.box(canvas, x - .05, y - .04, 0, .1, .08, .42, top: const Color(0xFFB27546), left: const Color(0xFF9A6234), right: const Color(0xFF8A5530));
+        for (var k = 0; k < 3; k++) {
+          const colors = [Color(0xFFE5513F), Color(0xFF4F7FD6), Color(0xFFFFC93C)];
+          iso.box(canvas, x - .04, y + .041, .05 + k * .12, .08, .002, .08, top: colors[k], left: colors[(k + 1) % 3], right: colors[k]);
+        }
+      case 'bear':
+        final b = iso.p(x, y, 0);
+        const fur = Color(0xFFC08A5A);
+        canvas.drawCircle(b + Offset(0, -a * .05), a * .045, Paint()..color = fur);
+        canvas.drawCircle(b + Offset(0, -a * .12), a * .035, Paint()..color = fur);
+        for (final e in [-.028, .028]) {
+          canvas.drawCircle(b + Offset(a * e, -a * .15), a * .014, Paint()..color = fur);
+        }
+        canvas.drawCircle(b + Offset(0, -a * .11), a * .014, Paint()..color = const Color(0xFFF2D6B8));
+        for (final e in [-.012, .012]) {
+          canvas.drawCircle(b + Offset(a * e, -a * .125), a * .005, Paint()..color = const Color(0xFF3B2A1E));
+        }
+      case 'gift':
+        iso.box(canvas, x - .04, y - .04, 0, .08, .08, .08, top: const Color(0xFFFF8FB1), left: const Color(0xFFE8869C), right: const Color(0xFFD97790));
+        canvas.drawLine(iso.p(x, y - .04, .08), iso.p(x, y + .04, .08), Paint()..strokeWidth = math.max(1.5, a * .01)..color = const Color(0xFFFFD36B));
+        canvas.drawLine(iso.p(x - .04, y, .08), iso.p(x + .04, y, .08), Paint()..strokeWidth = math.max(1.5, a * .01)..color = const Color(0xFFFFD36B));
+      case 'tree':
+        iso.box(canvas, x - .02, y - .02, 0, .04, .04, .05, top: const Color(0xFF8A5530), left: const Color(0xFF7A4A2A), right: const Color(0xFF6A3E22));
+        for (var k = 0; k < 3; k++) {
+          final base = iso.p(x, y, .05 + k * .12), w = a * (.12 - k * .03);
+          canvas.drawPath(Path()..moveTo(base.dx - w, base.dy)..lineTo(base.dx + w, base.dy)..lineTo(base.dx, base.dy - a * .14)..close(), Paint()..color = const Color(0xFF2F8F4E));
+        }
+        canvas.drawCircle(iso.p(x, y, .44), a * .018, Paint()..color = const Color(0xFFFFD36B));
+        for (final o in [(-.04, .14), (.035, .2), (-.02, .3)]) {
+          canvas.drawCircle(iso.p(x, y, o.$2) + Offset(a * o.$1, 0), a * .01, Paint()..color = const Color(0xFFE5513F));
+        }
+      case 'fishbowl':
+        iso.box(canvas, x - .04, y - .04, 0, .08, .08, .1, top: const Color(0xFFC98E5A), left: const Color(0xFFB27546), right: const Color(0xFF9A6234));
+        final c = iso.p(x, y, .16);
+        canvas.drawCircle(c, a * .055, Paint()..color = const Color(0xAA8FD6F5));
+        canvas.drawCircle(c, a * .055, Paint()..style = PaintingStyle.stroke..strokeWidth = math.max(1, a * .005)..color = Colors.white);
+        final fx = math.sin(t * math.pi * 2) * a * .02;
+        canvas.drawOval(Rect.fromCenter(center: c + Offset(fx, a * .01), width: a * .03, height: a * .018), Paint()..color = const Color(0xFFFF8A3D));
+      case 'piano':
+        iso.box(canvas, x - .1, y - .05, 0, .2, .1, .2, top: const Color(0xFF2A2A2A), left: const Color(0xFF1C1C1C), right: const Color(0xFF111111));
+        canvas.drawPath(iso.quad([iso.p(x - .09, y + .051, .14), iso.p(x + .09, y + .051, .14), iso.p(x + .09, y + .051, .17), iso.p(x - .09, y + .051, .17)]), Paint()..color = Colors.white);
+      case 'cat':
+        final c = iso.p(x, y, .02);
+        canvas.drawOval(Rect.fromCenter(center: c, width: a * .18, height: a * .09), Paint()..color = const Color(0xFF8EC9F0));
+        canvas.drawOval(Rect.fromCenter(center: c + Offset(0, -a * .03), width: a * .11, height: a * .06), Paint()..color = const Color(0xFFF2A65A));
+        final head = c + Offset(a * .04, -a * .06);
+        canvas.drawCircle(head, a * .028, Paint()..color = const Color(0xFFF2A65A));
+        for (final e in [-.018, .018]) {
+          canvas.drawPath(Path()..moveTo(head.dx + a * e - a * .01, head.dy - a * .015)..lineTo(head.dx + a * e + a * .01, head.dy - a * .015)..lineTo(head.dx + a * e, head.dy - a * .04)..close(), Paint()..color = const Color(0xFFF2A65A));
+        }
+    }
   }
 
   // ───────────────────────── 방마다 가구 ─────────────────────────
@@ -80,10 +209,11 @@ class HomeInteriorPainter extends CustomPainter {
     iso.box(canvas, .25, .3, 0, .5, .45, .006, top: lv >= 5 ? const Color(0xFFF3D3D8) : const Color(0xFFE8C08A), left: const Color(0xFFD9A9B0), right: const Color(0xFFCB9AA2));
     // TV 장 + TV (오른쪽 벽)
     iso.box(canvas, .3, .02, 0, .42, .1, .12, top: const Color(0xFFFFFFFF), left: const Color(0xFFE7E2DA), right: const Color(0xFFD6CFC3));
-    final tvGlow = .75 + .25 * math.sin(t * math.pi * 6);
+    // TV 화면은 깜빡이지 않는 고정 화면 (하늘과 언덕 풍경)
     canvas.drawPath(iso.quad([iso.p(.33, .01, .16), iso.p(.69, .01, .16), iso.p(.69, .01, .4), iso.p(.33, .01, .4)]), Paint()..color = const Color(0xFF26313D));
     canvas.drawPath(iso.quad([iso.p(.35, .01, .18), iso.p(.67, .01, .18), iso.p(.67, .01, .38), iso.p(.35, .01, .38)]),
-        Paint()..shader = LinearGradient(colors: [const Color(0xFF7FD3F5).withValues(alpha: tvGlow), const Color(0xFF4A8BD6).withValues(alpha: tvGlow)]).createShader(Rect.fromPoints(iso.p(.35, .01, .38), iso.p(.67, .01, .18))));
+        Paint()..shader = const LinearGradient(colors: [Color(0xFF7FD3F5), Color(0xFF4A8BD6)]).createShader(Rect.fromPoints(iso.p(.35, .01, .38), iso.p(.67, .01, .18))));
+    canvas.drawPath(iso.quad([iso.p(.35, .01, .18), iso.p(.67, .01, .18), iso.p(.67, .01, .24), iso.p(.35, .01, .27)]), Paint()..color = const Color(0xFF7CC35A));
     // 소파 (왼쪽 앞, 등받이 + 앉는 자리 + 팔걸이)
     final sofa = lv >= 5 ? const Color(0xFFF7F3EC) : const Color(0xFF8BB8D8);
     final sofaS = Color.lerp(sofa, Colors.black, .12)!, sofaR = Color.lerp(sofa, Colors.black, .2)!;
@@ -162,7 +292,7 @@ class HomeInteriorPainter extends CustomPainter {
           ..quadraticBezierTo(lamp.dx, lamp.dy - iso.a * .04, lamp.dx + iso.a * .05, lamp.dy + iso.a * .04)
           ..close(),
         Paint()..color = const Color(0xFFFFC93C));
-    canvas.drawCircle(lamp + Offset(0, iso.a * .05), iso.a * .05, Paint()..color = const Color(0xFFFFE07A).withValues(alpha: .25 + .1 * math.sin(t * math.pi * 4)));
+    canvas.drawCircle(lamp + Offset(0, iso.a * .05), iso.a * .05, Paint()..color = const Color(0xFFFFE07A).withValues(alpha: .3));
     if (lv >= 3) _plant(canvas, iso, .1, .9, .22, t);
   }
 
@@ -189,7 +319,7 @@ class HomeInteriorPainter extends CustomPainter {
           ..lineTo(lamp.dx - iso.a * .022, lamp.dy - iso.a * .05)
           ..close(),
         Paint()..color = const Color(0xFFFFE9A8));
-    canvas.drawCircle(lamp - Offset(0, iso.a * .02), iso.a * .06, Paint()..color = const Color(0xFFFFE07A).withValues(alpha: .2 + .08 * math.sin(t * math.pi * 2)));
+    canvas.drawCircle(lamp - Offset(0, iso.a * .02), iso.a * .06, Paint()..color = const Color(0xFFFFE07A).withValues(alpha: .24));
     // 옷장 (왼쪽 벽, 2단계부터 두 칸짜리)
     iso.box(canvas, .02, .55, 0, .12, lv >= 2 ? .35 : .22, .56, top: const Color(0xFFF2E3C9), left: const Color(0xFFE2CFAE), right: const Color(0xFFD1BC98));
     // 화분
@@ -280,7 +410,7 @@ class HomeInteriorPainter extends CustomPainter {
     final foot = iso.p(x, y, 0), head = iso.p(x, y, .55);
     canvas.drawOval(Rect.fromCenter(center: foot, width: iso.a * .08, height: iso.a * .03), Paint()..color = const Color(0xFF5E5E5E));
     canvas.drawLine(foot, head, Paint()..strokeWidth = math.max(1, iso.a * .008)..color = const Color(0xFF5E5E5E));
-    canvas.drawCircle(head, iso.a * .1, Paint()..color = const Color(0xFFFFE07A).withValues(alpha: .18 + .08 * math.sin(t * math.pi * 2)));
+    canvas.drawCircle(head, iso.a * .1, Paint()..color = const Color(0xFFFFE07A).withValues(alpha: .22));
     canvas.drawPath(
         Path()
           ..moveTo(head.dx - iso.a * .045, head.dy + iso.a * .03)
@@ -304,7 +434,18 @@ class HomeInteriorPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(HomeInteriorPainter old) => old.stage != stage || old.room != room || old.anim != anim;
+  bool shouldRepaint(HomeInteriorPainter old) => old.stage != stage || old.room != room || old.anim != anim || !identical(old.decor, decor) || old.selected != selected;
+}
+
+/// 방 그림 크기 [size]에서 바닥 좌표(x, y)가 화면 어디에 그려지는지
+Offset interiorFloorToScreen(Size size, double x, double y) => _Iso(size).p(x, y, 0);
+
+/// 화면의 [o] 지점이 방 바닥의 어느 좌표(x, y)인지 (꾸미기에서 가구를 끌어 옮길 때)
+(double, double) interiorScreenToFloor(Size size, Offset o) {
+  final iso = _Iso(size);
+  final u = (o.dx - iso.cx) / iso.a; // x - y
+  final v = 2 * (o.dy - iso.oy) / iso.a; // x + y
+  return ((u + v) / 2, (v - u) / 2);
 }
 
 /// 비스듬히 내려다보는 방 좌표: x(오른쪽 벽 방향 0~1), y(왼쪽 벽 방향 0~1), z(높이 0~1).

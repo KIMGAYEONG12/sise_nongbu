@@ -9,6 +9,7 @@ import '../ai/ai_agent.dart';
 import '../ai/gemini_llm.dart';
 import '../ai/rule_llm.dart';
 import '../core/game_rules.dart';
+import '../core/home_decor_rules.dart';
 import '../core/price_alert.dart';
 import '../core/progress_rules.dart';
 import '../models/models.dart';
@@ -369,6 +370,11 @@ class FarmViewModel {
   Future<int> donate(int amount) => _repo.donateToFund(amount);
   Future<void> claimFund(FundMilestone m) => _repo.claimFundMilestone(m);
   Future<bool> gameReward(int score) => _repo.gameReward(score);
+
+  // 집 꾸미기·아파트 편의 시설
+  Future<void> saveRoomDecor(String roomKey, List<DecorPlacement> list) => _repo.saveRoomDecor(roomKey, list);
+  /// 편의 시설을 이용하고 받은 것을 돌려준다 (시설마다 하루 한 번)
+  Future<FacilityPerk> useFacility(int index, int stage) => _repo.useFacility(index, stage);
 }
 
 final farmViewModelProvider = Provider((ref) => FarmViewModel(ref));

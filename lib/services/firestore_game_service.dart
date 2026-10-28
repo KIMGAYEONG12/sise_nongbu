@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../core/game_rules.dart';
+import '../core/home_decor_rules.dart';
 import '../core/progress_rules.dart';
 import '../core/korean.dart';
 import '../models/models.dart';
@@ -618,6 +619,36 @@ class FirestoreGameService {
           'points': FieldValue.increment(m.points),
           'updatedAt': FieldValue.serverTimestamp(),
         });
+      });
+
+  // ───────────────────────── 집 꾸미기·편의 시설 ─────────────────────────
+
+  /// 한 방([roomKey])에 놓은 가구를 통째로 저장한다 (최대 [maxDecorPerRoom]개).
+  Future<void> saveRoomDecor(String roomKey, List<DecorPlacement> list) => _user.update({
+        'homeDecor.$roomKey': [for (final p in list.take(maxDecorPerRoom)) p.toMap()],
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+  /// 아파트 편의 시설을 이용한다: 시설마다 하루(한국 날짜) 한 번 아이템·경험치·캐시를 받는다. 받은 것을 돌려준다.
+  Future<FacilityPerk> useFacility(int index, int stage, {DateTime? now}) => _tx<FacilityPerk>((tx) async {
+        final t = now ?? DateTime.now();
+        if (!canUseFacility(stage, index)) throw StateError('아직 이용할 수 없는 시설이에요');
+        final u = (await tx.get(_user)).data()!;
+        final tag = dayTag(t);
+        final cur = _asMap(u['facilityDaily']);
+        if (periodClaimed(cur, tag).contains(facilityId(index))) throw StateError('오늘은 이미 이용했어요. 내일 다시 와 주세요');
+        final perk = facilityPerks[index];
+        final items = _asMap(u['items']) ?? {};
+        tx.update(_user, {
+          'facilityDaily': markClaimed(cur, tag, facilityId(index)),
+          if (perk.water > 0) 'items.$itemWater': _int(items[itemWater]) + perk.water,
+          if (perk.fertilizer > 0) 'items.$itemFertilizer': _int(items[itemFertilizer]) + perk.fertilizer,
+          if (perk.booster > 0) 'items.$itemBooster': _int(items[itemBooster]) + perk.booster,
+          if (perk.exp > 0) 'exp': _int(u['exp']) + perk.exp,
+          if (perk.points > 0) 'points': FieldValue.increment(perk.points),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        return perk;
       });
 
   // ───────────────────────── 작물 매칭·고객센터 ─────────────────────────

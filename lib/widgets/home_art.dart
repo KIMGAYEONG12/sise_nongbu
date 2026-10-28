@@ -717,3 +717,69 @@ class HomeSceneryPainter extends CustomPainter {
   @override
   bool shouldRepaint(HomeSceneryPainter old) => old.apartment != apartment || old.anim != anim;
 }
+
+/// 아파트 둘러보기 그림 속 편의 시설: 단계가 오를 때마다 하나씩 실제로 나타난다
+/// (단지 카페 · 어린이 놀이터 · 피트니스 센터 · 옥상 정원 · 루프탑 수영장 · 스카이 전망대). 모두 코드로 그린다.
+class HomeFacilitiesPainter extends CustomPainter {
+  HomeFacilitiesPainter({required this.count, this.anim}) : super(repaint: anim);
+  final int count;
+  final Animation<double>? anim;
+
+  /// 시설마다 놓는 자리 (그림 가로·세로 비율): 건물 양옆 앞마당
+  static const slots = <Offset>[Offset(.1, .9), Offset(.9, .9), Offset(.1, .7), Offset(.9, .7), Offset(.11, .5), Offset(.89, .48)];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final t = anim?.value ?? 0.0;
+    final s = size.width * .085; // 시설 하나의 크기
+    for (var i = 0; i < count && i < slots.length; i++) {
+      final c = Offset(slots[i].dx * size.width, slots[i].dy * size.height);
+      // 잔디 받침
+      canvas.drawOval(Rect.fromCenter(center: c + Offset(0, s * .45), width: s * 2.1, height: s * .7), Paint()..color = const Color(0xFF8CCB64));
+      switch (i) {
+        case 0: // 단지 카페: 파라솔 + 테이블
+          canvas.drawRect(Rect.fromLTWH(c.dx - s * .03, c.dy - s * .55, s * .06, s * .95), Paint()..color = const Color(0xFF8A7A6A));
+          canvas.drawPath(Path()..moveTo(c.dx - s * .75, c.dy - s * .45)..quadraticBezierTo(c.dx, c.dy - s * 1.15, c.dx + s * .75, c.dy - s * .45)..close(), Paint()..color = const Color(0xFFE5513F));
+          canvas.drawPath(Path()..moveTo(c.dx - s * .25, c.dy - s * .5)..quadraticBezierTo(c.dx, c.dy - s * 1.1, c.dx + s * .25, c.dy - s * .5)..close(), Paint()..color = Colors.white);
+          canvas.drawOval(Rect.fromCenter(center: c + Offset(0, s * .05), width: s * .9, height: s * .25), Paint()..color = Colors.white);
+          canvas.drawCircle(c + Offset(s * .15, -s * .02), s * .07, Paint()..color = const Color(0xFF8A5530));
+        case 1: // 어린이 놀이터: 미끄럼틀
+          final st = Paint()..strokeWidth = s * .07..strokeCap = StrokeCap.round..color = const Color(0xFF4F7FD6);
+          canvas.drawLine(c + Offset(-s * .5, s * .35), c + Offset(-s * .5, -s * .5), st);
+          canvas.drawLine(c + Offset(-s * .2, s * .35), c + Offset(-s * .2, -s * .5), st);
+          canvas.drawRect(Rect.fromLTRB(c.dx - s * .55, c.dy - s * .55, c.dx - s * .15, c.dy - s * .45), Paint()..color = const Color(0xFFFFC93C));
+          canvas.drawPath(Path()..moveTo(c.dx - s * .15, c.dy - s * .5)..quadraticBezierTo(c.dx + s * .2, c.dy - s * .2, c.dx + s * .6, c.dy + s * .35), Paint()..style = PaintingStyle.stroke..strokeWidth = s * .14..strokeCap = StrokeCap.round..color = const Color(0xFFFF8FB1));
+        case 2: // 피트니스 센터: 작은 건물 + 아령 간판
+          canvas.drawRect(Rect.fromLTRB(c.dx - s * .6, c.dy - s * .5, c.dx + s * .6, c.dy + s * .35), Paint()..color = const Color(0xFFEDE7DC));
+          canvas.drawRect(Rect.fromLTRB(c.dx - s * .65, c.dy - s * .62, c.dx + s * .65, c.dy - s * .45), Paint()..color = const Color(0xFF4F7FD6));
+          canvas.drawRect(Rect.fromLTRB(c.dx - s * .45, c.dy - s * .3, c.dx + s * .45, c.dy + s * .05), Paint()..color = const Color(0xFF9FD4F2));
+          final db = Paint()..color = const Color(0xFF3D4A40);
+          canvas.drawLine(c + Offset(-s * .25, s * .2), c + Offset(s * .25, s * .2), db..strokeWidth = s * .05);
+          canvas.drawRect(Rect.fromCenter(center: c + Offset(-s * .28, s * .2), width: s * .1, height: s * .2), db);
+          canvas.drawRect(Rect.fromCenter(center: c + Offset(s * .28, s * .2), width: s * .1, height: s * .2), db);
+        case 3: // 옥상 정원: 나무 화단
+          canvas.drawRect(Rect.fromLTRB(c.dx - s * .7, c.dy, c.dx + s * .7, c.dy + s * .3), Paint()..color = const Color(0xFFB27546));
+          for (final k in [-.4, 0.0, .4]) {
+            final sway = math.sin((t + k) * math.pi * 2) * s * .03;
+            canvas.drawCircle(c + Offset(s * k + sway, -s * .2), s * .28, Paint()..color = const Color(0xFF3E9E4A));
+            canvas.drawCircle(c + Offset(s * k + sway - s * .08, -s * .28), s * .12, Paint()..color = const Color(0xFF7CCB5B));
+          }
+          canvas.drawCircle(c + Offset(s * .2, -s * .1), s * .06, Paint()..color = const Color(0xFFFF8FB1));
+        case 4: // 루프탑 수영장: 파란 물 + 물결
+          final pool = RRect.fromRectAndRadius(Rect.fromCenter(center: c, width: s * 1.5, height: s * .7), Radius.circular(s * .2));
+          canvas.drawRRect(pool.inflate(s * .06), Paint()..color = Colors.white);
+          canvas.drawRRect(pool, Paint()..color = const Color(0xFF4DB8F0));
+          final wave = (t * 2) % 1.0;
+          canvas.drawLine(c + Offset(-s * .5 + wave * s * .2, -s * .05), c + Offset(-s * .1 + wave * s * .2, -s * .05), Paint()..strokeWidth = s * .04..strokeCap = StrokeCap.round..color = Colors.white.withValues(alpha: .8));
+          canvas.drawLine(c + Offset(s * .05 + wave * s * .2, s * .12), c + Offset(s * .4 + wave * s * .2, s * .12), Paint()..strokeWidth = s * .04..strokeCap = StrokeCap.round..color = Colors.white.withValues(alpha: .8));
+        case 5: // 스카이 전망대: 탑 + 망원경
+          canvas.drawPath(Path()..moveTo(c.dx - s * .3, c.dy + s * .35)..lineTo(c.dx - s * .12, c.dy - s * .55)..lineTo(c.dx + s * .12, c.dy - s * .55)..lineTo(c.dx + s * .3, c.dy + s * .35)..close(), Paint()..color = const Color(0xFFDCEBFA));
+          canvas.drawOval(Rect.fromCenter(center: c + Offset(0, -s * .62), width: s * .7, height: s * .25), Paint()..color = const Color(0xFF3C7FC8));
+          canvas.drawLine(c + Offset(-s * .05, -s * .72), c + Offset(s * .35, -s * .95), Paint()..strokeWidth = s * .1..strokeCap = StrokeCap.round..color = const Color(0xFF3D4A40));
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(HomeFacilitiesPainter old) => old.count != count || old.anim != anim;
+}

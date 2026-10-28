@@ -191,7 +191,7 @@ class _MansionTourPageState extends ConsumerState<MansionTourPage> {
                   icon: const Icon(Icons.meeting_room_rounded, size: 22),
                   height: 52,
                   // 저택 안은 유리 온실까지 있는 넓은 집 안 그림으로 보여 준다
-                  onPressed: unlocked ? () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => HomeInteriorPage(stage: 4, title: name, tips: _roomTips))) : null,
+                  onPressed: unlocked ? () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => HomeInteriorPage(stage: 4, title: name, tips: _roomTips, mansion: true))) : null,
                 ),
               ]),
             ),
