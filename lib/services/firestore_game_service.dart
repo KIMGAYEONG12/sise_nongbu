@@ -417,13 +417,14 @@ class FirestoreGameService {
         tx.update(_user, {'money': money - cost, 'warehouseLevel': lv + 1, 'updatedAt': FieldValue.serverTimestamp()});
       });
 
-  /// 하우스를 한 채 더 짓는다 (몇 채든 가능하고, 지을수록 비용이 늘어난다).
+  /// 하우스를 한 채 더 짓는다 (최대 [maxGreenhouses]채, 한 채 값은 늘 같다).
   /// 지금 자라고 있는 작물도 바로 빨라진다: 남은 성장 시간이 새 하우스 배율만큼 줄어든다.
   /// 시간이 바뀐 밭의 (칸 번호, 작물, 새 수확 시각)을 돌려준다 (알림을 다시 예약하는 데 쓴다).
   Future<List<(int, CropSpec, DateTime)>> buyGreenhouse({DateTime? now}) => _tx<List<(int, CropSpec, DateTime)>>((tx) async {
         final t = now ?? DateTime.now();
         final u = (await tx.get(_user)).data()!;
         final owned = UserData(u).greenhouses;
+        if (owned >= maxGreenhouses) throw StateError('하우스는 최대 $maxGreenhouses채까지 지을 수 있어요');
         final cost = greenhouseCostFor(owned);
         final money = _int(u['money']);
         if (money < cost) throw StateError('포인트가 부족합니다');

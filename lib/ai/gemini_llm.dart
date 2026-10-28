@@ -20,7 +20,7 @@ class GeminiLlm implements Llm {
   /// 2026-10-16 측정: gemini-2.5-flash는 약 1초에 답하고, gemini-flash-latest는 계속 503(바쁨)이라 뒤로 뺐다.
   static const defaultModels = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest'];
 
-  static const _system = '너는 실제 도매시장 경매 시세로 움직이는 농장 게임 "하루 농장:시세 농부 게임"의 친절한 농사 도우미야. '
+  static const _system = '너는 실제 도매시장 경매 시세로 움직이는 농장 게임 "하루 농장: 시세 농부 게임"의 친절한 농사 도우미야. '
       '아래 [현재 상황]과 [게임 안내]를 근거로 짧고 쉬운 한국어(3문장 이내)로 답해. 질문과 관계없는 이야기는 하지 마. '
       '모르면 모른다고 말해. 마크다운 기호(**, #, *)는 쓰지 말고 그냥 문장으로만 답해. '
       '사진이 함께 오면 사진 속 작물·잎·열매의 상태나 병해충을 보고 농사에 도움이 되게 설명해 줘.';

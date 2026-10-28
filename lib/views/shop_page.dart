@@ -68,10 +68,12 @@ class _ShopPageState extends ConsumerState<ShopPage> {
                 const SectionTitle('농장 시설'),
                 _row('🟫', '밭 넓히기', plots.length >= maxPlots ? '최대 $maxPlots칸까지 넓혔어요' : '${plots.length}칸 → ${plots.length + plotExpandStep}칸 (최대 $maxPlots칸)',
                     _buyBtn(expandCost == null ? '최대' : won(expandCost), expandCost == null || user.money < expandCost ? null : () => runGuarded(context, vm.expandPlots, ok: '밭을 넓혔어요 🌾'))),
-                // 하우스: 몇 채든 계속 지을 수 있고, 지을 때마다 성장 시간이 줄어든다 (5채까지 10%씩, 그 뒤로도 조금씩)
-                _row('🏠', '하우스 (${user.greenhouses}채)',
-                    '지을 때마다 성장 시간이 줄어요 (지금 ${(100 - greenhouseFactor(user.greenhouses) * 100).round()}% 단축 → ${(100 - greenhouseFactor(user.greenhouses + 1) * 100).round()}%) · 지금 자라는 작물에도 바로 적용',
-                    _buyBtn(won(ghCost), user.money < ghCost ? null : () => runGuarded(context, vm.buyGreenhouse, ok: '하우스를 지었어요 🏠'))),
+                // 하우스: 최대 320채, 지을 때마다 성장 시간이 줄어든다 (5채까지 10%씩, 10채 70%, 320채 95%)
+                _row('🏠', '하우스 (${user.greenhouses}채 / $maxGreenhouses채)',
+                    user.greenhouses >= maxGreenhouses
+                        ? '최대 $maxGreenhouses채까지 다 지었어요 (성장 시간 ${(100 - greenhouseFactor(user.greenhouses) * 100).round()}% 단축)'
+                        : '지을 때마다 성장 시간이 줄어요 (지금 ${(100 - greenhouseFactor(user.greenhouses) * 100).round()}% 단축 → ${(100 - greenhouseFactor(user.greenhouses + 1) * 100).round()}%) · 지금 자라는 작물에도 바로 적용',
+                    _buyBtn(user.greenhouses >= maxGreenhouses ? '최대' : won(ghCost), user.greenhouses >= maxGreenhouses || user.money < ghCost ? null : () => runGuarded(context, vm.buyGreenhouse, ok: '하우스를 지었어요 🏠'))),
                 _row('📦', '창고 넓히기', user.warehouseLevel >= maxWarehouseLevel ? '최대로 넓혔어요 (${user.warehouseCapKg}kg)' : '${user.warehouseCapKg}kg → ${user.warehouseCapKg + warehouseStepKg}kg',
                     _buyBtn(user.warehouseLevel >= maxWarehouseLevel ? '최대' : won(warehouseCost(user.warehouseLevel)), user.warehouseLevel >= maxWarehouseLevel || user.money < warehouseCost(user.warehouseLevel) ? null : () => runGuarded(context, vm.expandWarehouse, ok: '창고를 넓혔어요 📦'))),
                 ],

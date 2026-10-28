@@ -38,6 +38,13 @@ void main() {
     expect(homeName(5), '기본 아파트');
     expect(homeName(10), '스카이 아파트');
     expect(homeName(12), '스카이 아파트 +2');
+    // 지은 채 수를 주면 +숫자가 채 수와 같다
+    expect(homeName(325, houses: 320), '스카이 아파트 +320');
+    expect(homeUnit(3), '채');
+    expect(homeUnit(5), '세대');
+    expect(homeHouseholds(320), 320);
+    expect(homeHousesNeeded(10, 5), 5);
+    expect(homeHousesNeeded(3, 5), 1);
     expect(homeBadge(3), '3레벨 하우스');
     expect(homeBadge(5), '아파트 Lv.1');
     expect(homeBadge(10), '아파트 Lv.6');

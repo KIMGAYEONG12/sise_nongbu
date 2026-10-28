@@ -36,7 +36,7 @@ flutter build apk --release --target-platform android-arm64 --dart-define-from-f
 3. `node tools/upload_play.mjs "출시 노트 한 줄" "두 번째 줄"` → 내부 테스트 트랙에 바로 출시, 탭의 플레이 스토어에서 업데이트
 - 필요한 파일(깃허브에 없음, USB로 옮김): `android/key.properties`, `android/app/upload-keystore.jks`(업로드 키), `android/play-service-account.json`(업로드 전용 서비스 계정 `play-upload@sise-nongbu.iam.gserviceaccount.com` 키, Play Console에서 이 앱의 '테스트 트랙 출시' 권한만 있음)
 - 처음 한 번 `cd tools && npm install --no-save googleapis@144`
-- 패키지 이름 `com.sise_nongbu`, 앱 이름 "하루 농장:시세 농부 게임". 플레이 앱 서명 키 SHA-1과 업로드 키 SHA-1은 Firebase에 등록돼 있다.
+- 패키지 이름 `com.sise_nongbu`, 앱 이름 "하루 농장: 시세 농부 게임". 플레이 앱 서명 키 SHA-1과 업로드 키 SHA-1은 Firebase에 등록돼 있다.
 
 ## 학교 PC에서 처음 할 일
 1. 이 폴더를 받는다: `git clone https://github.com/KIMGAYEONG12/sise_nongbu.git` (비공개 저장소)

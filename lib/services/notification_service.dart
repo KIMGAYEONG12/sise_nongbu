@@ -21,7 +21,7 @@ class NotificationService {
     await FirebaseMessaging.instance.requestPermission();
     // 포그라운드 FCM은 시스템이 알림을 띄우지 않으므로 로컬 알림으로 표시
     FirebaseMessaging.onMessage.listen((m) => _local.show(
-        m.hashCode, m.notification?.title ?? '시세 농부', m.notification?.body ?? '', _details));
+        m.hashCode, m.notification?.title ?? '하루 농장', m.notification?.body ?? '', _details));
     // FCM 테스트 메시지용 토큰은 화면 대신 개발 중 터미널(flutter run)에만 찍는다
     if (kDebugMode) {
       fcmToken().then((t) => debugPrint('FCM 토큰: $t')).catchError((Object e) => debugPrint('FCM 토큰 오류: $e'));

@@ -275,7 +275,7 @@ class _LevelUpDialogState extends State<_LevelUpDialog> with SingleTickerProvide
       Expanded(
         child: newTier
             // 농장에 보이는 하우스 이름표와 똑같은 이름 (하우스가 없으면 모양 이름)
-            ? _rewardCard('🏠', homeName(greenhouseStage(widget.to, widget.houses > 0 ? widget.houses : 1)), sub: '새 하우스 모양')
+            ? _rewardCard('🏠', homeName(greenhouseStage(widget.to, widget.houses > 0 ? widget.houses : 1), houses: widget.houses > 0 ? widget.houses : 1), sub: '새 하우스 모양')
             // 이 레벨의 보상(포인트·씨앗)은 전에 이미 받았을 때: 씨앗 그림 대신 이유를 알려 준다 (레벨이 내려갔다가 다시 오른 경우 등)
             : _rewardCard('🎁', '보상은 이미 받았어요', sub: '다음 레벨까지 경험치 ${widget.now.need - widget.now.exp}'),
       ),

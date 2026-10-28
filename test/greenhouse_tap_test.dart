@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sise_nongbu/core/progress_rules.dart' show maxGreenhouses;
 import 'package:sise_nongbu/models/models.dart';
 import 'package:sise_nongbu/services/weather_service.dart';
 import 'package:sise_nongbu/viewmodels/view_models.dart';
@@ -50,7 +51,7 @@ void main() {
     await tester.tap(house);
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('지은 하우스'), findsOneWidget);
-    expect(find.text('2채'), findsOneWidget);
+    expect(find.text('2채 / 최대 $maxGreenhouses채'), findsOneWidget);
     expect(find.text('성장 시간 단축'), findsOneWidget);
     expect(find.textContaining('하우스 더 짓기'), findsOneWidget);
     expect(tester.takeException(), isNull);

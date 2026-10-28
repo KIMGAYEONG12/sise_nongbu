@@ -103,8 +103,12 @@ class _HomeTourPageState extends ConsumerState<HomeTourPage> with TickerProvider
     final showStage = has && view == myLv ? stage : view; // 지금 내 단계면 "+n"까지 그대로
     final unlocked = has && view <= myLv;
     // 이 단계가 되려면 하우스가 몇 채 필요한지 (단계 = 지은 하우스 + 레벨로 오른 모양 단계)
-    final need = math.max(1, view - greenhouseTier(level));
+    final tier = greenhouseTier(level);
+    final need = homeHousesNeeded(view, tier);
     final more = math.max(0, need - owned);
+    final full = owned >= maxGreenhouses;
+    // 지금 내 단계를 보고 있으면 지은 채 수, 미리보기면 그 단계에 필요한 채 수
+    final houses = has && view == myLv ? owned : need;
     final cost = greenhouseCostFor(owned);
     final cut = (100 - greenhouseFactor(owned) * 100).round();
     final facilities = homeFacilitiesOf(showStage);
@@ -178,7 +182,7 @@ class _HomeTourPageState extends ConsumerState<HomeTourPage> with TickerProvider
                 // ── 단계 목록: 하우스 1~4 → 아파트 1~6 ──
                 const Padding(padding: EdgeInsets.only(left: 4, bottom: 8), child: Text('레벨별 변화', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.ink))),
                 SizedBox(
-                  height: 122,
+                  height: 136,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: homeLevels.length,
@@ -210,6 +214,8 @@ class _HomeTourPageState extends ConsumerState<HomeTourPage> with TickerProvider
                               ]),
                             ),
                             Text(homeBadge(lv), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: open ? AppColors.ink : AppColors.sub)),
+                            // 이 단계에 필요한 하우스 채 수 (아파트는 세대로)
+                            Text('${homeHousesNeeded(lv, tier)}${homeUnit(lv)}부터', maxLines: 1, style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Color(0xFF8A6A2A))),
                           ]),
                         ),
                       );
@@ -222,11 +228,17 @@ class _HomeTourPageState extends ConsumerState<HomeTourPage> with TickerProvider
                   color: Colors.white,
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                    Text(homeName(showStage), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.ink)),
+                    Text(homeName(showStage, houses: houses), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.ink)),
                     const SizedBox(height: 2),
                     KoText(homeDesc(showStage), style: const TextStyle(fontSize: 13, color: AppColors.sub, fontWeight: FontWeight.w600)),
                     const Divider(height: 22, color: AppColors.line),
-                    _line('지은 하우스', '$owned채'),
+                    _line('지은 하우스', '$owned채 / 최대 $maxGreenhouses채'),
+                    const SizedBox(height: 6),
+                    _line('이 단계에 필요한 하우스', '$need채'),
+                    if (apt) ...[
+                      const SizedBox(height: 6),
+                      _line('아파트 세대 수', '${homeHouseholds(houses)}세대'),
+                    ],
                     const SizedBox(height: 6),
                     _line('작물 성장 시간', has ? '$cut% 단축' : '아직 없음'),
                     const SizedBox(height: 6),
@@ -251,21 +263,21 @@ class _HomeTourPageState extends ConsumerState<HomeTourPage> with TickerProvider
                   label: unlocked ? '${apt ? '아파트' : '하우스'} 안으로 들어가기' : (more > 0 ? '하우스를 $more채 더 지으면 열려요' : '레벨을 올리면 열려요'),
                   icon: const Icon(Icons.meeting_room_rounded, size: 22),
                   height: 52,
-                  onPressed: unlocked ? () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => HomeInteriorPage(stage: showStage))) : null,
+                  onPressed: unlocked ? () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => HomeInteriorPage(stage: showStage, title: homeName(showStage, houses: houses)))) : null,
                 ),
                 const SizedBox(height: 10),
                 GreenButton(
-                  label: '하우스 ${has ? '더 ' : ''}짓기 ${won(cost)}',
+                  label: full ? '하우스를 다 지었어요 ($maxGreenhouses채)' : '하우스 ${has ? '더 ' : ''}짓기 ${won(cost)}',
                   outlined: true,
                   icon: const CoinIcon(size: 20),
-                  onPressed: user.money < cost
+                  onPressed: full || user.money < cost
                       ? null
                       : () async {
                           final ok = await runGuarded(context, ref.read(farmViewModelProvider).buyGreenhouse, ok: '하우스를 지었어요 🏠 한 단계 커졌어요!');
                           if (ok && mounted) setState(() => _preview = null);
                         },
                 ),
-                if (user.money < cost) const Padding(padding: EdgeInsets.only(top: 6), child: Center(child: Text('포인트(P)가 부족합니다', style: TextStyle(fontSize: 12.5, color: AppColors.sub)))),
+                if (!full && user.money < cost) const Padding(padding: EdgeInsets.only(top: 6), child: Center(child: Text('포인트(P)가 부족합니다', style: TextStyle(fontSize: 12.5, color: AppColors.sub)))),
               ]),
             ),
           ]),
@@ -283,8 +295,14 @@ class _HomeTourPageState extends ConsumerState<HomeTourPage> with TickerProvider
 
 /// 집 안: 방 탭(거실·주방·침실·발코니·온실)을 골라 들어가 보고, 손가락으로 확대해 구석구석 둘러본다.
 class HomeInteriorPage extends StatefulWidget {
-  const HomeInteriorPage({super.key, required this.stage});
+  const HomeInteriorPage({super.key, required this.stage, this.title, this.tips});
   final int stage;
+
+  /// 위 제목에 쓸 집 이름 (없으면 단계 이름). 저택에서 들어올 때는 저택 이름을 준다.
+  final String? title;
+
+  /// 방마다 보여 줄 한 줄 설명 (없으면 기본 설명)
+  final Map<HomeRoom, String>? tips;
   @override
   State<HomeInteriorPage> createState() => _HomeInteriorPageState();
 }
@@ -326,7 +344,7 @@ class _HomeInteriorPageState extends State<HomeInteriorPage> with SingleTickerPr
       body: GameBackground(
         child: SafeArea(
           child: Column(children: [
-            PageHeader(title: '${homeName(widget.stage)} 안', onBack: () => Navigator.of(context).pop()),
+            PageHeader(title: '${widget.title ?? homeName(widget.stage)} 안', onBack: () => Navigator.of(context).pop()),
             Padding(padding: const EdgeInsets.fromLTRB(16, 2, 16, 8), child: PillTabs(labels: [for (final r in rooms) homeRoomName(r)], index: _room.clamp(0, rooms.length - 1), onChanged: (i) => _go(i, rooms.length))),
             // 방 그림은 스크롤 목록 밖에 고정 (확대·이동 손가락 동작이 목록 스크롤과 부딪치지 않게)
             Padding(
@@ -373,7 +391,7 @@ class _HomeInteriorPageState extends State<HomeInteriorPage> with SingleTickerPr
                   child: Row(children: [
                     Text(_emoji(room), style: const TextStyle(fontSize: 28)),
                     const SizedBox(width: 12),
-                    Expanded(child: KoText(_roomTips[room] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink, height: 1.35))),
+                    Expanded(child: KoText(widget.tips?[room] ?? _roomTips[room] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink, height: 1.35))),
                   ]),
                 ),
                 const SizedBox(height: 6),

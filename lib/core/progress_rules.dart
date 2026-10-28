@@ -50,13 +50,46 @@ const farmHouseNames = <(int, String)>[
 bool isCastleLevel(int level) => level >= farmHouseNames.last.$1;
 
 /// [level]에 맞는 농장 큰 집 이름
-String farmHouseName(int level) {
-  var name = farmHouseNames.first.$2;
-  for (final h in farmHouseNames) {
-    if (level >= h.$1) name = h.$2;
+String farmHouseName(int level) => farmHouseNames[farmHouseIndex(level)].$2;
+
+/// [level]에 맞는 농장 큰 집 단계 (farmHouseNames의 위치, 0부터)
+int farmHouseIndex(int level) {
+  var idx = 0;
+  for (var i = 0; i < farmHouseNames.length; i++) {
+    if (level >= farmHouseNames[i].$1) idx = i;
   }
-  return name;
+  return idx;
 }
+
+/// 황금 농장 저택 단계인지 (이때 농장 그림 속 집이 금빛이 된다)
+bool isGoldenHouseStage(int index) => index == farmHouseNames.length - 2;
+bool isGoldenHouseLevel(int level) => isGoldenHouseStage(farmHouseIndex(level));
+
+/// 농장 큰 집 단계마다의 설명 (farmHouseNames와 같은 순서)
+const farmHouseDescs = [
+  '나무로 지은 작은 오두막, 농부의 첫 보금자리예요',
+  '따뜻한 벽난로가 있는 아늑한 농가예요',
+  '마당에 텃밭과 장독대가 있는 시골집이에요',
+  '아늑한 다락방이 생긴 멋진 농장 주택이에요',
+  '분수가 있는 넓은 정원과 테라스가 딸린 저택이에요',
+  '밤이면 지붕 위 천문대에서 별빛이 반짝이는 대저택이에요',
+  '지붕부터 벽까지 황금빛으로 빛나는 저택이에요',
+  '탑과 깃발이 휘날리는 전설의 성이에요',
+];
+
+/// 농장 큰 집 시설 (이모지, 이름). 단계가 오를 때마다 하나씩 늘어난다 (오두막은 없음).
+const farmHouseFeatures = <(String, String)>[
+  ('🔥', '벽난로'),
+  ('🪴', '텃밭 마당'),
+  ('🛏️', '다락방'),
+  ('⛲', '정원 분수'),
+  ('🔭', '별빛 천문대'),
+  ('👑', '황금 홀'),
+  ('🏰', '성탑 전망대'),
+];
+
+/// [index] 단계 집에 있는 시설
+List<(String, String)> farmHouseFeaturesOf(int index) => farmHouseFeatures.sublist(0, index.clamp(0, farmHouseFeatures.length));
 
 class LevelInfo {
   const LevelInfo(this.level, this.exp, this.need);
@@ -103,23 +136,27 @@ int? plotExpandCost(int currentPlots) {
 /// 잘못 심은 작물을 뽑을 때, 심은 지 이 시간 안이면 파종비(또는 씨앗)를 돌려준다.
 const uprootRefundWindow = Duration(minutes: 10);
 
-/// 하우스는 몇 채든 계속 지을 수 있다.
+/// 하우스는 최대 [maxGreenhouses]채까지 지을 수 있다.
 /// 처음 [greenhouseFullEffect]채까지는 한 채마다 성장 시간이 10%씩 줄고(5채 = 50% 단축),
-/// 그 뒤로는 한 채마다 4%씩 더 줄어서 10채에서 최대 70% 단축이 된다.
+/// 10채까지는 한 채마다 4%씩 더 줄어 70% 단축, 그 뒤로는 조금씩 더 줄어 320채에서 최대 95% 단축이 된다.
 const greenhouseFullEffect = 5;
 const greenhouseStep = 0.1;
 const greenhouseLateStep = 0.04;
-const greenhouseMaxCut = 0.7;
+const greenhouseMidCount = 10; // 70% 단축이 되는 채 수
+const greenhouseMidCut = 0.7;
+const greenhouseMaxCut = 0.95;
+const maxGreenhouses = 320;
 
 /// 하우스 한 채 값. 몇 채를 지어도(레벨이 올라도) 늘 10,000으로 같다.
 int greenhouseCostFor(int owned) => 10000;
 
-/// 하우스 [count]채가 있을 때 성장 시간 배율 (1.0 → 0.9 → … 5채 0.5 → 6채 0.46 … 10채 0.3, 그 뒤로는 0.3 그대로)
+/// 하우스 [count]채가 있을 때 성장 시간 배율 (1.0 → 0.9 → … 5채 0.5 → 6채 0.46 … 10채 0.3 → … 320채 0.05)
 double greenhouseFactor(int count) {
-  final n = count < 0 ? 0 : count;
+  final n = count < 0 ? 0 : (count > maxGreenhouses ? maxGreenhouses : count);
   if (n <= greenhouseFullEffect) return 1 - greenhouseStep * n;
-  final f = (1 - greenhouseStep * greenhouseFullEffect) - greenhouseLateStep * (n - greenhouseFullEffect);
-  return f < 1 - greenhouseMaxCut ? 1 - greenhouseMaxCut : f;
+  if (n <= greenhouseMidCount) return (1 - greenhouseStep * greenhouseFullEffect) - greenhouseLateStep * (n - greenhouseFullEffect);
+  final late = (greenhouseMaxCut - greenhouseMidCut) * (n - greenhouseMidCount) / (maxGreenhouses - greenhouseMidCount);
+  return 1 - greenhouseMidCut - late;
 }
 
 Duration applyGreenhouses(Duration d, int count) => count <= 0 ? d : Duration(milliseconds: (d.inMilliseconds * greenhouseFactor(count)).round());

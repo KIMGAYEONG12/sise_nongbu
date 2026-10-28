@@ -35,7 +35,7 @@ Future<void> main() async {
   runApp(ProviderScope(
     overrides: [notificationProvider.overrideWithValue(noti), prefsProvider.overrideWithValue(prefs)],
     child: MaterialApp(
-      title: '시세 농부',
+      title: '하루 농장: 시세 농부 게임',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       scrollBehavior: const NoStretchScrollBehavior(), // 끝까지 스크롤했을 때 화면이 고무줄처럼 늘어나지 않게

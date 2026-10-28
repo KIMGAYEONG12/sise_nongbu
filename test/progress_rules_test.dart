@@ -28,17 +28,20 @@ void main() {
     expect(plotExpandCost(24), isNull);
   });
 
-  test('하우스는 몇 채든 지을 수 있고 성장 시간을 줄인다', () {
+  test('하우스는 320채까지 지을 수 있고 성장 시간을 줄인다', () {
     expect(applyGreenhouses(const Duration(hours: 10), 1), const Duration(hours: 9));
     expect(applyGreenhouses(const Duration(hours: 10), 5), const Duration(hours: 5));
     expect(applyGreenhouses(const Duration(hours: 10), 0), const Duration(hours: 10));
-    // 5채를 넘겨도 계속 지을 수 있고, 한 채마다 4%씩 더 줄어서 10채에서 최대 70% 단축
+    // 5채를 넘기면 한 채마다 4%씩 더 줄어서 10채에서 70% 단축
     expect(greenhouseFactor(6), closeTo(0.46, 1e-9));
     expect(greenhouseFactor(6), lessThan(greenhouseFactor(5)));
     expect(greenhouseFactor(9), closeTo(0.34, 1e-9));
     expect(greenhouseFactor(10), closeTo(0.3, 1e-9));
-    expect(greenhouseFactor(11), closeTo(0.3, 1e-9));
-    expect(greenhouseFactor(1000), closeTo(0.3, 1e-9));
+    // 그 뒤로도 지을수록 조금씩 더 줄어 320채에서 최대 95% 단축
+    expect(greenhouseFactor(11), lessThan(greenhouseFactor(10)));
+    expect(greenhouseFactor(165), closeTo(0.175, 1e-9));
+    expect(greenhouseFactor(maxGreenhouses), closeTo(0.05, 1e-9));
+    expect(greenhouseFactor(1000), closeTo(0.05, 1e-9));
     expect(greenhouseFactor(-3), 1.0);
     // 하우스 값은 몇 채를 지어도 10,000으로 같다
     expect(greenhouseCostFor(0), 10000);

@@ -121,7 +121,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 const SizedBox(height: 6),
                 const Text('로그인', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: AppColors.ink)),
                 const SizedBox(height: 12),
-                const Text('시세 농부에 오신 것을 환영합니다!', style: TextStyle(fontSize: 14, color: Color(0xFF4A5A4E), fontWeight: FontWeight.w600)),
+                const Text('하루 농장에 오신 것을 환영합니다!', style: TextStyle(fontSize: 14, color: Color(0xFF4A5A4E), fontWeight: FontWeight.w600)),
                 const SizedBox(height: 26),
                 _Field(
                   child: TextField(

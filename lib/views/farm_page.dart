@@ -15,6 +15,7 @@ import '../widgets/scroll_hint.dart';
 import '../widgets/farm_castle.dart';
 import '../widgets/farm_life.dart';
 import '../widgets/farm_mailbox.dart';
+import '../widgets/farm_mansion.dart';
 import '../widgets/pond_fish.dart';
 import 'about_page.dart';
 import 'ai_assistant_page.dart';
@@ -23,6 +24,7 @@ import 'crop_growth_page.dart';
 import 'encyclopedia_page.dart';
 import 'fund_page.dart';
 import 'home_tour_page.dart';
+import 'mansion_tour_page.dart';
 import 'match_game_page.dart';
 import 'mission_page.dart';
 import 'news_page.dart';
@@ -142,6 +144,8 @@ class FarmPage extends ConsumerWidget {
             greenhouses: user.greenhouses,
             level: lv.level,
             onGreenhouse: () => _showGreenhouseSheet(context),
+            // 그림 속 큰 집(저택)을 누르면 저택 둘러보기
+            onMansion: () => _push(context, const MansionTourPage()),
             fishActive: ref.watch(shellIndexProvider) == 1,
             plots: ref.watch(plotsProvider).valueOrNull ?? const <Plot>[],
             // 새 버전이 나오면 농장 우체통에 편지가 온다. 누르면 편지 창 → 업데이트하기
@@ -216,7 +220,7 @@ class FarmPage extends ConsumerWidget {
 /// 시안의 농장 화면: 하늘 위 프로필·날씨 → 하단 탭 위까지 이어지는 농장 일러스트 전체(집·연못·밭).
 /// 그림은 시안처럼 아무것도 올리지 않고 그대로 보여 주고, 그림 속 밭을 누르면 작물 관리 화면으로 간다.
 class _FarmHero extends StatelessWidget {
-  const _FarmHero({required this.topInset, required this.header, required this.onField, required this.decor, required this.greenhouses, required this.level, required this.onGreenhouse, required this.fishActive, required this.plots, this.mailbox});
+  const _FarmHero({required this.topInset, required this.header, required this.onField, required this.decor, required this.greenhouses, required this.level, required this.onGreenhouse, required this.onMansion, required this.fishActive, required this.plots, this.mailbox});
   final double topInset;
   final Widget header;
   final VoidCallback onField;
@@ -230,6 +234,9 @@ class _FarmHero extends StatelessWidget {
 
   /// 농장의 하우스를 눌렀을 때 (하우스 정보·더 짓기 창을 연다)
   final VoidCallback onGreenhouse;
+
+  /// 농장 그림 속 큰 집(오두막~저택~성)을 눌렀을 때 (저택 둘러보기를 연다)
+  final VoidCallback onMansion;
 
   /// 농장 탭을 보고 있는지 (아니면 물고기 움직임을 멈춰 배터리·메모리를 아낀다)
   final bool fishActive;
@@ -253,9 +260,6 @@ class _FarmHero extends StatelessWidget {
   /// 아래 끝(566)이 갈색 밭이 시작되는 높이(약 590)보다 위라서 밭과 겹치지 않는다.
   /// 가로 160 : 세로 150으로 키 큰 집 모양 (예전 170×120은 옆으로 넓어서 납작해 보였다). 아래 끝(548)은 그대로.
   static const _house = Rect.fromLTWH(56, 424, 133, _propHeight);
-
-  /// Lv.90 전설의 농장 성을 그릴 자리 (그림 원본 픽셀): 그림 속 오두막(지붕·굴뚝·벽)을 다 덮도록 조금 넉넉하게
-  static const _castle = Rect.fromLTWH(10, 120, 410, 325);
 
   // 그림(farm_scene_gemini.jpg) 좌표 기준 크기 (실제 파일은 3배 고해상도 1728×2079)
   static const _srcW = 576.0, _srcH = 693.0;
@@ -351,9 +355,12 @@ class _FarmHero extends StatelessWidget {
           // Lv.90 전설의 농장 성: 그림 속 오두막 자리에 성을 덮어 그린다 (이름표가 성이면 집 그림도 성)
           if (isCastleLevel(level))
             Positioned.fromRect(
-              rect: Rect.fromLTWH(imgLeft + _castle.left * k, imgTop + _castle.top * k, _castle.width * k, _castle.height * k),
+              rect: Rect.fromLTWH(imgLeft + farmCastleRect.left * k, imgTop + farmCastleRect.top * k, farmCastleRect.width * k, farmCastleRect.height * k),
               child: const FarmCastle(),
             ),
+          // Lv.70 황금 농장 저택: 그림 속 집을 금빛으로 덧칠한다
+          if (isGoldenHouseLevel(level))
+            Positioned(left: imgLeft, top: imgTop, width: imgW, height: imgH, child: GoldenHouseLayer(k: k)),
           // 그림 윗가장자리를 가리는 구름 띠: 나무가 잘린 가장자리가 딱 끊겨 보이지 않고 하늘과 자연스럽게 이어져 보인다
           // 레벨이 오를수록 집이 조금씩 커진다 (최대 8%, 그림 속 집 둘레만 부드럽게 겹쳐 그린다)
           // (예전에는 레벨이 오르면 그림 속 집을 늘려 한 번 더 겹쳐 그렸는데, 늘린 가장자리가 흐릿하게 번져서 화질이 깨져 보여 뺐다. 하우스는 코드로 그려서 계속 커진다)
@@ -396,6 +403,11 @@ class _FarmHero extends StatelessWidget {
           ),
           // 프로필·날씨
           Positioned(left: 16, right: 6, top: topInset + 2, child: header),
+          // 그림 속 큰 집: 눌러서 저택 둘러보기로
+          Positioned.fromRect(
+            rect: Rect.fromLTRB(imgLeft + farmHouseTapRect.left * k, imgTop + farmHouseTapRect.top * k, imgLeft + farmHouseTapRect.right * k, imgTop + farmHouseTapRect.bottom * k),
+            child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: onMansion),
+          ),
           // 그림 속 밭: 눌러서 작물 관리로 (화면에는 아무것도 덧그리지 않는다)
           Positioned.fromRect(
             rect: field,
@@ -421,7 +433,7 @@ class _FarmHero extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                         decoration: BoxDecoration(color: Colors.white.withValues(alpha: .92), borderRadius: BorderRadius.circular(10), boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 3, offset: Offset(0, 1))]),
-                        child: Text('${isApartmentStage(stage) ? '🏢' : '🏠'} ${homeName(stage)}', maxLines: 1, style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFF7A3E1D))),
+                        child: Text('${isApartmentStage(stage) ? '🏢' : '🏠'} ${homeName(stage, houses: greenhouses)}', maxLines: 1, style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFF7A3E1D))),
                       ),
                     ),
                   ),
@@ -596,8 +608,9 @@ class _GreenhouseSheet extends ConsumerWidget {
     final cost = greenhouseCostFor(owned);
     final cut = (100 - greenhouseFactor(owned) * 100).round();
     final nextCut = (100 - greenhouseFactor(owned + 1) * 100).round();
-    // 하우스를 한 채 더 지으면 한 단계 커지고 이름이 바뀐다
-    final nextName = homeName(owned == 0 ? greenhouseStage(level, 1) : stage + 1);
+    final full = owned >= maxGreenhouses;
+    // 하우스를 한 채 더 지으면 한 단계 커지고 이름이 바뀐다 (이름의 +숫자는 지은 채 수와 같다)
+    final nextName = homeName(owned == 0 ? greenhouseStage(level, 1) : stage + 1, houses: owned + 1);
     return SafeArea(
       // 작은 화면에서도 넘치지 않게 스크롤된다
       child: SingleChildScrollView(
@@ -607,19 +620,25 @@ class _GreenhouseSheet extends ConsumerWidget {
           const SizedBox(height: 14),
           SizedBox(height: 170, child: AspectRatio(aspectRatio: 1, child: owned > 0 ? HomeBuildingView(stage: stage) : Opacity(opacity: .55, child: CustomPaint(painter: HomeBuildingPainter(stage: greenhouseStage(level, 1)))))),
           const SizedBox(height: 10),
-          Text(owned > 0 ? homeName(stage) : '아직 하우스가 없어요', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.ink)),
+          Text(owned > 0 ? homeName(stage, houses: owned) : '아직 하우스가 없어요', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.ink)),
           const SizedBox(height: 4),
-          KoText('하우스를 한 채 더 지으면 커지면서 ${withJosa(nextName, '으로', '로')} 바뀌어요', textAlign: TextAlign.center, style: const TextStyle(fontSize: 13.5, color: AppColors.sub, fontWeight: FontWeight.w600)),
+          KoText(full ? '하우스를 최대 $maxGreenhouses채까지 다 지었어요 🎉' : '하우스를 한 채 더 지으면 커지면서 ${withJosa(nextName, '으로', '로')} 바뀌어요', textAlign: TextAlign.center, style: const TextStyle(fontSize: 13.5, color: AppColors.sub, fontWeight: FontWeight.w600)),
           const SizedBox(height: 14),
           SoftCard(
             color: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Column(children: [
-              _line('지은 하우스', '$owned채'),
+              _line('지은 하우스', '$owned채 / 최대 $maxGreenhouses채'),
+              if (owned > 0 && isApartmentStage(stage)) ...[
+                const Divider(height: 16, color: AppColors.line),
+                _line('아파트 세대 수', '${homeHouseholds(owned)}세대'),
+              ],
               const Divider(height: 16, color: AppColors.line),
               _line('성장 시간 단축', '$cut%'),
-              const Divider(height: 16, color: AppColors.line),
-              _line('한 채 더 지으면', '$nextCut% 단축'),
+              if (!full) ...[
+                const Divider(height: 16, color: AppColors.line),
+                _line('한 채 더 지으면', '$nextCut% 단축'),
+              ],
             ]),
           ),
           const SizedBox(height: 6),
@@ -638,11 +657,11 @@ class _GreenhouseSheet extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
           GreenButton(
-            label: '하우스 더 짓기 ${won(cost)}',
+            label: full ? '하우스를 다 지었어요 ($maxGreenhouses채)' : '하우스 더 짓기 ${won(cost)}',
             icon: const CoinIcon(size: 20),
-            onPressed: user.money < cost ? null : () => runGuarded(context, ref.read(farmViewModelProvider).buyGreenhouse, ok: '하우스를 지었어요 🏠'),
+            onPressed: full || user.money < cost ? null : () => runGuarded(context, ref.read(farmViewModelProvider).buyGreenhouse, ok: '하우스를 지었어요 🏠'),
           ),
-          if (user.money < cost)
+          if (!full && user.money < cost)
             const Padding(padding: EdgeInsets.only(top: 6), child: Text('포인트가 부족합니다', style: TextStyle(fontSize: 12.5, color: AppColors.sub))),
         ]),
       ),

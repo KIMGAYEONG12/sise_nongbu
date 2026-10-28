@@ -3,6 +3,8 @@
 /// 작은 농장 하우스(1~4) → 아파트(5~10)로 커진다. 10을 넘으면 "스카이 아파트 +n"으로 계속 이어진다.
 library;
 
+import 'dart:math' as math;
+
 /// 하우스·아파트 한 단계 정보
 class HomeLevel {
   const HomeLevel(this.name, this.desc, {required this.apartment});
@@ -35,11 +37,21 @@ const firstApartmentLevel = 5;
 /// [stage]단계가 아파트 모양인지
 bool isApartmentStage(int stage) => homeLevels[homeLevelOf(stage) - 1].apartment;
 
-/// [stage]단계 이름. 10단계를 넘으면 "스카이 아파트 +1, +2 …"
-String homeName(int stage) {
+/// [stage]단계 이름. 10단계를 넘으면 "스카이 아파트 +n"이고, [houses]를 주면 n은 지은 하우스 채 수와 같다
+/// (320채면 "스카이 아파트 +320"). 없으면 10단계를 넘은 만큼.
+String homeName(int stage, {int? houses}) {
   final base = homeLevels[homeLevelOf(stage) - 1].name;
-  return stage > homeLevels.length ? '$base +${stage - homeLevels.length}' : base;
+  return stage > homeLevels.length ? '$base +${houses ?? stage - homeLevels.length}' : base;
 }
+
+/// [stage]단계까지 오르려면 하우스가 몇 채 필요한지 (단계 = 지은 하우스 + 레벨로 오른 모양 단계 [tier]).
+int homeHousesNeeded(int stage, int tier) => math.max(1, stage - tier);
+
+/// 집에 사는 세대 수: 하우스는 한 채에 한 세대라 지은 채 수와 같다 (아파트 320채 = 320세대).
+int homeHouseholds(int houses) => houses < 0 ? 0 : houses;
+
+/// 집 크기 단위: 하우스는 "채", 아파트는 "세대"
+String homeUnit(int stage) => isApartmentStage(stage) ? '세대' : '채';
 
 /// 이름표에 붙이는 짧은 단계 표시: 하우스는 "1레벨", 아파트는 "Lv.1"부터 다시 센다 (시안 표기)
 String homeBadge(int stage) {

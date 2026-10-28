@@ -100,8 +100,10 @@ class UserData {
   int get fundGiven => _i('fundGiven');
   /// 지은 하우스 수 (예전 데이터의 greenhouse: true 는 1채로 읽는다)
   int get greenhouses {
+    // 최대 [maxGreenhouses]채까지만 센다 (예전에 더 지은 계정도 320채로 보인다)
     final n = _i('greenhouses');
-    return n > 0 ? n : (raw['greenhouse'] == true ? 1 : 0);
+    final c = n > 0 ? n : (raw['greenhouse'] == true ? 1 : 0);
+    return c > maxGreenhouses ? maxGreenhouses : c;
   }
 
   bool get greenhouse => greenhouses > 0;

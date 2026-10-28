@@ -4,7 +4,7 @@
     <!-- AI 도우미: 음성으로 질문하기 (마이크) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application
-        android:label="하루 농장:시세 농부 게임"
+        android:label="하루 농장: 시세 농부 게임"
         android:name=".App"
         android:allowBackup="false"
         android:fullBackupContent="false"
